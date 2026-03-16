@@ -1,4 +1,4 @@
-const CACHE = 'kaizen-v1';
+const CACHE = 'kaizen-v2';
 const ASSETS = [
   './',
   './index.html',
