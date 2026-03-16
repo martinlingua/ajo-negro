@@ -298,12 +298,11 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 
 <!-- ══ TAB BALANCE ══ -->
 <div class="page" id="page-balance">
-  <div class="section-title">BALANCE MENSUAL
-    <button class="btn btn-outline btn-sm" onclick="balanceExport()">⬇ Descargar</button>
-  </div>
-  <div class="month-picker">
+  <div class="section-title">BALANCE MENSUAL</div>
+  <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:.8rem;">
     <span style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);">MES:</span>
-    <select id="balance-mes-filter" onchange="balanceRefresh()"></select>
+    <select id="balance-mes-filter" onchange="balanceRefresh()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:7px;padding:.38rem .7rem;color:var(--cream);font-family:'DM Mono',monospace;font-size:.8rem;outline:none;"></select>
+    <button class="btn btn-gold btn-sm" style="margin-left:auto;" onclick="balanceExport()">⬇ Descargar</button>
   </div>
 
   <!-- KPIs -->
@@ -949,25 +948,33 @@ function balanceRefresh(){
   const vm=S.ventas.filter(v=>v.fecha?.startsWith(mesVal)&&v.estado==='Cobrada');
   const ingresos=vm.reduce((a,v)=>a+v.total,0);
 
-  // ── Costos reales de lo vendido ──────────────────────────────
-  // Costo variable = suma de pcosto de cada producto vendido × cantidad vendida
-  // pcosto ya incluye los costos fijos prorrateados calculados al guardar el producto
+  // ── Costos ───────────────────────────────────────────────────
+  // Costo fijo  = total costos fijos del mes (completo)
+  // Costo var.  = Σ (costo variable unitario de cada producto × unidades vendidas)
+  // Costo total = Costo fijo + Costo variable
+
+  const totalFijosMes=S.costoFijos.reduce((a,f)=>a+f.monto,0);
+
+  // Costo variable: por cada línea vendida, costo variable del producto × cantidad
   let costoVarVendido=0;
-  let costoFijoVendido=0;
+  const detalleCostoVar={}; // para mostrar desglose por producto
   vm.forEach(v=>{
     const prod=S.productos.find(p=>p.id===v.producto_id);
-    if(prod){
-      // Split pcosto back into variable and fixed portions
-      const cv=calcCostoVar(prod.composicion||[]);
-      const cf=prod.pcosto-cv; // fijo prorrateado por unidad
-      costoVarVendido+=cv*v.cantidad;
-      costoFijoVendido+=cf*v.cantidad;
-    } else {
-      // Product deleted — use total/precio ratio as fallback
-      costoVarVendido+=v.total*0.6;
-    }
+    const cv=prod?calcCostoVar(prod.composicion||[]):0;
+    const subtotal=cv*v.cantidad;
+    costoVarVendido+=subtotal;
+    const k=v.producto_nombre||'?';
+    if(!detalleCostoVar[k]) detalleCostoVar[k]={cv,qty:0,subtotal:0};
+    detalleCostoVar[k].qty+=v.cantidad;
+    detalleCostoVar[k].subtotal+=subtotal;
   });
-  const costoTotalVendido=costoVarVendido+costoFijoVendido;
+
+  const costoFijoDeLoVendido=totalFijosMes;
+  const costoTotalVendido=costoVarVendido+costoFijoDeLoVendido;
+  const kgVendidosTotal=vm.reduce((a,v)=>{
+    const prod=S.productos.find(p=>p.id===v.producto_id);
+    return a+(prod?.gramos||0)*v.cantidad;
+  },0);
   const ganancia=ingresos-costoTotalVendido;
   const margen=ingresos>0?((ganancia/ingresos)*100):0;
 
@@ -975,7 +982,7 @@ function balanceRefresh(){
   document.getElementById('balance-kpis').innerHTML=`
     <div class="stat"><div class="s-lbl">Ingresos</div><div class="s-val c-green">${fmtMoney(ingresos)}</div><div class="s-sub">ventas cobradas</div></div>
     <div class="stat"><div class="s-lbl">Costo variable</div><div class="s-val c-warn">${fmtMoney(costoVarVendido)}</div><div class="s-sub">de lo vendido</div></div>
-    <div class="stat"><div class="s-lbl">Costo fijo</div><div class="s-val c-red">${fmtMoney(costoFijoVendido)}</div><div class="s-sub">prorrateado vendido</div></div>
+    <div class="stat"><div class="s-lbl">Costo fijo</div><div class="s-val c-red">${fmtMoney(costoFijoDeLoVendido)}</div><div class="s-sub">total del mes</div></div>
     <div class="stat"><div class="s-lbl">Margen</div><div class="s-val ${margen>=0?'c-green':'c-red'}">${margen.toFixed(1)}%</div><div class="s-sub">neto</div></div>`;
 
   // ── Ecuación principal ──
@@ -995,7 +1002,7 @@ function balanceRefresh(){
   document.getElementById('balance-bars').innerHTML=[
     ['Ventas',       ingresos,          'linear-gradient(90deg,#27ae60,#2ecc71)',  'c-green'],
     ['Costo Var.',   costoVarVendido,   'linear-gradient(90deg,#e67e22,#f39c12)',  'c-warn'],
-    ['Costo Fijo',   costoFijoVendido,  'linear-gradient(90deg,#c0392b,#e74c3c)',  'c-red'],
+    ['Costo Fijo',   costoFijoDeLoVendido,  'linear-gradient(90deg,#c0392b,#e74c3c)',  'c-red'],
     [ganancia>=0?'Ganancia':'Pérdida', Math.abs(ganancia),
       ganancia>=0?'linear-gradient(90deg,#1a6b3a,#27ae60)':'linear-gradient(90deg,#8b0000,#c0392b)',
       ganancia>=0?'c-green':'c-red'],
@@ -1006,8 +1013,9 @@ function balanceRefresh(){
       <div class="bar-val ${cls}">${fmtMoney(val)}</div>
     </div>`).join('');
   document.getElementById('bal-nota-costos').textContent=
-    'Los costos corresponden únicamente a los productos vendidos este mes. '+
-    'Costo variable: insumos directos. Costo fijo: porción prorrateada por kg.';
+    `Costo fijo: ${fmtMoney(totalFijosMes)} (total del mes) · Costo variable: ` +
+    Object.entries(detalleCostoVar).map(([n,d])=>`${n}: ${fmtMoney(d.cv)} × ${d.qty} = ${fmtMoney(d.subtotal)}`).join(' + ') +
+    ` = ${fmtMoney(costoVarVendido)}`;
 
   // ── Inventario ──
   const prods=S.productos;
@@ -1039,7 +1047,7 @@ function balanceRefresh(){
     byProd[k].qty+=v.cantidad;
     byProd[k].ingresos+=v.total;
     const prod=S.productos.find(p=>p.id===v.producto_id);
-    byProd[k].costo+=(prod?prod.pcosto:0)*v.cantidad;
+    byProd[k].costo+=(prod?calcCostoVar(prod.composicion||[]):0)*v.cantidad;
   });
   const sorted=Object.entries(byProd).sort((a,b)=>b[1].ingresos-a[1].ingresos);
   document.getElementById('balance-prod-tbody').innerHTML=sorted.length?sorted.map(([n,d])=>{
@@ -1058,12 +1066,13 @@ function balanceExport(){
   const mesVal=document.getElementById('balance-mes-filter').value||S.activeMes;
   const vm=S.ventas.filter(v=>v.fecha?.startsWith(mesVal)&&v.estado==='Cobrada');
   const ingresos=vm.reduce((a,v)=>a+v.total,0);
-  let costoVar=0,costoFijo=0;
+  let costoVar=0;
   vm.forEach(v=>{
     const prod=S.productos.find(p=>p.id===v.producto_id);
-    if(prod){const cv=calcCostoVar(prod.composicion||[]);costoVar+=cv*v.cantidad;costoFijo+=(prod.pcosto-cv)*v.cantidad;}
-    else costoVar+=v.total*0.6;
+    if(prod) costoVar+=calcCostoVar(prod.composicion||[])*v.cantidad;
   });
+  const fijosMes=S.costoFijos.reduce((a,f)=>a+f.monto,0);
+  const costoFijo=fijosMes; // total fijos del mes completo
   const costoTotal=costoVar+costoFijo;
   const ganancia=ingresos-costoTotal;
   const margen=ingresos>0?((ganancia/ingresos)*100):0;
