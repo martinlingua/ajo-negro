@@ -381,7 +381,7 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 </div>
 
 <div class="modal-overlay" id="modal-costo-item">
-  <div class="modal"><h2>AGREGAR INSUMO</h2>
+  <div class="modal"><h2 id="ci-modal-title">AGREGAR INSUMO</h2>
     <div class="modal-fields">
       <div class="field"><label>Nombre del insumo</label><input type="text" id="ci-nombre" placeholder="Ej: Ajo fresco, Bolsas, Etiquetas..."></div>
       <div class="grid3">
@@ -390,7 +390,12 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
         <div class="field"><label>Precio / unidad ($)</label><input type="number" id="ci-precio" step="0.01"></div>
       </div>
       <div class="field"><label>Categoría</label><select id="ci-categoria"><option>Materia Prima</option><option>Envase / Packaging</option><option>Energía</option><option>Insumos varios</option></select></div>
+      <div id="ci-precio-history" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.65rem .9rem;">
+        <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:.5rem;">Historial de precios</div>
+        <div id="ci-precio-history-list" style="display:flex;flex-direction:column;gap:.3rem;font-family:'DM Mono',monospace;font-size:.75rem;"></div>
+      </div>
     </div>
+    <input type="hidden" id="ci-edit-id">
     <div class="btn-row"><button class="btn btn-gold btn-full" onclick="saveCostoItem()">Guardar</button><button class="btn btn-outline" onclick="closeModal('modal-costo-item')">Cancelar</button></div>
   </div>
 </div>
@@ -440,6 +445,28 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
     <input type="hidden" id="mp-edit-id">
     <input type="hidden" id="mp-composicion" value="[]">
     <div class="btn-row"><button class="btn btn-gold btn-full" onclick="saveProducto()">Guardar producto</button><button class="btn btn-outline" onclick="closeModal('modal-producto')">Cancelar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-venta-edit">
+  <div class="modal"><h2>EDITAR VENTA</h2>
+    <div class="modal-fields">
+      <div class="grid2">
+        <div class="field"><label>Fecha</label><input type="date" id="ve-fecha"></div>
+        <div class="field"><label>Cliente</label><input type="text" id="ve-cliente"></div>
+      </div>
+      <div class="field"><label>Estado</label>
+        <select id="ve-estado"><option>Cobrada</option><option>Pendiente</option><option>Cancelada</option></select>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.9rem;margin-top:.3rem;">ÍTEMS</div>
+      <div id="ve-items-list" style="display:flex;flex-direction:column;gap:.4rem;"></div>
+      <div class="field"><label>Notas</label><input type="text" id="ve-notas"></div>
+    </div>
+    <input type="hidden" id="ve-venta-id">
+    <div class="btn-row">
+      <button class="btn btn-gold btn-full" onclick="saveVentaEdit()">Guardar cambios</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-venta-edit')">Cancelar</button>
+    </div>
   </div>
 </div>
 
@@ -697,13 +724,91 @@ function costosRefresh(){
   const fijoXkg=kg>0?totalFijo/kg:0;
   const varXkg=kg>0?totalVar/kg:0;
   document.getElementById('costos-stats').innerHTML=`<div class="stat"><div class="s-lbl">Costos Variables</div><div class="s-val c-warn">${fmtMoney(totalVar)}</div></div><div class="stat"><div class="s-lbl">Costos Fijos</div><div class="s-val c-red">${fmtMoney(totalFijo)}</div></div><div class="stat"><div class="s-lbl">Costo Total</div><div class="s-val c-gold">${fmtMoney(totalVar+totalFijo)}</div></div>`;
-  document.getElementById('costos-insumos-tbody').innerHTML=S.costoItems.length?S.costoItems.map(i=>`<tr><td>${i.nombre}<br><span class="td-muted" style="font-size:.62rem;">${i.categoria}</span></td><td>${i.cantidad}</td><td>${i.unidad}</td><td class="td-gold">${fmtMoney(i.precio)}</td><td class="c-warn">${fmtMoney(i.cantidad*i.precio)}</td><td><button class="btn btn-danger btn-sm" onclick="deleteCostoItem('${i.id}')">✕</button></td></tr>`).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--muted);">Sin insumos</td></tr>`;
+  document.getElementById('costos-insumos-tbody').innerHTML=S.costoItems.length?S.costoItems.map(i=>{
+    const hist=i.precioHistorial||[];
+    const prevPrice=hist.length?hist[hist.length-1].precio:null;
+    const priceChange=prevPrice&&prevPrice!==i.precio
+      ?`<span style="font-size:.6rem;color:${i.precio>prevPrice?'var(--reds)':'var(--greens)'};">${i.precio>prevPrice?'▲':'▼'}${fmtMoney(prevPrice)}</span>`:'';
+    return `<tr>
+      <td>${i.nombre}<br><span class="td-muted" style="font-size:.62rem;">${i.categoria}</span></td>
+      <td>${i.cantidad}</td><td>${i.unidad}</td>
+      <td class="td-gold">${fmtMoney(i.precio)}<br>${priceChange}</td>
+      <td class="c-warn">${fmtMoney(i.cantidad*i.precio)}</td>
+      <td style="display:flex;gap:.3rem;">
+        <button class="btn btn-outline btn-sm" onclick="editCostoItem('${i.id}')">✎</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCostoItem('${i.id}')">✕</button>
+      </td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--muted);">Sin insumos</td></tr>`;
   document.getElementById('costos-fijos-tbody').innerHTML=S.costoFijos.length?S.costoFijos.map(f=>`<tr><td>${f.concepto}</td><td class="td-gold">${fmtMoney(f.monto)}</td><td><button class="btn btn-danger btn-sm" onclick="deleteCostoFijo('${f.id}')">✕</button></td></tr>`).join(''):`<tr><td colspan="3" style="text-align:center;padding:1.5rem;color:var(--muted);">Sin costos fijos</td></tr>`;
   document.getElementById('cpu-var').textContent=kg>0?fmtMoney(varXkg):'$0';
   document.getElementById('cpu-fijo').textContent=kg>0?fmtMoney(fijoXkg):'$0';
   document.getElementById('cpu-total').textContent=kg>0?fmtMoney(varXkg+fijoXkg):'$0';
 }
-function saveCostoItem(){const n=document.getElementById('ci-nombre').value.trim(),c=parseFloat(document.getElementById('ci-cantidad').value),p=parseFloat(document.getElementById('ci-precio').value);if(!n||isNaN(c)||isNaN(p)){toast('Completá todos los campos');return;}S.costoItems.push({id:uid(),nombre:n,cantidad:c,unidad:document.getElementById('ci-unidad').value,precio:p,categoria:document.getElementById('ci-categoria').value});saveS();closeModal('modal-costo-item');costosRefresh();toast('Insumo agregado');['ci-nombre','ci-cantidad','ci-precio'].forEach(id=>document.getElementById(id).value='');}
+function saveCostoItem(){
+  const n=document.getElementById('ci-nombre').value.trim();
+  const c=parseFloat(document.getElementById('ci-cantidad').value);
+  const p=parseFloat(document.getElementById('ci-precio').value);
+  if(!n||isNaN(c)||isNaN(p)){toast('Completá todos los campos');return;}
+  const editId=document.getElementById('ci-edit-id').value;
+  if(editId){
+    // Editing existing insumo — update price with history
+    const ins=S.costoItems.find(i=>i.id===editId);
+    if(ins){
+      const oldPrice=ins.precio;
+      if(p!==oldPrice){
+        // Save price history entry
+        if(!ins.precioHistorial) ins.precioHistorial=[];
+        ins.precioHistorial.push({precio:oldPrice,hasta:todayStr()});
+      }
+      ins.nombre=n; ins.cantidad=c; ins.precio=p;
+      ins.unidad=document.getElementById('ci-unidad').value;
+      ins.categoria=document.getElementById('ci-categoria').value;
+      // Recalculate pcosto for all products that use this insumo
+      S.productos.forEach(prod=>{
+        if((prod.composicion||[]).some(c=>c.insumo_id===editId)){
+          const cv=calcCostoVar(prod.composicion);
+          const totalFijo=S.costoFijos.reduce((a,f)=>a+f.monto,0);
+          const kgTotal=S.kgProducidos||0;
+          const cf=kgTotal>0&&prod.gramos>0?(totalFijo/kgTotal)*prod.gramos:0;
+          prod.pcosto=cv+cf;
+        }
+      });
+      toast(`Precio actualizado: ${fmtMoney(oldPrice)} → ${fmtMoney(p)}`);
+    }
+  } else {
+    S.costoItems.push({id:uid(),nombre:n,cantidad:c,unidad:document.getElementById('ci-unidad').value,precio:p,categoria:document.getElementById('ci-categoria').value,precioHistorial:[]});
+    toast('Insumo agregado');
+  }
+  saveS();closeModal('modal-costo-item');costosRefresh();
+  ['ci-nombre','ci-cantidad','ci-precio','ci-edit-id'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ci-modal-title').textContent='AGREGAR INSUMO';
+  document.getElementById('ci-precio-history').style.display='none';
+}
+
+function editCostoItem(id){
+  const ins=S.costoItems.find(i=>i.id===id);if(!ins)return;
+  document.getElementById('ci-modal-title').textContent='EDITAR INSUMO';
+  document.getElementById('ci-nombre').value=ins.nombre;
+  document.getElementById('ci-cantidad').value=ins.cantidad;
+  document.getElementById('ci-precio').value=ins.precio;
+  document.getElementById('ci-unidad').value=ins.unidad;
+  document.getElementById('ci-categoria').value=ins.categoria;
+  document.getElementById('ci-edit-id').value=id;
+  // Show price history if any
+  const hist=ins.precioHistorial||[];
+  const histEl=document.getElementById('ci-precio-history');
+  if(hist.length){
+    histEl.style.display='block';
+    document.getElementById('ci-precio-history-list').innerHTML=
+      hist.slice().reverse().map(h=>`<div style="display:flex;justify-content:space-between;color:var(--muted);">
+        <span>${fmtMoney(h.precio)}</span><span>hasta ${h.hasta}</span></div>`).join('');
+  } else {
+    histEl.style.display='none';
+  }
+  openModal('modal-costo-item');
+}
+
 function saveCostoFijo(){const c=document.getElementById('cf-concepto').value.trim(),m=parseFloat(document.getElementById('cf-monto').value);if(!c||isNaN(m)){toast('Completá todos los campos');return;}S.costoFijos.push({id:uid(),concepto:c,monto:m});saveS();closeModal('modal-costo-fijo');costosRefresh();toast('Costo fijo agregado');['cf-concepto','cf-monto'].forEach(id=>document.getElementById(id).value='');}
 function deleteCostoItem(id){S.costoItems=S.costoItems.filter(i=>i.id!==id);saveS();costosRefresh();}
 function deleteCostoFijo(id){S.costoFijos=S.costoFijos.filter(f=>f.id!==id);saveS();costosRefresh();}
@@ -971,6 +1076,79 @@ function saveVenta(){
   _mvItems=[];
 }
 
+function openVentaEdit(ventaId){
+  const items=S.ventas.filter(v=>(v.venta_id||v.id)===ventaId);
+  if(!items.length)return;
+  const first=items[0];
+  document.getElementById('ve-fecha').value=first.fecha;
+  document.getElementById('ve-cliente').value=first.cliente;
+  document.getElementById('ve-estado').value=first.estado;
+  document.getElementById('ve-notas').value=first.notas||'';
+  document.getElementById('ve-venta-id').value=ventaId;
+  // Render editable items
+  document.getElementById('ve-items-list').innerHTML=items.map((it,i)=>`
+    <div style="display:flex;align-items:center;gap:.5rem;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:.5rem .7rem;">
+      <span style="flex:1;font-family:monospace;font-size:.75rem;">${it.producto_nombre}</span>
+      <span style="font-family:monospace;font-size:.7rem;color:var(--muted);">Cant:</span>
+      <input type="number" value="${it.cantidad}" min="1" step="1"
+        style="width:52px;background:var(--bg2);border:1px solid var(--border2);border-radius:5px;padding:.3rem .4rem;color:var(--cream);font-family:monospace;font-size:.78rem;outline:none;"
+        onchange="veUpdateItem('${it.id}','cantidad',this.value)">
+      <span style="font-family:monospace;font-size:.7rem;color:var(--muted);">Precio:</span>
+      <input type="number" value="${it.precio}" min="0" step="0.01"
+        style="width:68px;background:var(--bg2);border:1px solid var(--border2);border-radius:5px;padding:.3rem .4rem;color:var(--cream);font-family:monospace;font-size:.78rem;outline:none;"
+        onchange="veUpdateItem('${it.id}','precio',this.value)">
+    </div>`).join('');
+  openModal('modal-venta-edit');
+}
+
+function veUpdateItem(itemId,field,val){
+  // Live preview update (actual save happens on saveVentaEdit)
+  const input=event.target;
+  input.style.borderColor='var(--gold-dim)';
+}
+
+function saveVentaEdit(){
+  const ventaId=document.getElementById('ve-venta-id').value;
+  const newFecha=document.getElementById('ve-fecha').value;
+  const newCliente=document.getElementById('ve-cliente').value||'—';
+  const newEstado=document.getElementById('ve-estado').value;
+  const newNotas=document.getElementById('ve-notas').value||'';
+  if(!newFecha){toast('Ingresá la fecha');return;}
+
+  const items=S.ventas.filter(v=>(v.venta_id||v.id)===ventaId);
+  const oldEstado=items[0]?.estado;
+
+  // Read updated quantities and prices from inputs
+  const itemEls=document.getElementById('ve-items-list').querySelectorAll('div[style]');
+  items.forEach((it,i)=>{
+    const inputs=itemEls[i]?.querySelectorAll('input');
+    if(!inputs||inputs.length<2) return;
+    const newCant=parseInt(inputs[0].value)||it.cantidad;
+    const newPrecio=parseFloat(inputs[1].value)||it.precio;
+
+    // Adjust stock if estado changes or quantity changes
+    const prod=S.productos.find(p=>p.id===it.producto_id);
+    if(prod){
+      // Restore old stock first
+      if(oldEstado==='Cobrada') prod.stock+=it.cantidad;
+      // Apply new stock if still cobrada
+      if(newEstado==='Cobrada') prod.stock=Math.max(0,prod.stock-newCant);
+    }
+
+    // Update venta record — price stays as recorded (historical)
+    it.fecha=newFecha;
+    it.cliente=newCliente;
+    it.estado=newEstado;
+    it.notas=newNotas;
+    it.cantidad=newCant;
+    it.precio=newPrecio;       // allow price correction
+    it.total=newCant*newPrecio;
+  });
+
+  saveS();closeModal('modal-venta-edit');ventasRefresh();stockRefresh();
+  toast('Venta actualizada');
+}
+
 function ventasRefresh(){
   const mesVal=document.getElementById('ventas-mes-filter').value||S.activeMes;
   populateMesFilter('ventas-mes-filter',mesVal);
@@ -1002,7 +1180,10 @@ function ventasRefresh(){
       <td class="c-green" style="font-weight:600;">${fmtMoney(g.total)}</td>
       <td>${g.cliente}</td>
       <td><span class="badge ${badge}">${g.estado}</span></td>
-      <td><button class="btn btn-danger btn-sm" onclick="deleteVenta('${gid}')">✕</button></td>
+      <td style="display:flex;gap:.3rem;">
+        <button class="btn btn-outline btn-sm" onclick="openVentaEdit('${gid}')">✎</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteVenta('${gid}')">✕</button>
+      </td>
     </tr>`;
   }).join(''):`<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted);">Sin ventas este mes</td></tr>`;
 }
