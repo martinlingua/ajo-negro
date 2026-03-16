@@ -263,10 +263,10 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 
 <!-- ══ TAB STOCK ══ -->
 <div class="page" id="page-stock">
-  <div class="section-title">CONTROL DE STOCK<button class="btn btn-gold btn-sm" onclick="openModal('modal-producto')">+ Producto</button></div>
+  <div class="section-title">CONTROL DE STOCK<button class="btn btn-gold btn-sm" onclick="mpOpenReset();openModal('modal-producto')">+ Producto</button></div>
   <div class="stats-grid" id="stock-stats"></div>
   <div class="tbl-wrap" style="margin-bottom:.7rem;">
-    <table><thead><tr><th>Producto</th><th>Stock</th><th>P.Venta</th><th>P.Costo</th><th>Estado</th><th></th></tr></thead>
+    <table><thead><tr><th>Producto</th><th>Stock</th><th>P.Venta</th><th>P.Costo</th><th>Margen</th><th>Estado</th><th></th></tr></thead>
     <tbody id="stock-tbody"></tbody></table>
   </div>
   <div class="card">
@@ -372,16 +372,35 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
       <div class="field"><label>Nombre del producto</label><input type="text" id="mp-nombre" placeholder="Ej: Ajo Negro 100g..."></div>
       <div class="grid2">
         <div class="field"><label>Precio de venta ($)</label><input type="number" id="mp-pventa" step="0.01"></div>
-        <div class="field"><label>Precio de costo ($)</label><input type="number" id="mp-pcosto" step="0.01"></div>
+        <div class="field"><label>Peso del producto (g)</label><input type="number" id="mp-gramos" step="0.1" placeholder="Ej: 100" oninput="mpRecalcCosto()"></div>
       </div>
       <div class="grid2">
         <div class="field"><label>Stock actual</label><input type="number" id="mp-stock" step="1"></div>
         <div class="field"><label>Stock mínimo (alerta)</label><input type="number" id="mp-stockmin" step="1"></div>
       </div>
       <div class="field"><label>Unidad de venta</label><select id="mp-unidad"><option>unidad</option><option>caja</option><option>bandeja</option><option>kg</option><option>g</option></select></div>
+      <div style="height:1px;background:var(--border);margin:.4rem 0;"></div>
+      <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.9rem;">COMPOSICIÓN — INSUMOS</div>
+      <div style="font-size:.65rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:-.2rem;">Agregá cada insumo y la cantidad que lleva este producto</div>
+      <div id="mp-insumos-list" style="display:flex;flex-direction:column;gap:.4rem;"></div>
+      <div style="display:flex;gap:.5rem;align-items:flex-end;">
+        <div class="field" style="flex:2;"><label>Insumo</label><select id="mp-ins-sel" onchange="mpInsSelChange()"><option value="">Seleccionar...</option></select></div>
+        <div class="field" style="flex:1;"><label>Cantidad</label><input type="number" id="mp-ins-cant" step="0.01" placeholder="0" oninput="mpRecalcCosto()"></div>
+        <button class="btn btn-outline btn-sm" style="flex-shrink:0;margin-bottom:.05rem;" onclick="mpAddInsumo()">+ Agregar</button>
+      </div>
+      <div style="background:rgba(200,151,58,.07);border:1px solid var(--gold-dim);border-radius:8px;padding:.75rem;">
+        <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.85rem;margin-bottom:.5rem;">COSTO CALCULADO</div>
+        <div class="grid3">
+          <div><div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:.15rem;">Variables</div><div style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--warn);" id="mp-costo-var">$0</div></div>
+          <div><div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:.15rem;">Fijos (prorrateados)</div><div style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--reds);" id="mp-costo-fijo">$0</div></div>
+          <div><div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:.15rem;">Total / unidad</div><div style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--gold2);" id="mp-costo-total">$0</div></div>
+        </div>
+        <div style="font-size:.6rem;color:var(--muted2);font-family:'DM Mono',monospace;margin-top:.45rem;" id="mp-costo-formula">—</div>
+      </div>
     </div>
     <input type="hidden" id="mp-edit-id">
-    <div class="btn-row"><button class="btn btn-gold btn-full" onclick="saveProducto()">Guardar</button><button class="btn btn-outline" onclick="closeModal('modal-producto')">Cancelar</button></div>
+    <input type="hidden" id="mp-composicion" value="[]">
+    <div class="btn-row"><button class="btn btn-gold btn-full" onclick="saveProducto()">Guardar producto</button><button class="btn btn-outline" onclick="closeModal('modal-producto')">Cancelar</button></div>
   </div>
 </div>
 
@@ -541,18 +560,133 @@ function deleteCostoItem(id){S.costoItems=S.costoItems.filter(i=>i.id!==id);save
 function deleteCostoFijo(id){S.costoFijos=S.costoFijos.filter(f=>f.id!==id);saveS();costosRefresh();}
 
 // ── STOCK ────────────────────────────────────────────────────
+
+function calcCostoVar(composicion){
+  if(!composicion||!composicion.length)return 0;
+  return composicion.reduce((sum,c)=>{const ins=S.costoItems.find(i=>i.id===c.insumo_id);return ins?sum+(ins.precio*c.cantidad):sum;},0);
+}
+function calcCostoFijoProd(gramos,excludeId){
+  const totalFijo=S.costoFijos.reduce((a,f)=>a+f.monto,0);
+  const totalGramos=S.productos.reduce((a,p)=>p.id===excludeId?a:a+(p.gramos||0),0)+(gramos||0);
+  if(!totalGramos||!gramos)return 0;
+  return (totalFijo/totalGramos)*gramos;
+}
+function calcPcosto(producto){
+  return calcCostoVar(producto.composicion||[])+calcCostoFijoProd(producto.gramos||0,null);
+}
+
 function stockRefresh(){
   const p=S.productos,bajo=p.filter(x=>x.stock<=x.stockmin).length;
   document.getElementById('stock-stats').innerHTML=`<div class="stat"><div class="s-lbl">Productos</div><div class="s-val c-gold">${p.length}</div></div><div class="stat"><div class="s-lbl">Unidades</div><div class="s-val c-blue">${p.reduce((a,x)=>a+x.stock,0)}</div></div><div class="stat"><div class="s-lbl">Valor stock</div><div class="s-val c-green">${fmtMoney(p.reduce((a,x)=>a+(x.stock*x.pventa),0))}</div></div><div class="stat"><div class="s-lbl">Bajo stock</div><div class="s-val ${bajo>0?'c-red':'c-green'}">${bajo}</div></div>`;
-  document.getElementById('stock-tbody').innerHTML=p.length?p.map(x=>{const bajo=x.stock<=x.stockmin;return `<tr><td>${x.nombre}<br><span class="td-muted" style="font-size:.62rem;">${x.unidad}</span></td><td class="${bajo?'td-red':'td-green'}" style="font-weight:600;">${x.stock}</td><td class="td-gold">${fmtMoney(x.pventa)}</td><td class="td-muted">${fmtMoney(x.pcosto)}</td><td><span class="badge ${bajo?'badge-red':'badge-green'}">${bajo?'⚠ Bajo':'OK'}</span></td><td style="display:flex;gap:.3rem;"><button class="btn btn-outline btn-sm" onclick="editProducto('${x.id}')">✎</button><button class="btn btn-danger btn-sm" onclick="deleteProducto('${x.id}')">✕</button></td></tr>`;}).join(''):`<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted);">Sin productos. Agregá uno con el botón +</td></tr>`;
+  document.getElementById('stock-tbody').innerHTML=p.length?p.map(x=>{
+    const bajo=x.stock<=x.stockmin;
+    const pcosto=calcPcosto(x);
+    const margen=x.pventa>0?((x.pventa-pcosto)/x.pventa*100):0;
+    return `<tr>
+      <td>${x.nombre}<br><span class="td-muted" style="font-size:.62rem;">${x.gramos?x.gramos+'g · ':''}${x.unidad}</span></td>
+      <td class="${bajo?'td-red':'td-green'}" style="font-weight:600;">${x.stock}</td>
+      <td class="td-gold">${fmtMoney(x.pventa)}</td>
+      <td class="td-muted">${fmtMoney(pcosto)}</td>
+      <td class="${margen>=0?'td-green':'td-red'}" style="font-size:.72rem;">${margen.toFixed(0)}%</td>
+      <td><span class="badge ${bajo?'badge-red':'badge-green'}">${bajo?'⚠ Bajo':'OK'}</span></td>
+      <td style="display:flex;gap:.3rem;">
+        <button class="btn btn-outline btn-sm" onclick="editProducto('${x.id}')">✎</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteProducto('${x.id}')">✕</button>
+      </td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--muted);">Sin productos. Agregá uno con el botón +</td></tr>`;
   const adjSel=document.getElementById('adj-producto'),mvSel=document.getElementById('mv-producto');
   const av=adjSel.value,mv=mvSel.value;
   adjSel.innerHTML='<option value="">Seleccionar...</option>'+p.map(x=>`<option value="${x.id}">${x.nombre} (${x.stock})</option>`).join('');
   mvSel.innerHTML='<option value="">Seleccionar...</option>'+p.map(x=>`<option value="${x.id}">${x.nombre} — stock: ${x.stock}</option>`).join('');
   adjSel.value=av;mvSel.value=mv;
 }
-function saveProducto(){const n=document.getElementById('mp-nombre').value.trim();if(!n){toast('Ingresá el nombre');return;}const obj={id:document.getElementById('mp-edit-id').value||uid(),nombre:n,pventa:parseFloat(document.getElementById('mp-pventa').value)||0,pcosto:parseFloat(document.getElementById('mp-pcosto').value)||0,stock:parseInt(document.getElementById('mp-stock').value)||0,stockmin:parseInt(document.getElementById('mp-stockmin').value)||0,unidad:document.getElementById('mp-unidad').value};const idx=S.productos.findIndex(x=>x.id===obj.id);if(idx>=0)S.productos[idx]=obj;else S.productos.push(obj);saveS();closeModal('modal-producto');stockRefresh();toast('Producto guardado');['mp-nombre','mp-pventa','mp-pcosto','mp-stock','mp-stockmin','mp-edit-id'].forEach(id=>document.getElementById(id).value='');document.getElementById('modal-prod-title').textContent='NUEVO PRODUCTO';}
-function editProducto(id){const p=S.productos.find(x=>x.id===id);if(!p)return;document.getElementById('modal-prod-title').textContent='EDITAR PRODUCTO';['nombre','pventa','pcosto','stock','stockmin'].forEach(k=>document.getElementById('mp-'+k).value=p[k]);document.getElementById('mp-unidad').value=p.unidad;document.getElementById('mp-edit-id').value=id;openModal('modal-producto');}
+
+let _mpComp=[];
+function mpOpenReset(){_mpComp=[];document.getElementById('mp-composicion').value='[]';document.getElementById('mp-insumos-list').innerHTML='';document.getElementById('mp-ins-cant').value='';document.getElementById('mp-ins-sel').value='';mpRefreshInsSel();mpRecalcCosto();}
+function mpRefreshInsSel(){const sel=document.getElementById('mp-ins-sel');const cur=sel.value;sel.innerHTML='<option value="">Seleccionar insumo...</option>'+S.costoItems.map(i=>`<option value="${i.id}">${i.nombre} (${i.unidad} — ${fmtMoney(i.precio)})</option>`).join('');sel.value=cur;}
+function mpInsSelChange(){document.getElementById('mp-ins-cant').focus();}
+function mpAddInsumo(){
+  const insId=document.getElementById('mp-ins-sel').value;
+  const cant=parseFloat(document.getElementById('mp-ins-cant').value);
+  if(!insId||isNaN(cant)||cant<=0){toast('Seleccioná insumo y cantidad');return;}
+  const ins=S.costoItems.find(i=>i.id===insId);if(!ins)return;
+  const ex=_mpComp.find(c=>c.insumo_id===insId);
+  if(ex){ex.cantidad=cant;}else{_mpComp.push({insumo_id:insId,cantidad:cant});}
+  document.getElementById('mp-composicion').value=JSON.stringify(_mpComp);
+  document.getElementById('mp-ins-sel').value='';document.getElementById('mp-ins-cant').value='';
+  mpRenderComposicion();mpRecalcCosto();
+}
+function mpRemoveInsumo(insId){
+  _mpComp=_mpComp.filter(c=>c.insumo_id!==insId);
+  document.getElementById('mp-composicion').value=JSON.stringify(_mpComp);
+  mpRenderComposicion();mpRecalcCosto();
+}
+function mpRenderComposicion(){
+  const list=document.getElementById('mp-insumos-list');
+  if(!_mpComp.length){list.innerHTML='';return;}
+  list.innerHTML=_mpComp.map(c=>{
+    const ins=S.costoItems.find(i=>i.id===c.insumo_id);if(!ins)return '';
+    const subtotal=ins.precio*c.cantidad;
+    return `<div style="display:flex;align-items:center;gap:.5rem;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:.4rem .7rem;">
+      <span style="flex:1;font-family:'DM Mono',monospace;font-size:.75rem;">${ins.nombre}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);">${c.cantidad} ${ins.unidad}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--warn);min-width:55px;text-align:right;">${fmtMoney(subtotal)}</span>
+      <button class="btn btn-danger btn-sm" style="padding:.2rem .45rem;" onclick="mpRemoveInsumo('${ins.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+function mpRecalcCosto(){
+  const gramos=parseFloat(document.getElementById('mp-gramos').value)||0;
+  const editId=document.getElementById('mp-edit-id').value;
+  const costoVar=_mpComp.reduce((s,c)=>{const ins=S.costoItems.find(i=>i.id===c.insumo_id);return ins?s+(ins.precio*c.cantidad):s;},0);
+  const totalFijo=S.costoFijos.reduce((a,f)=>a+f.monto,0);
+  const otrosGramos=S.productos.filter(p=>p.id!==editId).reduce((a,p)=>a+(p.gramos||0),0);
+  const totalGramos=otrosGramos+gramos;
+  const costoFijoProd=totalGramos>0&&gramos>0?(totalFijo/totalGramos)*gramos:0;
+  document.getElementById('mp-costo-var').textContent=fmtMoney(costoVar);
+  document.getElementById('mp-costo-fijo').textContent=fmtMoney(costoFijoProd);
+  document.getElementById('mp-costo-total').textContent=fmtMoney(costoVar+costoFijoProd);
+  document.getElementById('mp-costo-formula').textContent=totalGramos>0&&gramos>0
+    ?`Fijos: ${fmtMoney(totalFijo)} ÷ ${totalGramos}g × ${gramos}g = ${fmtMoney(costoFijoProd)}`
+    :'Cargá el peso del producto y los costos fijos para prorratear';
+}
+function saveProducto(){
+  const n=document.getElementById('mp-nombre').value.trim();if(!n){toast('Ingresá el nombre');return;}
+  const composicion=JSON.parse(document.getElementById('mp-composicion').value||'[]');
+  const gramos=parseFloat(document.getElementById('mp-gramos').value)||0;
+  const editId=document.getElementById('mp-edit-id').value;
+  const costoVar=composicion.reduce((s,c)=>{const ins=S.costoItems.find(i=>i.id===c.insumo_id);return ins?s+(ins.precio*c.cantidad):s;},0);
+  const totalFijo=S.costoFijos.reduce((a,f)=>a+f.monto,0);
+  const otrosGramos=S.productos.filter(p=>p.id!==editId).reduce((a,p)=>a+(p.gramos||0),0);
+  const totalGramos=otrosGramos+gramos;
+  const costoFijoProd=totalGramos>0&&gramos>0?(totalFijo/totalGramos)*gramos:0;
+  const pcosto=costoVar+costoFijoProd;
+  const obj={id:editId||uid(),nombre:n,pventa:parseFloat(document.getElementById('mp-pventa').value)||0,pcosto,gramos,composicion,stock:parseInt(document.getElementById('mp-stock').value)||0,stockmin:parseInt(document.getElementById('mp-stockmin').value)||0,unidad:document.getElementById('mp-unidad').value};
+  const idx=S.productos.findIndex(x=>x.id===obj.id);
+  if(idx>=0)S.productos[idx]=obj;else S.productos.push(obj);
+  saveS();closeModal('modal-producto');stockRefresh();
+  toast(`Guardado · Costo: ${fmtMoney(pcosto)}`);
+  ['mp-nombre','mp-pventa','mp-gramos','mp-stock','mp-stockmin','mp-edit-id'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mp-composicion').value='[]';
+  document.getElementById('modal-prod-title').textContent='NUEVO PRODUCTO';
+  _mpComp=[];mpRenderComposicion();mpRecalcCosto();
+}
+function editProducto(id){
+  const p=S.productos.find(x=>x.id===id);if(!p)return;
+  document.getElementById('modal-prod-title').textContent='EDITAR PRODUCTO';
+  document.getElementById('mp-nombre').value=p.nombre;
+  document.getElementById('mp-pventa').value=p.pventa;
+  document.getElementById('mp-gramos').value=p.gramos||'';
+  document.getElementById('mp-stock').value=p.stock;
+  document.getElementById('mp-stockmin').value=p.stockmin;
+  document.getElementById('mp-unidad').value=p.unidad;
+  document.getElementById('mp-edit-id').value=id;
+  _mpComp=JSON.parse(JSON.stringify(p.composicion||[]));
+  document.getElementById('mp-composicion').value=JSON.stringify(_mpComp);
+  mpRefreshInsSel();mpRenderComposicion();mpRecalcCosto();
+  openModal('modal-producto');
+}
 function deleteProducto(id){if(!confirm('¿Eliminar este producto?'))return;S.productos=S.productos.filter(p=>p.id!==id);saveS();stockRefresh();toast('Eliminado');}
 function stockAjuste(){const pid=document.getElementById('adj-producto').value,cant=parseFloat(document.getElementById('adj-cantidad').value);if(!pid||isNaN(cant)){toast('Seleccioná producto y cantidad');return;}const p=S.productos.find(x=>x.id===pid);if(!p)return;p.stock=Math.max(0,p.stock+cant);saveS();stockRefresh();document.getElementById('adj-cantidad').value='';document.getElementById('adj-motivo').value='';toast(`Stock: ${p.nombre} → ${p.stock}`);}
 
