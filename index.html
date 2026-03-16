@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>KAIZEN — Ajo Negro</title>
+<meta name="build" content="20260316163724">
+<meta name="build-version" content="202603161544">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a1a1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -282,14 +284,14 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 
 <!-- ══ TAB VENTAS ══ -->
 <div class="page" id="page-ventas">
-  <div class="section-title">REGISTRO DE VENTAS<button class="btn btn-gold btn-sm" onclick="openModal('modal-venta')">+ Venta</button></div>
+  <div class="section-title">REGISTRO DE VENTAS<button class="btn btn-gold btn-sm" onclick="ventaOpenReset();openModal('modal-venta')">+ Venta</button></div>
   <div class="stats-grid" id="ventas-stats"></div>
   <div class="month-picker">
     <span style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);">MES:</span>
     <select id="ventas-mes-filter" onchange="ventasRefresh()"></select>
   </div>
   <div class="tbl-wrap">
-    <table><thead><tr><th>Fecha</th><th>Producto</th><th>Cant.</th><th>Unit.</th><th>Total</th><th>Cliente</th><th>Estado</th><th></th></tr></thead>
+    <table><thead><tr><th>Fecha</th><th>Productos</th><th>Total</th><th>Cliente</th><th>Estado</th><th></th></tr></thead>
     <tbody id="ventas-tbody"></tbody></table>
   </div>
 </div>
@@ -411,18 +413,42 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
         <div class="field"><label>Fecha</label><input type="date" id="mv-fecha"></div>
         <div class="field"><label>Cliente</label><input type="text" id="mv-cliente" placeholder="Nombre o empresa"></div>
       </div>
-      <div class="field"><label>Producto</label><select id="mv-producto" onchange="ventaAutoPrice()"><option value="">Seleccionar...</option></select></div>
-      <div class="grid2">
-        <div class="field"><label>Cantidad</label><input type="number" id="mv-cantidad" step="1" min="1" oninput="ventaCalcTotal()"></div>
-        <div class="field"><label>Precio unitario ($)</label><input type="number" id="mv-precio" step="0.01" oninput="ventaCalcTotal()"></div>
-      </div>
-      <div class="field"><label>Total</label><input type="text" id="mv-total" readonly style="color:var(--gold2);font-weight:600;cursor:default;"></div>
       <div class="grid2">
         <div class="field"><label>Estado</label><select id="mv-estado"><option>Cobrada</option><option>Pendiente</option><option>Cancelada</option></select></div>
-        <div class="field"><label>Notas</label><input type="text" id="mv-notas" placeholder="Opcional"></div>
+        <div class="field"><label>Notas generales</label><input type="text" id="mv-notas" placeholder="Opcional"></div>
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:.2rem 0;"></div>
+      <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.9rem;">ÍTEMS DE LA VENTA</div>
+
+      <!-- Items list -->
+      <div id="mv-items-list" style="display:flex;flex-direction:column;gap:.4rem;"></div>
+
+      <!-- Add item row -->
+      <div style="display:flex;gap:.5rem;align-items:flex-end;">
+        <div class="field" style="flex:2;"><label>Producto</label>
+          <select id="mv-producto" onchange="ventaAutoPrice()"><option value="">Seleccionar...</option></select>
+        </div>
+        <div class="field" style="flex:1;"><label>Cant.</label>
+          <input type="number" id="mv-cantidad" step="1" min="1" oninput="ventaCalcItemTotal()">
+        </div>
+        <div class="field" style="flex:1;"><label>Precio ($)</label>
+          <input type="number" id="mv-precio" step="0.01" oninput="ventaCalcItemTotal()">
+        </div>
+        <button class="btn btn-outline btn-sm" style="flex-shrink:0;margin-bottom:.05rem;" onclick="ventaAddItem()">+ Agregar</button>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);height:.9rem;" id="mv-item-preview"></div>
+
+      <!-- Total -->
+      <div style="background:rgba(200,151,58,.07);border:1px solid var(--gold-dim);border-radius:8px;padding:.65rem .9rem;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--muted);">TOTAL DE LA VENTA</span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--gold2);letter-spacing:1px;" id="mv-total-display">$0</span>
       </div>
     </div>
-    <div class="btn-row"><button class="btn btn-gold btn-full" onclick="saveVenta()">Registrar venta</button><button class="btn btn-outline" onclick="closeModal('modal-venta')">Cancelar</button></div>
+    <div class="btn-row">
+      <button class="btn btn-gold btn-full" onclick="saveVenta()">Registrar venta</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-venta')">Cancelar</button>
+    </div>
   </div>
 </div>
 
@@ -706,30 +732,178 @@ function deleteProducto(id){if(!confirm('¿Eliminar este producto?'))return;S.pr
 function stockAjuste(){const pid=document.getElementById('adj-producto').value,cant=parseFloat(document.getElementById('adj-cantidad').value);if(!pid||isNaN(cant)){toast('Seleccioná producto y cantidad');return;}const p=S.productos.find(x=>x.id===pid);if(!p)return;p.stock=Math.max(0,p.stock+cant);saveS();stockRefresh();document.getElementById('adj-cantidad').value='';document.getElementById('adj-motivo').value='';toast(`Stock: ${p.nombre} → ${p.stock}`);}
 
 // ── VENTAS ───────────────────────────────────────────────────
-function populateMesFilter(selId,val){const sel=document.getElementById(selId);const months=new Set([S.activeMes,...S.ventas.map(v=>v.fecha?.slice(0,7)).filter(Boolean)]);const sorted=[...months].sort().reverse();sel.innerHTML=sorted.map(m=>`<option value="${m}"${m===val?' selected':''}>${fmtMes(m)}</option>`).join('');}
-function ventaAutoPrice(){const pid=document.getElementById('mv-producto').value,p=S.productos.find(x=>x.id===pid);if(p)document.getElementById('mv-precio').value=p.pventa;ventaCalcTotal();}
-function ventaCalcTotal(){const q=parseFloat(document.getElementById('mv-cantidad').value)||0,p=parseFloat(document.getElementById('mv-precio').value)||0;document.getElementById('mv-total').value=q&&p?fmtMoney(q*p):'';}
-function saveVenta(){
-  const pid=document.getElementById('mv-producto').value,q=parseInt(document.getElementById('mv-cantidad').value)||0,p=parseFloat(document.getElementById('mv-precio').value)||0,fecha=document.getElementById('mv-fecha').value;
-  if(!pid||!q||!p||!fecha){toast('Completá producto, fecha, cantidad y precio');return;}
-  const prod=S.productos.find(x=>x.id===pid);if(!prod){toast('Producto no encontrado');return;}
-  const estado=document.getElementById('mv-estado').value;
-  if(estado==='Cobrada'&&prod.stock<q){toast(`Stock insuficiente. Disponible: ${prod.stock}`);return;}
-  if(estado==='Cobrada')prod.stock=Math.max(0,prod.stock-q);
-  S.ventas.push({id:uid(),fecha,cliente:document.getElementById('mv-cliente').value||'—',producto_id:pid,producto_nombre:prod.nombre,cantidad:q,precio:p,total:q*p,estado,notas:document.getElementById('mv-notas').value||''});
-  saveS();closeModal('modal-venta');ventasRefresh();stockRefresh();toast('Venta registrada');
-  ['mv-cliente','mv-cantidad','mv-precio','mv-total','mv-notas'].forEach(id=>document.getElementById(id).value='');document.getElementById('mv-producto').value='';
+
+function populateMesFilter(selId,val){
+  const sel=document.getElementById(selId);
+  const months=new Set([S.activeMes,...S.ventas.map(v=>v.fecha?.slice(0,7)).filter(Boolean)]);
+  const sorted=[...months].sort().reverse();
+  sel.innerHTML=sorted.map(m=>`<option value="${m}"${m===val?' selected':''}>${fmtMes(m)}</option>`).join('');
 }
+
+// ── multi-item state ──
+let _mvItems = []; // [{producto_id, producto_nombre, cantidad, precio}]
+
+function ventaOpenReset(){
+  _mvItems=[];
+  mvRenderItems();
+  mvUpdateTotal();
+  document.getElementById('mv-producto').value='';
+  document.getElementById('mv-cantidad').value='';
+  document.getElementById('mv-precio').value='';
+  document.getElementById('mv-item-preview').textContent='';
+  // populate product select
+  const sel=document.getElementById('mv-producto');
+  const S_ref=S;
+  sel.innerHTML='<option value="">Seleccionar...</option>'+
+    S_ref.productos.map(x=>`<option value="${x.id}">${x.nombre} — stock: ${x.stock}</option>`).join('');
+}
+
+function ventaAutoPrice(){
+  const pid=document.getElementById('mv-producto').value;
+  const p=S.productos.find(x=>x.id===pid);
+  if(p) document.getElementById('mv-precio').value=p.pventa;
+  ventaCalcItemTotal();
+}
+
+function ventaCalcItemTotal(){
+  const q=parseFloat(document.getElementById('mv-cantidad').value)||0;
+  const p=parseFloat(document.getElementById('mv-precio').value)||0;
+  const el=document.getElementById('mv-item-preview');
+  el.textContent=q&&p?`Subtotal: ${fmtMoney(q*p)}`:'';
+}
+
+function ventaAddItem(){
+  const pid=document.getElementById('mv-producto').value;
+  const q=parseInt(document.getElementById('mv-cantidad').value)||0;
+  const p=parseFloat(document.getElementById('mv-precio').value)||0;
+  if(!pid||!q||!p){toast('Seleccioná producto, cantidad y precio');return;}
+  const prod=S.productos.find(x=>x.id===pid);
+  if(!prod)return;
+  // if same product already in list, update quantity
+  const ex=_mvItems.find(i=>i.producto_id===pid);
+  if(ex){ex.cantidad+=q;ex.subtotal=ex.cantidad*ex.precio;}
+  else _mvItems.push({producto_id:pid,producto_nombre:prod.nombre,cantidad:q,precio:p,subtotal:q*p});
+  document.getElementById('mv-producto').value='';
+  document.getElementById('mv-cantidad').value='';
+  document.getElementById('mv-precio').value='';
+  document.getElementById('mv-item-preview').textContent='';
+  mvRenderItems();
+  mvUpdateTotal();
+}
+
+function ventaRemoveItem(idx){
+  _mvItems.splice(idx,1);
+  mvRenderItems();
+  mvUpdateTotal();
+}
+
+function mvRenderItems(){
+  const list=document.getElementById('mv-items-list');
+  if(!_mvItems.length){
+    list.innerHTML='<div style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--muted2);padding:.4rem 0;">Aún no hay ítems. Agregá productos arriba.</div>';
+    return;
+  }
+  list.innerHTML=_mvItems.map((it,i)=>`
+    <div style="display:flex;align-items:center;gap:.5rem;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:.4rem .7rem;">
+      <span style="flex:1;font-family:'DM Mono',monospace;font-size:.75rem;">${it.producto_nombre}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);">${it.cantidad} × ${fmtMoney(it.precio)}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:.78rem;color:var(--gold);min-width:65px;text-align:right;">${fmtMoney(it.subtotal)}</span>
+      <button class="btn btn-danger btn-sm" style="padding:.2rem .45rem;" onclick="ventaRemoveItem(${i})">✕</button>
+    </div>`).join('');
+}
+
+function mvUpdateTotal(){
+  const total=_mvItems.reduce((a,i)=>a+i.subtotal,0);
+  document.getElementById('mv-total-display').textContent=fmtMoney(total);
+}
+
+function saveVenta(){
+  const fecha=document.getElementById('mv-fecha').value;
+  const cliente=document.getElementById('mv-cliente').value||'—';
+  const estado=document.getElementById('mv-estado').value;
+  const notas=document.getElementById('mv-notas').value||'';
+  if(!fecha){toast('Ingresá la fecha');return;}
+  if(!_mvItems.length){toast('Agregá al menos un producto');return;}
+  // Check stock for all cobradas
+  if(estado==='Cobrada'){
+    for(const it of _mvItems){
+      const prod=S.productos.find(x=>x.id===it.producto_id);
+      if(prod&&prod.stock<it.cantidad){
+        toast(`Stock insuficiente: ${prod.nombre} (disponible: ${prod.stock})`);return;
+      }
+    }
+  }
+  // Discount stock and save each item as a separate venta record under same venta_id
+  const ventaId=uid();
+  const totalVenta=_mvItems.reduce((a,i)=>a+i.subtotal,0);
+  _mvItems.forEach(it=>{
+    const prod=S.productos.find(x=>x.id===it.producto_id);
+    if(prod&&estado==='Cobrada') prod.stock=Math.max(0,prod.stock-it.cantidad);
+    S.ventas.push({
+      id:uid(),
+      venta_id:ventaId,   // groups items of same sale
+      fecha,cliente,
+      producto_id:it.producto_id,
+      producto_nombre:it.producto_nombre,
+      cantidad:it.cantidad,
+      precio:it.precio,
+      total:it.subtotal,
+      estado,notas
+    });
+  });
+  saveS();closeModal('modal-venta');ventasRefresh();stockRefresh();
+  toast(`Venta registrada · ${_mvItems.length} ítem${_mvItems.length>1?'s':''} · ${fmtMoney(totalVenta)}`);
+  _mvItems=[];
+}
+
 function ventasRefresh(){
   const mesVal=document.getElementById('ventas-mes-filter').value||S.activeMes;
   populateMesFilter('ventas-mes-filter',mesVal);
   const vm=S.ventas.filter(v=>v.fecha?.startsWith(mesVal)&&v.estado!=='Cancelada');
   const pend=S.ventas.filter(v=>v.fecha?.startsWith(mesVal)&&v.estado==='Pendiente').reduce((a,v)=>a+v.total,0);
-  document.getElementById('ventas-stats').innerHTML=`<div class="stat"><div class="s-lbl">Ingresos</div><div class="s-val c-green">${fmtMoney(vm.reduce((a,v)=>a+v.total,0))}</div></div><div class="stat"><div class="s-lbl">Unidades</div><div class="s-val c-blue">${vm.reduce((a,v)=>a+v.cantidad,0)}</div></div><div class="stat"><div class="s-lbl">Pendiente</div><div class="s-val c-warn">${fmtMoney(pend)}</div></div><div class="stat"><div class="s-lbl">Transacciones</div><div class="s-val c-gold">${vm.length}</div></div>`;
+  document.getElementById('ventas-stats').innerHTML=`
+    <div class="stat"><div class="s-lbl">Ingresos</div><div class="s-val c-green">${fmtMoney(vm.reduce((a,v)=>a+v.total,0))}</div></div>
+    <div class="stat"><div class="s-lbl">Unidades</div><div class="s-val c-blue">${vm.reduce((a,v)=>a+v.cantidad,0)}</div></div>
+    <div class="stat"><div class="s-lbl">Pendiente</div><div class="s-val c-warn">${fmtMoney(pend)}</div></div>
+    <div class="stat"><div class="s-lbl">Transacciones</div><div class="s-val c-gold">${[...new Set(vm.map(v=>v.venta_id||v.id))].length}</div></div>`;
+  // Group by venta_id to show one row per sale (with multiple items collapsed)
   const all=S.ventas.filter(v=>v.fecha?.startsWith(mesVal)).sort((a,b)=>b.fecha.localeCompare(a.fecha));
-  document.getElementById('ventas-tbody').innerHTML=all.length?all.map(v=>`<tr><td class="td-muted">${v.fecha}</td><td>${v.producto_nombre||'—'}</td><td>${v.cantidad}</td><td class="td-gold">${fmtMoney(v.precio)}</td><td class="c-green" style="font-weight:600;">${fmtMoney(v.total)}</td><td>${v.cliente}</td><td><span class="badge ${v.estado==='Cobrada'?'badge-green':v.estado==='Pendiente'?'badge-warn':'badge-red'}">${v.estado}</span></td><td><button class="btn btn-danger btn-sm" onclick="deleteVenta('${v.id}')">✕</button></td></tr>`).join(''):`<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--muted);">Sin ventas este mes</td></tr>`;
+  // Group items by venta_id
+  const groups={};
+  all.forEach(v=>{
+    const gid=v.venta_id||v.id;
+    if(!groups[gid]) groups[gid]={fecha:v.fecha,cliente:v.cliente,estado:v.estado,notas:v.notas,items:[],total:0,ids:[]};
+    groups[gid].items.push(v);
+    groups[gid].total+=v.total;
+    groups[gid].ids.push(v.id);
+  });
+  const rows=Object.entries(groups).sort((a,b)=>b[1].fecha.localeCompare(a[1].fecha));
+  document.getElementById('ventas-tbody').innerHTML=rows.length?rows.map(([gid,g])=>{
+    const badge=g.estado==='Cobrada'?'badge-green':g.estado==='Pendiente'?'badge-warn':'badge-red';
+    const itemsHtml=g.items.map(i=>`<span style="color:var(--muted);font-size:.68rem;">${i.producto_nombre} ×${i.cantidad}</span>`).join('<br>');
+    return `<tr>
+      <td class="td-muted">${g.fecha}</td>
+      <td>${itemsHtml}</td>
+      <td class="c-green" style="font-weight:600;">${fmtMoney(g.total)}</td>
+      <td>${g.cliente}</td>
+      <td><span class="badge ${badge}">${g.estado}</span></td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteVenta('${gid}')">✕</button></td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted);">Sin ventas este mes</td></tr>`;
 }
-function deleteVenta(id){const v=S.ventas.find(x=>x.id===id);if(!v)return;if(v.estado==='Cobrada'){const p=S.productos.find(x=>x.id===v.producto_id);if(p)p.stock+=v.cantidad;}S.ventas=S.ventas.filter(x=>x.id!==id);saveS();ventasRefresh();stockRefresh();toast('Venta eliminada');}
+
+function deleteVenta(ventaId){
+  // Delete all items of this sale and restore stock
+  const items=S.ventas.filter(v=>(v.venta_id||v.id)===ventaId);
+  items.forEach(v=>{
+    if(v.estado==='Cobrada'){
+      const p=S.productos.find(x=>x.id===v.producto_id);
+      if(p) p.stock+=v.cantidad;
+    }
+  });
+  S.ventas=S.ventas.filter(v=>(v.venta_id||v.id)!==ventaId);
+  saveS();ventasRefresh();stockRefresh();toast('Venta eliminada');
+}
 
 // ── BALANCE ──────────────────────────────────────────────────
 function balanceRefresh(){
@@ -757,7 +931,35 @@ function balanceRefresh(){
 }
 
 // ── SERVICE WORKER ───────────────────────────────────────────
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+if('serviceWorker'in navigator){
+  const BUILD='20260316163724';
+  window.addEventListener('load',()=>{
+    // Pass build timestamp to SW so it can name the cache uniquely per deploy
+    navigator.serviceWorker.register('sw.js').then(reg=>{
+      // Send build version to SW so it updates its cache name
+      const sendBuild=sw=>sw&&sw.postMessage({type:'SET_BUILD',build:BUILD});
+      if(reg.active) sendBuild(reg.active);
+      reg.addEventListener('updatefound',()=>{
+        const newSW=reg.installing;
+        newSW.addEventListener('statechange',()=>{
+          if(newSW.state==='installed'){
+            sendBuild(newSW);
+            newSW.postMessage({type:'SKIP_WAITING'});
+          }
+        });
+      });
+      // Check for update every time user opens the app
+      document.addEventListener('visibilitychange',()=>{
+        if(document.visibilityState==='visible') reg.update();
+      });
+    }).catch(()=>{});
+    // Reload when new SW takes control
+    let refreshing=false;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{
+      if(!refreshing){refreshing=true;window.location.reload();}
+    });
+  });
+}
 
 // ── INIT ─────────────────────────────────────────────────────
 loadS();
