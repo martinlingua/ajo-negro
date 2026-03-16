@@ -664,9 +664,9 @@ function mpRenderComposicion(){
     const ins=S.costoItems.find(i=>i.id===c.insumo_id);if(!ins)return '';
     const subtotal=ins.precio*c.cantidad;
     return `<div style="display:flex;align-items:center;gap:.5rem;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:.4rem .7rem;">
-      <span style="flex:1;font-family:'DM Mono',monospace;font-size:.75rem;">${ins.nombre}</span>
-      <span style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);">${c.cantidad} ${ins.unidad}</span>
-      <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--warn);min-width:55px;text-align:right;">${fmtMoney(subtotal)}</span>
+      <span style="flex:1;font-family:monospace;font-size:.75rem;">${ins.nombre}</span>
+      <span style="font-family:monospace;font-size:.7rem;color:var(--muted);">${c.cantidad} ${ins.unidad}</span>
+      <span style="font-family:monospace;font-size:.75rem;color:var(--warn);min-width:55px;text-align:right;">${fmtMoney(subtotal)}</span>
       <button class="btn btn-danger btn-sm" style="padding:.2rem .45rem;" onclick="mpRemoveInsumo('${ins.id}')">✕</button>
     </div>`;
   }).join('');
@@ -800,14 +800,14 @@ function ventaRemoveItem(idx){
 function mvRenderItems(){
   const list=document.getElementById('mv-items-list');
   if(!_mvItems.length){
-    list.innerHTML='<div style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--muted2);padding:.4rem 0;">Aún no hay ítems. Agregá productos arriba.</div>';
+    list.innerHTML='<div style="font-family:monospace;font-size:.75rem;color:var(--muted2);padding:.4rem 0;">Aún no hay ítems. Agregá productos arriba.</div>';
     return;
   }
   list.innerHTML=_mvItems.map((it,i)=>`
     <div style="display:flex;align-items:center;gap:.5rem;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:.4rem .7rem;">
-      <span style="flex:1;font-family:'DM Mono',monospace;font-size:.75rem;">${it.producto_nombre}</span>
-      <span style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);">${it.cantidad} × ${fmtMoney(it.precio)}</span>
-      <span style="font-family:'DM Mono',monospace;font-size:.78rem;color:var(--gold);min-width:65px;text-align:right;">${fmtMoney(it.subtotal)}</span>
+      <span style="flex:1;font-family:monospace;font-size:.75rem;">${it.producto_nombre}</span>
+      <span style="font-family:monospace;font-size:.7rem;color:var(--muted);">${it.cantidad} × ${fmtMoney(it.precio)}</span>
+      <span style="font-family:monospace;font-size:.78rem;color:var(--gold);min-width:65px;text-align:right;">${fmtMoney(it.subtotal)}</span>
       <button class="btn btn-danger btn-sm" style="padding:.2rem .45rem;" onclick="ventaRemoveItem(${i})">✕</button>
     </div>`).join('');
 }
