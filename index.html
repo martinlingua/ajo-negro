@@ -596,7 +596,7 @@ function prodExport(){
   const days=Object.keys(S.prodRecords).map(Number).sort((a,b)=>a-b);if(!days.length){toast('Sin datos');return;}
   const lines=[`KAIZEN — Lote ${S.lote.lote}`,`Variedad: ${S.lote.variedad}`,``,`Día;Fase;T°Mañana;T°Tarde;T°Prom;HR Mañana;HR Tarde;HR Prom;Estado;Obs`];
   days.forEach(d=>{const r=S.prodRecords[d],ph=getPhase(d);const ok=(r.tAvg!==null&&r.tAvg>=ph.tMin&&r.tAvg<=ph.tMax)&&(r.hAvg!==null&&r.hAvg>=ph.hMin&&r.hAvg<=ph.hMax);lines.push([d,ph.name.split('—')[0].trim(),r.pt1??'—',r.pt2??'—',r.tAvg?.toFixed(1)??'—',r.ph1??'—',r.ph2??'—',r.hAvg?.toFixed(1)??'—',ok?'OK':'REVISAR',`"${(r.obs||'').replace(/"/g,'""')}"`].join(';'));});
-  const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const blob=new Blob([lines.join(String.fromCharCode(10))],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`kaizen_lote_${S.lote.lote}.csv`;a.click();toast('CSV exportado');
 }
 function saveLote(){S.lote={lote:document.getElementById('ml-lote').value||'—',variedad:document.getElementById('ml-variedad').value,fecha:document.getElementById('ml-fecha').value||'—',peso:document.getElementById('ml-peso').value||'—',resp:document.getElementById('ml-resp').value||'—'};saveS();prodRefreshBanner();closeModal('modal-lote');toast('Lote guardado');}
@@ -1124,8 +1124,7 @@ function balanceExport(){
     `Total inventario a precio venta;${fmtMoney(valVenta)}`,
   ];
 
-  const blob=new Blob(['﻿'+lines.join('
-')],{type:'text/csv;charset=utf-8;'});
+  const blob=new Blob([lines.join(String.fromCharCode(10))],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download=`kaizen_balance_${mesVal}_lote_${S.lote.lote}.csv`;
