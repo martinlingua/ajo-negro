@@ -252,11 +252,11 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 
   <div class="card" style="background:rgba(200,151,58,.05);border-color:var(--gold-dim);">
     <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.95rem;margin-bottom:.7rem;">COSTO POR UNIDAD PRODUCIDA</div>
-    <div class="field" style="margin-bottom:.7rem;"><label>Unidades producidas este mes</label><input type="number" id="cpu-input" placeholder="Ej: 50" oninput="costosRefresh()"></div>
+    <div class="field" style="margin-bottom:.7rem;"><label>Kg producidos este mes</label><input type="number" id="cpu-input" step="0.01" placeholder="Ej: 5.0" oninput="cpuSaveAndRefresh()"></div>
     <div class="grid3">
-      <div class="stat" style="background:var(--bg2);"><div class="s-lbl">Total vars.</div><div class="s-val c-warn" id="cpu-var">$0</div><div class="s-sub">/ unidad</div></div>
-      <div class="stat" style="background:var(--bg2);"><div class="s-lbl">Fijos</div><div class="s-val c-red" id="cpu-fijo">$0</div><div class="s-sub">/ unidad</div></div>
-      <div class="stat" style="background:var(--bg2);"><div class="s-lbl">Costo total</div><div class="s-val c-gold" id="cpu-total">$0</div><div class="s-sub">/ unidad</div></div>
+      <div class="stat" style="background:var(--bg2);"><div class="s-lbl">Variables</div><div class="s-val c-warn" id="cpu-var">$0</div><div class="s-sub">/ kg</div></div>
+      <div class="stat" style="background:var(--bg2);"><div class="s-lbl">Fijos</div><div class="s-val c-red" id="cpu-fijo">$0</div><div class="s-sub">/ kg</div></div>
+      <div class="stat" style="background:var(--bg2);"><div class="s-lbl">Costo total</div><div class="s-val c-gold" id="cpu-total">$0</div><div class="s-sub">/ kg</div></div>
     </div>
   </div>
 </div>
@@ -372,7 +372,7 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
       <div class="field"><label>Nombre del producto</label><input type="text" id="mp-nombre" placeholder="Ej: Ajo Negro 100g..."></div>
       <div class="grid2">
         <div class="field"><label>Precio de venta ($)</label><input type="number" id="mp-pventa" step="0.01"></div>
-        <div class="field"><label>Peso del producto (g)</label><input type="number" id="mp-gramos" step="0.1" placeholder="Ej: 100" oninput="mpRecalcCosto()"></div>
+        <div class="field"><label>Peso del producto (kg)</label><input type="number" id="mp-gramos" step="0.001" placeholder="Ej: 0.100" oninput="mpRecalcCosto()"></div>
       </div>
       <div class="grid2">
         <div class="field"><label>Stock actual</label><input type="number" id="mp-stock" step="1"></div>
@@ -428,7 +428,7 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 
 <script>
 // ── STATE ────────────────────────────────────────────────────
-let S={lote:{lote:'—',variedad:'—',fecha:'—',peso:'—',resp:'—'},prodRecords:{},prodDay:1,prodChart:'both',costoItems:[],costoFijos:[],productos:[],ventas:[],activeMes:''};
+let S={lote:{lote:'—',variedad:'—',fecha:'—',peso:'—',resp:'—'},prodRecords:{},prodDay:1,prodChart:'both',costoItems:[],costoFijos:[],kgProducidos:0,productos:[],ventas:[],activeMes:''};
 function loadS(){try{const d=localStorage.getItem('kaizen_v3');if(d)S=JSON.parse(d);}catch(e){}if(!S.activeMes)S.activeMes=todayYM();}
 function saveS(){localStorage.setItem('kaizen_v3',JSON.stringify(S));}
 function todayYM(){return new Date().toISOString().slice(0,7);}
@@ -543,16 +543,24 @@ function prodExport(){
 function saveLote(){S.lote={lote:document.getElementById('ml-lote').value||'—',variedad:document.getElementById('ml-variedad').value,fecha:document.getElementById('ml-fecha').value||'—',peso:document.getElementById('ml-peso').value||'—',resp:document.getElementById('ml-resp').value||'—'};saveS();prodRefreshBanner();closeModal('modal-lote');toast('Lote guardado');}
 
 // ── COSTOS ───────────────────────────────────────────────────
+function cpuSaveAndRefresh(){
+  const val=parseFloat(document.getElementById('cpu-input').value)||0;
+  S.kgProducidos=val;saveS();costosRefresh();
+}
 function costosRefresh(){
   const totalVar=S.costoItems.reduce((a,i)=>a+(i.cantidad*i.precio),0);
   const totalFijo=S.costoFijos.reduce((a,f)=>a+f.monto,0);
+  const cpuEl=document.getElementById('cpu-input');
+  if(cpuEl&&!cpuEl.value&&S.kgProducidos) cpuEl.value=S.kgProducidos;
+  const kg=parseFloat(cpuEl?.value)||S.kgProducidos||0;
+  const fijoXkg=kg>0?totalFijo/kg:0;
+  const varXkg=kg>0?totalVar/kg:0;
   document.getElementById('costos-stats').innerHTML=`<div class="stat"><div class="s-lbl">Costos Variables</div><div class="s-val c-warn">${fmtMoney(totalVar)}</div></div><div class="stat"><div class="s-lbl">Costos Fijos</div><div class="s-val c-red">${fmtMoney(totalFijo)}</div></div><div class="stat"><div class="s-lbl">Costo Total</div><div class="s-val c-gold">${fmtMoney(totalVar+totalFijo)}</div></div>`;
   document.getElementById('costos-insumos-tbody').innerHTML=S.costoItems.length?S.costoItems.map(i=>`<tr><td>${i.nombre}<br><span class="td-muted" style="font-size:.62rem;">${i.categoria}</span></td><td>${i.cantidad}</td><td>${i.unidad}</td><td class="td-gold">${fmtMoney(i.precio)}</td><td class="c-warn">${fmtMoney(i.cantidad*i.precio)}</td><td><button class="btn btn-danger btn-sm" onclick="deleteCostoItem('${i.id}')">✕</button></td></tr>`).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--muted);">Sin insumos</td></tr>`;
   document.getElementById('costos-fijos-tbody').innerHTML=S.costoFijos.length?S.costoFijos.map(f=>`<tr><td>${f.concepto}</td><td class="td-gold">${fmtMoney(f.monto)}</td><td><button class="btn btn-danger btn-sm" onclick="deleteCostoFijo('${f.id}')">✕</button></td></tr>`).join(''):`<tr><td colspan="3" style="text-align:center;padding:1.5rem;color:var(--muted);">Sin costos fijos</td></tr>`;
-  const unds=parseInt(document.getElementById('cpu-input')?.value)||0;
-  document.getElementById('cpu-var').textContent=unds>0?fmtMoney(totalVar/unds):'$0';
-  document.getElementById('cpu-fijo').textContent=unds>0?fmtMoney(totalFijo/unds):'$0';
-  document.getElementById('cpu-total').textContent=unds>0?fmtMoney((totalVar+totalFijo)/unds):'$0';
+  document.getElementById('cpu-var').textContent=kg>0?fmtMoney(varXkg):'$0';
+  document.getElementById('cpu-fijo').textContent=kg>0?fmtMoney(fijoXkg):'$0';
+  document.getElementById('cpu-total').textContent=kg>0?fmtMoney(varXkg+fijoXkg):'$0';
 }
 function saveCostoItem(){const n=document.getElementById('ci-nombre').value.trim(),c=parseFloat(document.getElementById('ci-cantidad').value),p=parseFloat(document.getElementById('ci-precio').value);if(!n||isNaN(c)||isNaN(p)){toast('Completá todos los campos');return;}S.costoItems.push({id:uid(),nombre:n,cantidad:c,unidad:document.getElementById('ci-unidad').value,precio:p,categoria:document.getElementById('ci-categoria').value});saveS();closeModal('modal-costo-item');costosRefresh();toast('Insumo agregado');['ci-nombre','ci-cantidad','ci-precio'].forEach(id=>document.getElementById(id).value='');}
 function saveCostoFijo(){const c=document.getElementById('cf-concepto').value.trim(),m=parseFloat(document.getElementById('cf-monto').value);if(!c||isNaN(m)){toast('Completá todos los campos');return;}S.costoFijos.push({id:uid(),concepto:c,monto:m});saveS();closeModal('modal-costo-fijo');costosRefresh();toast('Costo fijo agregado');['cf-concepto','cf-monto'].forEach(id=>document.getElementById(id).value='');}
@@ -565,14 +573,12 @@ function calcCostoVar(composicion){
   if(!composicion||!composicion.length)return 0;
   return composicion.reduce((sum,c)=>{const ins=S.costoItems.find(i=>i.id===c.insumo_id);return ins?sum+(ins.precio*c.cantidad):sum;},0);
 }
-// totalGramos = suma de gramos de TODOS los productos registrados (incluido el actual)
-// Se usa para prorratear: costoFijo * (gramosEsteProducto / totalGramos)
-function calcCostoFijoProd(gramosProducto){
+// Prorrateo: costosFijos / kgProducidosMes * kgProducto
+function calcCostoFijoProd(kgProducto){
   const totalFijo=S.costoFijos.reduce((a,f)=>a+f.monto,0);
-  // totalGramos = suma de gramos de todos los productos en stock
-  const totalGramos=S.productos.reduce((a,p)=>a+(p.gramos||0),0);
-  if(!totalFijo||!totalGramos||!gramosProducto)return 0;
-  return (totalFijo/totalGramos)*gramosProducto;
+  const kgTotal=S.kgProducidos||0;
+  if(!totalFijo||!kgTotal||!kgProducto)return 0;
+  return (totalFijo/kgTotal)*kgProducto;
 }
 function calcPcosto(producto){
   return calcCostoVar(producto.composicion||[])+calcCostoFijoProd(producto.gramos||0);
@@ -644,21 +650,21 @@ function mpRecalcCosto(){
   const editId=document.getElementById('mp-edit-id').value;
   const costoVar=_mpComp.reduce((s,c)=>{const ins=S.costoItems.find(i=>i.id===c.insumo_id);return ins?s+(ins.precio*c.cantidad):s;},0);
   const totalFijo=S.costoFijos.reduce((a,f)=>a+f.monto,0);
-  // totalGramos: todos los productos EXCEPTO el que estoy editando, más los gramos del producto actual
-  const otrosGramos=S.productos.filter(p=>p.id!==editId).reduce((a,p)=>a+(p.gramos||0),0);
-  const totalGramos=otrosGramos+gramos;
-  // Prorrateo: fijosTotal / totalGramos * gramosEsteProducto
-  const costoFijoProd=(totalFijo>0&&totalGramos>0&&gramos>0)?(totalFijo/totalGramos)*gramos:0;
+  const kgTotal=S.kgProducidos||0;
+  // Prorrateo: fijosTotal / kgProducidosMes * kgEsteProducto
+  const costoFijoProd=(totalFijo>0&&kgTotal>0&&gramos>0)?(totalFijo/kgTotal)*gramos:0;
   document.getElementById('mp-costo-var').textContent=fmtMoney(costoVar);
   document.getElementById('mp-costo-fijo').textContent=fmtMoney(costoFijoProd);
   document.getElementById('mp-costo-total').textContent=fmtMoney(costoVar+costoFijoProd);
   if(totalFijo===0){
-    document.getElementById('mp-costo-formula').textContent='Sin costos fijos cargados aún (cargalos en pestaña Costos)';
+    document.getElementById('mp-costo-formula').textContent='Sin costos fijos cargados (cargalos en pestaña Costos)';
+  } else if(!kgTotal){
+    document.getElementById('mp-costo-formula').textContent='Cargá los kg producidos del mes en pestaña Costos para prorratear';
   } else if(!gramos){
-    document.getElementById('mp-costo-formula').textContent='Cargá el peso del producto en gramos para prorratear los fijos';
+    document.getElementById('mp-costo-formula').textContent='Cargá el peso del producto en kg para calcular el fijo';
   } else {
     document.getElementById('mp-costo-formula').textContent=
-      `Fijos: ${fmtMoney(totalFijo)} ÷ ${totalGramos}g totales × ${gramos}g = ${fmtMoney(costoFijoProd)}`;
+      `Fijos: ${fmtMoney(totalFijo)} ÷ ${kgTotal}kg totales × ${gramos}kg = ${fmtMoney(costoFijoProd)}`;
   }
 }
 function saveProducto(){
@@ -668,10 +674,8 @@ function saveProducto(){
   const editId=document.getElementById('mp-edit-id').value;
   const costoVar=composicion.reduce((s,c)=>{const ins=S.costoItems.find(i=>i.id===c.insumo_id);return ins?s+(ins.precio*c.cantidad):s;},0);
   const totalFijo=S.costoFijos.reduce((a,f)=>a+f.monto,0);
-  // Exclude the product being edited from totalGramos, then add its new gramos value
-  const otrosGramos=S.productos.filter(p=>p.id!==editId).reduce((a,p)=>a+(p.gramos||0),0);
-  const totalGramos=otrosGramos+gramos;
-  const costoFijoProd=(totalFijo>0&&totalGramos>0&&gramos>0)?(totalFijo/totalGramos)*gramos:0;
+  const kgTotal=S.kgProducidos||0;
+  const costoFijoProd=(totalFijo>0&&kgTotal>0&&gramos>0)?(totalFijo/kgTotal)*gramos:0;
   const pcosto=costoVar+costoFijoProd;
   const obj={id:editId||uid(),nombre:n,pventa:parseFloat(document.getElementById('mp-pventa').value)||0,pcosto,gramos,composicion,stock:parseInt(document.getElementById('mp-stock').value)||0,stockmin:parseInt(document.getElementById('mp-stockmin').value)||0,unidad:document.getElementById('mp-unidad').value};
   const idx=S.productos.findIndex(x=>x.id===obj.id);
