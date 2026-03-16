@@ -298,28 +298,62 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 
 <!-- ══ TAB BALANCE ══ -->
 <div class="page" id="page-balance">
-  <div class="section-title">BALANCE MENSUAL</div>
+  <div class="section-title">BALANCE MENSUAL
+    <button class="btn btn-outline btn-sm" onclick="balanceExport()">⬇ Descargar</button>
+  </div>
   <div class="month-picker">
     <span style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);">MES:</span>
     <select id="balance-mes-filter" onchange="balanceRefresh()"></select>
   </div>
+
+  <!-- KPIs -->
   <div class="stats-grid" id="balance-kpis"></div>
-  <div class="card" style="background:rgba(39,174,96,.05);border-color:#27ae6033;">
-    <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.95rem;margin-bottom:.7rem;">RESULTADO DEL MES</div>
-    <div style="display:flex;align-items:center;gap:1rem;">
-      <div><div style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);margin-bottom:.2rem;">GANANCIA NETA</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:2.2rem;letter-spacing:2px;" id="balance-neta">$0</div></div>
-      <div id="balance-badge-wrap" style="margin-left:auto;"></div>
+
+  <!-- Ecuación principal -->
+  <div class="card" style="background:rgba(39,174,96,.05);border-color:#27ae6033;margin-bottom:.7rem;">
+    <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.9rem;margin-bottom:.8rem;">VENTAS — COSTOS = GANANCIA NETA</div>
+    <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+      <div style="text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Ventas</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--greens);" id="bal-ventas">$0</div>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--muted);">−</div>
+      <div style="text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Costos</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--reds);" id="bal-costos">$0</div>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--muted);">=</div>
+      <div style="text-align:center;flex:1;">
+        <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Ganancia Neta</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:1px;" id="balance-neta">$0</div>
+      </div>
+      <div id="balance-badge-wrap"></div>
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted2);margin-top:.6rem;" id="bal-margen-label"></div>
+  </div>
+
+  <!-- Desglose barras -->
+  <div class="card" style="margin-bottom:.7rem;">
+    <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.9rem;margin-bottom:.8rem;">DESGLOSE DE COSTOS</div>
+    <div class="bar-chart" id="balance-bars"></div>
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted2);margin-top:.6rem;line-height:1.5;" id="bal-nota-costos"></div>
+  </div>
+
+  <!-- Inventario -->
+  <div class="card" style="margin-bottom:.7rem;background:rgba(41,128,185,.05);border-color:#2980b933;">
+    <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.9rem;margin-bottom:.7rem;">VALOR DEL INVENTARIO ACTUAL</div>
+    <div class="stats-grid" id="bal-stock-stats"></div>
+    <div class="tbl-wrap" style="margin-top:.5rem;">
+      <table><thead><tr><th>Producto</th><th>Stock</th><th>P.Costo</th><th>P.Venta</th><th>Val.Costo</th><th>Val.Venta</th></tr></thead>
+      <tbody id="bal-stock-tbody"></tbody></table>
     </div>
   </div>
+
+  <!-- Ventas por producto -->
   <div class="card">
-    <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.95rem;margin-bottom:.8rem;">DESGLOSE</div>
-    <div class="bar-chart" id="balance-bars"></div>
-  </div>
-  <div class="card">
-    <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.95rem;margin-bottom:.7rem;">VENTAS POR PRODUCTO</div>
+    <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.9rem;margin-bottom:.7rem;">VENTAS POR PRODUCTO</div>
     <div class="tbl-wrap">
-      <table><thead><tr><th>Producto</th><th>Unidades</th><th>Ingresos</th><th>% Total</th></tr></thead>
+      <table><thead><tr><th>Producto</th><th>Und.</th><th>Ingresos</th><th>Costo</th><th>Margen</th></tr></thead>
       <tbody id="balance-prod-tbody"></tbody></table>
     </div>
   </div>
@@ -906,29 +940,190 @@ function deleteVenta(ventaId){
 }
 
 // ── BALANCE ──────────────────────────────────────────────────
+
 function balanceRefresh(){
   const mesVal=document.getElementById('balance-mes-filter').value||S.activeMes;
   populateMesFilter('balance-mes-filter',mesVal);
+
+  // ── Ventas cobradas del mes ──
   const vm=S.ventas.filter(v=>v.fecha?.startsWith(mesVal)&&v.estado==='Cobrada');
   const ingresos=vm.reduce((a,v)=>a+v.total,0);
-  const totalVar=S.costoItems.reduce((a,i)=>a+(i.cantidad*i.precio),0);
-  const totalFijo=S.costoFijos.reduce((a,f)=>a+f.monto,0);
-  const ganancia=ingresos-totalVar-totalFijo;
+
+  // ── Costos reales de lo vendido ──────────────────────────────
+  // Costo variable = suma de pcosto de cada producto vendido × cantidad vendida
+  // pcosto ya incluye los costos fijos prorrateados calculados al guardar el producto
+  let costoVarVendido=0;
+  let costoFijoVendido=0;
+  vm.forEach(v=>{
+    const prod=S.productos.find(p=>p.id===v.producto_id);
+    if(prod){
+      // Split pcosto back into variable and fixed portions
+      const cv=calcCostoVar(prod.composicion||[]);
+      const cf=prod.pcosto-cv; // fijo prorrateado por unidad
+      costoVarVendido+=cv*v.cantidad;
+      costoFijoVendido+=cf*v.cantidad;
+    } else {
+      // Product deleted — use total/precio ratio as fallback
+      costoVarVendido+=v.total*0.6;
+    }
+  });
+  const costoTotalVendido=costoVarVendido+costoFijoVendido;
+  const ganancia=ingresos-costoTotalVendido;
   const margen=ingresos>0?((ganancia/ingresos)*100):0;
-  document.getElementById('balance-kpis').innerHTML=`<div class="stat"><div class="s-lbl">Ingresos</div><div class="s-val c-green">${fmtMoney(ingresos)}</div><div class="s-sub">ventas cobradas</div></div><div class="stat"><div class="s-lbl">Costos Var.</div><div class="s-val c-warn">${fmtMoney(totalVar)}</div><div class="s-sub">insumos</div></div><div class="stat"><div class="s-lbl">Costos Fijos</div><div class="s-val c-red">${fmtMoney(totalFijo)}</div><div class="s-sub">del mes</div></div><div class="stat"><div class="s-lbl">Margen</div><div class="s-val ${margen>=0?'c-green':'c-red'}">${margen.toFixed(1)}%</div><div class="s-sub">neto</div></div>`;
-  const netaEl=document.getElementById('balance-neta');netaEl.textContent=fmtMoney(ganancia);netaEl.style.color=ganancia>=0?'var(--greens)':'var(--reds)';
-  document.getElementById('balance-badge-wrap').innerHTML=ganancia>=0?`<span class="badge badge-green" style="font-size:.85rem;padding:.35rem .75rem;">✓ GANANCIA</span>`:`<span class="badge badge-red" style="font-size:.85rem;padding:.35rem .75rem;">⚠ PÉRDIDA</span>`;
-  const maxV=Math.max(ingresos,totalVar,totalFijo,Math.abs(ganancia),1);
+
+  // ── KPIs ──
+  document.getElementById('balance-kpis').innerHTML=`
+    <div class="stat"><div class="s-lbl">Ingresos</div><div class="s-val c-green">${fmtMoney(ingresos)}</div><div class="s-sub">ventas cobradas</div></div>
+    <div class="stat"><div class="s-lbl">Costo variable</div><div class="s-val c-warn">${fmtMoney(costoVarVendido)}</div><div class="s-sub">de lo vendido</div></div>
+    <div class="stat"><div class="s-lbl">Costo fijo</div><div class="s-val c-red">${fmtMoney(costoFijoVendido)}</div><div class="s-sub">prorrateado vendido</div></div>
+    <div class="stat"><div class="s-lbl">Margen</div><div class="s-val ${margen>=0?'c-green':'c-red'}">${margen.toFixed(1)}%</div><div class="s-sub">neto</div></div>`;
+
+  // ── Ecuación principal ──
+  document.getElementById('bal-ventas').textContent=fmtMoney(ingresos);
+  document.getElementById('bal-costos').textContent=fmtMoney(costoTotalVendido);
+  const netaEl=document.getElementById('balance-neta');
+  netaEl.textContent=fmtMoney(ganancia);
+  netaEl.style.color=ganancia>=0?'var(--greens)':'var(--reds)';
+  document.getElementById('balance-badge-wrap').innerHTML=ganancia>=0
+    ?`<span class="badge badge-green" style="font-size:.82rem;padding:.3rem .7rem;">✓ GANANCIA</span>`
+    :`<span class="badge badge-red" style="font-size:.82rem;padding:.3rem .7rem;">⚠ PÉRDIDA</span>`;
+  document.getElementById('bal-margen-label').textContent=
+    ingresos>0?`Margen neto: ${margen.toFixed(1)}% · Por cada $100 vendidos, ${fmtMoney(ganancia/ingresos*100)} de ganancia`:'Sin ventas cobradas este mes';
+
+  // ── Barras ──
+  const maxV=Math.max(ingresos,costoVarVendido,costoFijoVendido,Math.abs(ganancia),1);
   document.getElementById('balance-bars').innerHTML=[
-    ['Ingresos',ingresos,'linear-gradient(90deg,#27ae60,#2ecc71)','c-green'],
-    ['Costos Var.',totalVar,'linear-gradient(90deg,#e67e22,#f39c12)','c-warn'],
-    ['Costos Fijos',totalFijo,'linear-gradient(90deg,#c0392b,#e74c3c)','c-red'],
-    [ganancia>=0?'Ganancia':'Pérdida',Math.abs(ganancia),ganancia>=0?'linear-gradient(90deg,#1a6b3a,#27ae60)':'linear-gradient(90deg,#8b0000,#c0392b)',ganancia>=0?'c-green':'c-red'],
-  ].map(([lbl,val,grad,cls])=>`<div class="bar-row"><div class="bar-label">${lbl}</div><div class="bar-track"><div class="bar-fill" style="width:${(val/maxV)*100}%;background:${grad};"></div></div><div class="bar-val ${cls}">${fmtMoney(val)}</div></div>`).join('');
-  const byProd={};vm.forEach(v=>{const k=v.producto_nombre||'?';if(!byProd[k])byProd[k]={qty:0,total:0};byProd[k].qty+=v.cantidad;byProd[k].total+=v.total;});
-  const sorted=Object.entries(byProd).sort((a,b)=>b[1].total-a[1].total);
-  document.getElementById('balance-prod-tbody').innerHTML=sorted.length?sorted.map(([n,d])=>`<tr><td>${n}</td><td class="td-blue">${d.qty}</td><td class="td-green">${fmtMoney(d.total)}</td><td class="td-muted">${ingresos>0?((d.total/ingresos)*100).toFixed(1)+'%':'—'}</td></tr>`).join(''):`<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--muted);">Sin ventas cobradas</td></tr>`;
+    ['Ventas',       ingresos,          'linear-gradient(90deg,#27ae60,#2ecc71)',  'c-green'],
+    ['Costo Var.',   costoVarVendido,   'linear-gradient(90deg,#e67e22,#f39c12)',  'c-warn'],
+    ['Costo Fijo',   costoFijoVendido,  'linear-gradient(90deg,#c0392b,#e74c3c)',  'c-red'],
+    [ganancia>=0?'Ganancia':'Pérdida', Math.abs(ganancia),
+      ganancia>=0?'linear-gradient(90deg,#1a6b3a,#27ae60)':'linear-gradient(90deg,#8b0000,#c0392b)',
+      ganancia>=0?'c-green':'c-red'],
+  ].map(([lbl,val,grad,cls])=>`
+    <div class="bar-row">
+      <div class="bar-label">${lbl}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(val/maxV)*100}%;background:${grad};"></div></div>
+      <div class="bar-val ${cls}">${fmtMoney(val)}</div>
+    </div>`).join('');
+  document.getElementById('bal-nota-costos').textContent=
+    'Los costos corresponden únicamente a los productos vendidos este mes. '+
+    'Costo variable: insumos directos. Costo fijo: porción prorrateada por kg.';
+
+  // ── Inventario ──
+  const prods=S.productos;
+  const valCosto=prods.reduce((a,p)=>a+(p.stock*(calcCostoVar(p.composicion||[]))),0);
+  const valVenta=prods.reduce((a,p)=>a+(p.stock*p.pventa),0);
+  const totalUnds=prods.reduce((a,p)=>a+p.stock,0);
+  document.getElementById('bal-stock-stats').innerHTML=`
+    <div class="stat"><div class="s-lbl">Productos</div><div class="s-val c-gold">${prods.length}</div></div>
+    <div class="stat"><div class="s-lbl">Unidades</div><div class="s-val c-blue">${totalUnds}</div></div>
+    <div class="stat"><div class="s-lbl">Val. a costo</div><div class="s-val c-warn">${fmtMoney(valCosto)}</div></div>
+    <div class="stat"><div class="s-lbl">Val. a precio venta</div><div class="s-val c-green">${fmtMoney(valVenta)}</div></div>`;
+  document.getElementById('bal-stock-tbody').innerHTML=prods.length?prods.map(p=>{
+    const cv=calcCostoVar(p.composicion||[]);
+    return `<tr>
+      <td>${p.nombre}</td>
+      <td class="td-blue">${p.stock}</td>
+      <td class="td-muted">${fmtMoney(cv)}</td>
+      <td class="td-gold">${fmtMoney(p.pventa)}</td>
+      <td class="td-warn">${fmtMoney(cv*p.stock)}</td>
+      <td class="td-green">${fmtMoney(p.pventa*p.stock)}</td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="6" style="text-align:center;padding:1rem;color:var(--muted);">Sin productos</td></tr>`;
+
+  // ── Ventas por producto con costo y margen ──
+  const byProd={};
+  vm.forEach(v=>{
+    const k=v.producto_nombre||'?';
+    if(!byProd[k])byProd[k]={qty:0,ingresos:0,costo:0,prod_id:v.producto_id};
+    byProd[k].qty+=v.cantidad;
+    byProd[k].ingresos+=v.total;
+    const prod=S.productos.find(p=>p.id===v.producto_id);
+    byProd[k].costo+=(prod?prod.pcosto:0)*v.cantidad;
+  });
+  const sorted=Object.entries(byProd).sort((a,b)=>b[1].ingresos-a[1].ingresos);
+  document.getElementById('balance-prod-tbody').innerHTML=sorted.length?sorted.map(([n,d])=>{
+    const mg=d.ingresos>0?((d.ingresos-d.costo)/d.ingresos*100):0;
+    return `<tr>
+      <td>${n}</td>
+      <td class="td-blue">${d.qty}</td>
+      <td class="td-green">${fmtMoney(d.ingresos)}</td>
+      <td class="td-muted">${fmtMoney(d.costo)}</td>
+      <td class="${mg>=0?'td-green':'td-red'}">${mg.toFixed(1)}%</td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--muted);">Sin ventas cobradas</td></tr>`;
 }
+
+function balanceExport(){
+  const mesVal=document.getElementById('balance-mes-filter').value||S.activeMes;
+  const vm=S.ventas.filter(v=>v.fecha?.startsWith(mesVal)&&v.estado==='Cobrada');
+  const ingresos=vm.reduce((a,v)=>a+v.total,0);
+  let costoVar=0,costoFijo=0;
+  vm.forEach(v=>{
+    const prod=S.productos.find(p=>p.id===v.producto_id);
+    if(prod){const cv=calcCostoVar(prod.composicion||[]);costoVar+=cv*v.cantidad;costoFijo+=(prod.pcosto-cv)*v.cantidad;}
+    else costoVar+=v.total*0.6;
+  });
+  const costoTotal=costoVar+costoFijo;
+  const ganancia=ingresos-costoTotal;
+  const margen=ingresos>0?((ganancia/ingresos)*100):0;
+  const prods=S.productos;
+  const valCosto=prods.reduce((a,p)=>a+(p.stock*calcCostoVar(p.composicion||[])),0);
+  const valVenta=prods.reduce((a,p)=>a+(p.stock*p.pventa),0);
+
+  const lines=[
+    `KAIZEN — BALANCE ${fmtMes(mesVal).toUpperCase()}`,
+    `Lote: ${S.lote.lote} · Variedad: ${S.lote.variedad}`,
+    `Generado: ${new Date().toLocaleDateString('es-AR')}`,
+    ``,
+    `══ RESULTADO ══════════════════`,
+    `Ventas (cobradas);${fmtMoney(ingresos)}`,
+    `Costos variables (vendido);${fmtMoney(costoVar)}`,
+    `Costos fijos prorrateados (vendido);${fmtMoney(costoFijo)}`,
+    `Costo total;${fmtMoney(costoTotal)}`,
+    `GANANCIA NETA;${fmtMoney(ganancia)}`,
+    `Margen neto;${margen.toFixed(1)}%`,
+    ``,
+    `══ VENTAS — COSTOS = GANANCIA ═`,
+    `${fmtMoney(ingresos)} - ${fmtMoney(costoTotal)} = ${fmtMoney(ganancia)}`,
+    ``,
+    `══ VENTAS POR PRODUCTO ════════`,
+    `Producto;Unidades;Ingresos;Costo;Margen`,
+    ...Object.entries((() => {
+      const b={};
+      vm.forEach(v=>{
+        const k=v.producto_nombre||'?';
+        if(!b[k])b[k]={qty:0,ing:0,cost:0};
+        b[k].qty+=v.cantidad;b[k].ing+=v.total;
+        const p=S.productos.find(x=>x.id===v.producto_id);
+        b[k].cost+=(p?p.pcosto:0)*v.cantidad;
+      });
+      return b;
+    })()).sort((a,b)=>b[1].ing-a[1].ing).map(([n,d])=>{
+      const mg=d.ing>0?((d.ing-d.cost)/d.ing*100):0;
+      return `${n};${d.qty};${fmtMoney(d.ing)};${fmtMoney(d.cost)};${mg.toFixed(1)}%`;
+    }),
+    ``,
+    `══ INVENTARIO ACTUAL ══════════`,
+    `Producto;Stock;P.Costo;P.Venta;Val.Costo;Val.Venta`,
+    ...prods.map(p=>{
+      const cv=calcCostoVar(p.composicion||[]);
+      return `${p.nombre};${p.stock};${fmtMoney(cv)};${fmtMoney(p.pventa)};${fmtMoney(cv*p.stock)};${fmtMoney(p.pventa*p.stock)}`;
+    }),
+    ``,
+    `Total inventario a costo;${fmtMoney(valCosto)}`,
+    `Total inventario a precio venta;${fmtMoney(valVenta)}`,
+  ];
+
+  const blob=new Blob(['﻿'+lines.join('
+')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`kaizen_balance_${mesVal}_lote_${S.lote.lote}.csv`;
+  a.click();URL.revokeObjectURL(a.href);
+  toast('Balance exportado');
+}
+
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
