@@ -565,14 +565,17 @@ function calcCostoVar(composicion){
   if(!composicion||!composicion.length)return 0;
   return composicion.reduce((sum,c)=>{const ins=S.costoItems.find(i=>i.id===c.insumo_id);return ins?sum+(ins.precio*c.cantidad):sum;},0);
 }
-function calcCostoFijoProd(gramos,excludeId){
+// totalGramos = suma de gramos de TODOS los productos registrados (incluido el actual)
+// Se usa para prorratear: costoFijo * (gramosEsteProducto / totalGramos)
+function calcCostoFijoProd(gramosProducto){
   const totalFijo=S.costoFijos.reduce((a,f)=>a+f.monto,0);
-  const totalGramos=S.productos.reduce((a,p)=>p.id===excludeId?a:a+(p.gramos||0),0)+(gramos||0);
-  if(!totalGramos||!gramos)return 0;
-  return (totalFijo/totalGramos)*gramos;
+  // totalGramos = suma de gramos de todos los productos en stock
+  const totalGramos=S.productos.reduce((a,p)=>a+(p.gramos||0),0);
+  if(!totalFijo||!totalGramos||!gramosProducto)return 0;
+  return (totalFijo/totalGramos)*gramosProducto;
 }
 function calcPcosto(producto){
-  return calcCostoVar(producto.composicion||[])+calcCostoFijoProd(producto.gramos||0,null);
+  return calcCostoVar(producto.composicion||[])+calcCostoFijoProd(producto.gramos||0);
 }
 
 function stockRefresh(){
@@ -641,15 +644,22 @@ function mpRecalcCosto(){
   const editId=document.getElementById('mp-edit-id').value;
   const costoVar=_mpComp.reduce((s,c)=>{const ins=S.costoItems.find(i=>i.id===c.insumo_id);return ins?s+(ins.precio*c.cantidad):s;},0);
   const totalFijo=S.costoFijos.reduce((a,f)=>a+f.monto,0);
+  // totalGramos: todos los productos EXCEPTO el que estoy editando, más los gramos del producto actual
   const otrosGramos=S.productos.filter(p=>p.id!==editId).reduce((a,p)=>a+(p.gramos||0),0);
   const totalGramos=otrosGramos+gramos;
-  const costoFijoProd=totalGramos>0&&gramos>0?(totalFijo/totalGramos)*gramos:0;
+  // Prorrateo: fijosTotal / totalGramos * gramosEsteProducto
+  const costoFijoProd=(totalFijo>0&&totalGramos>0&&gramos>0)?(totalFijo/totalGramos)*gramos:0;
   document.getElementById('mp-costo-var').textContent=fmtMoney(costoVar);
   document.getElementById('mp-costo-fijo').textContent=fmtMoney(costoFijoProd);
   document.getElementById('mp-costo-total').textContent=fmtMoney(costoVar+costoFijoProd);
-  document.getElementById('mp-costo-formula').textContent=totalGramos>0&&gramos>0
-    ?`Fijos: ${fmtMoney(totalFijo)} ÷ ${totalGramos}g × ${gramos}g = ${fmtMoney(costoFijoProd)}`
-    :'Cargá el peso del producto y los costos fijos para prorratear';
+  if(totalFijo===0){
+    document.getElementById('mp-costo-formula').textContent='Sin costos fijos cargados aún (cargalos en pestaña Costos)';
+  } else if(!gramos){
+    document.getElementById('mp-costo-formula').textContent='Cargá el peso del producto en gramos para prorratear los fijos';
+  } else {
+    document.getElementById('mp-costo-formula').textContent=
+      `Fijos: ${fmtMoney(totalFijo)} ÷ ${totalGramos}g totales × ${gramos}g = ${fmtMoney(costoFijoProd)}`;
+  }
 }
 function saveProducto(){
   const n=document.getElementById('mp-nombre').value.trim();if(!n){toast('Ingresá el nombre');return;}
@@ -658,9 +668,10 @@ function saveProducto(){
   const editId=document.getElementById('mp-edit-id').value;
   const costoVar=composicion.reduce((s,c)=>{const ins=S.costoItems.find(i=>i.id===c.insumo_id);return ins?s+(ins.precio*c.cantidad):s;},0);
   const totalFijo=S.costoFijos.reduce((a,f)=>a+f.monto,0);
+  // Exclude the product being edited from totalGramos, then add its new gramos value
   const otrosGramos=S.productos.filter(p=>p.id!==editId).reduce((a,p)=>a+(p.gramos||0),0);
   const totalGramos=otrosGramos+gramos;
-  const costoFijoProd=totalGramos>0&&gramos>0?(totalFijo/totalGramos)*gramos:0;
+  const costoFijoProd=(totalFijo>0&&totalGramos>0&&gramos>0)?(totalFijo/totalGramos)*gramos:0;
   const pcosto=costoVar+costoFijoProd;
   const obj={id:editId||uid(),nombre:n,pventa:parseFloat(document.getElementById('mp-pventa').value)||0,pcosto,gramos,composicion,stock:parseInt(document.getElementById('mp-stock').value)||0,stockmin:parseInt(document.getElementById('mp-stockmin').value)||0,unidad:document.getElementById('mp-unidad').value};
   const idx=S.productos.findIndex(x=>x.id===obj.id);
