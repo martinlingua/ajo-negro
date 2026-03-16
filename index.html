@@ -13,6 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="KAIZEN">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 :root {
   --bg:#0a0804;--bg2:#111008;--bg3:#1a1610;--card:#141008;
@@ -142,9 +143,12 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
     <img src="icon-192.png" alt="KAIZEN">
     <div><div class="hdr-title">KAIZEN</div><div class="hdr-sub">Ajo Negro · Gestión</div></div>
   </div>
-  <div class="hdr-month" onclick="cycleMonth()">
-    <div class="hdr-month-val" id="hdr-month-val">—</div>
-    <div class="hdr-month-lbl">Mes activo ▸</div>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;">
+    <div class="hdr-month" onclick="cycleMonth()">
+      <div class="hdr-month-val" id="hdr-month-val">—</div>
+      <div class="hdr-month-lbl">Mes activo ▸</div>
+    </div>
+    <div id="sync-status" style="font-family:'DM Mono',monospace;font-size:.58rem;color:var(--greens);opacity:0;transition:opacity .4s;text-align:right;"></div>
   </div>
 </header>
 
@@ -488,8 +492,86 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 <script>
 // ── STATE ────────────────────────────────────────────────────
 let S={lote:{lote:'—',variedad:'—',fecha:'—',peso:'—',resp:'—'},prodRecords:{},prodDay:1,prodChart:'both',costoItems:[],costoFijos:[],kgProducidos:0,productos:[],ventas:[],activeMes:''};
-function loadS(){try{const d=localStorage.getItem('kaizen_v3');if(d)S=JSON.parse(d);}catch(e){}if(!S.activeMes)S.activeMes=todayYM();}
-function saveS(){localStorage.setItem('kaizen_v3',JSON.stringify(S));}
+// ── SUPABASE ─────────────────────────────────────────────────
+const SB_URL='https://dlzboitfcxytcatgkxkg.supabase.co';
+const SB_KEY='sb_publishable_1Cc9H-gjdxtq8w_vN6Ql2Q_16ms1J4x';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+let _saveTimer=null;
+let _syncing=false;
+
+// Load from Supabase, fallback to localStorage
+async function loadS(){
+  // Start with localStorage so UI shows immediately
+  try{const d=localStorage.getItem('kaizen_v3');if(d)S=JSON.parse(d);}catch(e){}
+  if(!S.activeMes)S.activeMes=todayYM();
+  // Then sync from Supabase
+  try{
+    const{data,error}=await sb.from('kaizen_state').select('data').eq('id','main').single();
+    if(!error&&data?.data){
+      S=data.data;
+      if(!S.activeMes)S.activeMes=todayYM();
+      localStorage.setItem('kaizen_v3',JSON.stringify(S));
+      refreshAll();
+      showSyncStatus('Sincronizado con la nube ☁️');
+    }
+  }catch(e){showSyncStatus('Sin conexión — datos locales');}
+}
+
+// Save to localStorage immediately + debounce Supabase save
+function saveS(){
+  localStorage.setItem('kaizen_v3',JSON.stringify(S));
+  clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(saveToCloud,1200);
+}
+
+async function saveToCloud(){
+  try{
+    const{error}=await sb.from('kaizen_state')
+      .upsert({id:'main',data:S,updated_at:new Date().toISOString()});
+    if(!error) showSyncStatus('Guardado en la nube ☁️');
+    else showSyncStatus('Error al guardar ⚠️');
+  }catch(e){showSyncStatus('Sin conexión ⚠️');}
+}
+
+function showSyncStatus(msg){
+  let el=document.getElementById('sync-status');
+  if(!el)return;
+  el.textContent=msg;
+  el.style.opacity='1';
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>el.style.opacity='0',3000);
+}
+
+// Realtime subscription — updates all devices instantly
+function setupRealtime(){
+  sb.channel('kaizen_state')
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'kaizen_state',filter:'id=eq.main'},
+      payload=>{
+        if(_syncing)return;
+        const remote=payload.new?.data;
+        if(!remote)return;
+        S=remote;
+        if(!S.activeMes)S.activeMes=todayYM();
+        localStorage.setItem('kaizen_v3',JSON.stringify(S));
+        refreshAll();
+        showSyncStatus('Actualizado desde otro dispositivo 📱');
+      })
+    .subscribe();
+}
+
+// Refresh all visible UI after remote sync
+function refreshAll(){
+  refreshHeader();
+  prodRefreshBanner();
+  prodLoadDay();
+  prodRefreshLog();
+  setTimeout(prodDrawChart,80);
+  const activeTab=document.querySelector('.tab.active')?.dataset?.tab;
+  if(activeTab==='costos')costosRefresh();
+  if(activeTab==='stock')stockRefresh();
+  if(activeTab==='ventas')ventasRefresh();
+  if(activeTab==='balance')balanceRefresh();
+}
 function todayYM(){return new Date().toISOString().slice(0,7);}
 function todayStr(){return new Date().toISOString().slice(0,10);}
 function fmtMes(ym){if(!ym)return '—';const[y,m]=ym.split('-');const n=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];return `${n[parseInt(m)-1]} ${y}`;}
@@ -1165,7 +1247,9 @@ if('serviceWorker'in navigator){
 }
 
 // ── INIT ─────────────────────────────────────────────────────
-loadS();
+// 1. Boot from localStorage immediately so UI is instant
+try{const d=localStorage.getItem('kaizen_v3');if(d)S=JSON.parse(d);}catch(e){}
+if(!S.activeMes)S.activeMes=todayYM();
 refreshHeader();
 prodRefreshBanner();
 prodLoadDay();
@@ -1177,6 +1261,8 @@ populateMesFilter('balance-mes-filter',S.activeMes);
 setTimeout(prodDrawChart,120);
 window.addEventListener('resize',prodDrawChart);
 if(S.lote.lote==='—')setTimeout(()=>openModal('modal-lote'),500);
+// 2. Then sync from cloud + subscribe to realtime changes
+loadS().then(()=>setupRealtime());
 </script>
 </body>
 </html>

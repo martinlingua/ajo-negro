@@ -1,16 +1,13 @@
-// ─── KAIZEN Service Worker ───────────────────────────────────
-// Cache name is set dynamically from the build timestamp
-// sent by the page — no manual version bumping needed.
-let CACHE = 'kaizen-v0';
+const CACHE = 'kaizen-v0';
 
 const STATIC = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap'
+  'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap',
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js'
 ];
 
-// ─── INSTALL ─────────────────────────────────────────────────
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE)
@@ -19,7 +16,6 @@ self.addEventListener('install', e => {
   );
 });
 
-// ─── ACTIVATE: delete stale caches ───────────────────────────
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
@@ -30,35 +26,29 @@ self.addEventListener('activate', e => {
   );
 });
 
-// ─── MESSAGE: receive build timestamp from page ───────────────
-// When index.html loads it sends its embedded BUILD timestamp.
-// If it's different from our current CACHE name, we update the
-// cache name and tell the browser to reload with the new SW.
 self.addEventListener('message', e => {
-  if (e.data?.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
+  if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
   if (e.data?.type === 'SET_BUILD') {
     const newCache = 'kaizen-v' + e.data.build;
     if (newCache !== CACHE) {
-      CACHE = newCache;
-      // Delete old caches immediately
       caches.keys().then(keys =>
-        Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+        Promise.all(keys.filter(k => k !== newCache).map(k => caches.delete(k)))
       );
     }
   }
 });
 
-// ─── FETCH ───────────────────────────────────────────────────
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
+  // Always network-first for Supabase API calls (never cache)
+  if (url.hostname.includes('supabase.co')) {
+    e.respondWith(fetch(e.request).catch(() => new Response('', {status: 503})));
+    return;
+  }
   const isHTML = e.request.destination === 'document'
     || url.pathname.endsWith('.html')
     || url.pathname === '/';
-
   if (isHTML) {
-    // Network-first for HTML → always gets latest version when online
     e.respondWith(
       fetch(e.request)
         .then(res => {
@@ -70,7 +60,6 @@ self.addEventListener('fetch', e => {
         .catch(() => caches.match('./index.html'))
     );
   } else {
-    // Cache-first for static assets
     e.respondWith(
       caches.match(e.request).then(cached => {
         if (cached) return cached;
