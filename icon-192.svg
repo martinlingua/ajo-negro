@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <rect width="192" height="192" rx="40" fill="#0a0804"/>
+  <rect width="192" height="192" rx="40" fill="url(#bg)"/>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#2d1a00"/>
+      <stop offset="100%" stop-color="#0a0804"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e8b84b"/>
+      <stop offset="100%" stop-color="#c8793a"/>
+    </linearGradient>
+  </defs>
+  <!-- Garlic bulb body -->
+  <ellipse cx="96" cy="112" rx="42" ry="38" fill="url(#gold)" opacity="0.92"/>
+  <!-- Clove lines -->
+  <path d="M96 74 Q80 90 78 112 Q88 108 96 112 Q104 108 114 112 Q112 90 96 74Z" fill="#1a0a00" opacity="0.25"/>
+  <path d="M78 112 Q86 124 96 126 Q106 124 114 112" fill="none" stroke="#1a0a00" stroke-width="1.5" opacity="0.3"/>
+  <line x1="96" y1="74" x2="96" y2="126" stroke="#1a0a00" stroke-width="1.5" opacity="0.2"/>
+  <!-- Stem -->
+  <path d="M96 74 Q94 58 90 48 Q96 44 100 50 Q104 58 96 74" fill="#4a7a20" opacity="0.85"/>
+  <path d="M96 68 Q88 55 82 46" fill="none" stroke="#5a9a28" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+  <path d="M96 60 Q104 50 112 44" fill="none" stroke="#5a9a28" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  <!-- Root lines at bottom -->
+  <path d="M84 148 Q80 156 76 160 M88 150 Q86 158 84 164 M96 150 Q96 160 96 166 M104 150 Q106 158 108 164 M108 148 Q112 156 116 160" fill="none" stroke="#c8793a" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+  <!-- Shine -->
+  <ellipse cx="82" cy="95" rx="12" ry="8" fill="white" opacity="0.07" transform="rotate(-20 82 95)"/>
+</svg>

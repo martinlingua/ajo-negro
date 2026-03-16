@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Ajo Negro — Control de Producción</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0804">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ajo Negro">
+<link rel="apple-touch-icon" href="icon-192.svg">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #0a0804;
+  --bg2:       #110e08;
+  --bg3:       #1a1510;
+  --card:      #141008;
+  --border:    #2a2318;
+  --border2:   #3d3020;
+  --gold:      #c8973a;
+  --gold2:     #e8b84b;
+  --gold-dim:  #6b4f1c;
+  --amber:     #d4821a;
+  --cream:     #f0e6cc;
+  --muted:     #8a7a60;
+  --muted2:    #5a4e38;
+  --red:       #c0392b;
+  --red-soft:  #e74c3c;
+  --green:     #27ae60;
+  --green-soft:#2ecc71;
+  --blue:      #2980b9;
+  --warn:      #e67e22;
+  --phase1:    #8b3a00;
+  --phase2:    #5a0f0f;
+  --phase3:    #2d2000;
+  --t-main:    clamp(13px, 1.4vw, 15px);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+html { font-size: var(--t-main); }
+
+body {
+  background: var(--bg);
+  color: var(--cream);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── NOISE TEXTURE OVERLAY ─── */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none; z-index:0; opacity:.4;
+}
+
+/* ─── HEADER ─── */
+header {
+  position: relative;
+  padding: 2.5rem 3rem 2rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  z-index:10;
+}
+header::after {
+  content:'';
+  position:absolute; bottom:0; left:0; right:0; height:1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+.header-left { display:flex; align-items:flex-end; gap:1.5rem; }
+.logo-mark {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 4.5rem;
+  line-height: 1;
+  color: var(--gold);
+  letter-spacing: 2px;
+  text-shadow: 0 0 40px rgba(200,151,58,.25);
+}
+.header-titles h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.9rem;
+  letter-spacing: 3px;
+  color: var(--gold2);
+  line-height: 1;
+}
+.header-titles p {
+  font-size: .78rem;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: .3rem;
+  font-family: 'DM Mono', monospace;
+}
+
+/* Lote badge */
+#lote-badge {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: .7rem 1.2rem;
+  text-align:right;
+  cursor:pointer;
+  transition: border-color .2s;
+}
+#lote-badge:hover { border-color: var(--gold-dim); }
+#lote-badge .lote-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 1.3rem;
+  color: var(--gold2);
+  letter-spacing: 2px;
+}
+#lote-badge .lote-label {
+  font-size: .7rem;
+  color: var(--muted);
+  text-transform:uppercase;
+  letter-spacing:2px;
+}
+
+/* ─── MAIN LAYOUT ─── */
+main {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 0;
+  min-height: calc(100vh - 120px);
+  position:relative; z-index:1;
+}
+
+/* ─── LEFT: ENTRY + CHART ─── */
+.left-panel {
+  border-right: 1px solid var(--border);
+  padding: 2rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Phase banner */
+.phase-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-radius: 10px;
+  border: 1px solid;
+  transition: all .4s;
+}
+.phase-banner.ph1 { background: rgba(139,58,0,.15); border-color: #8b3a00; }
+.phase-banner.ph2 { background: rgba(90,15,15,.2);  border-color: #8b1a1a; }
+.phase-banner.ph3 { background: rgba(45,32,0,.2);   border-color: #6b5500; }
+
+.phase-dot {
+  width:14px; height:14px; border-radius:50%;
+  flex-shrink:0;
+  box-shadow: 0 0 12px currentColor;
+}
+.ph1 .phase-dot { background:#ff6b35; color:#ff6b35; }
+.ph2 .phase-dot { background:#c8973a; color:#c8973a; }
+.ph3 .phase-dot { background:#f0c040; color:#f0c040; }
+
+.phase-info h3 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+}
+.phase-info p { font-size:.78rem; color:var(--muted); margin-top:.1rem; }
+
+.phase-ranges {
+  margin-left:auto;
+  display:flex; gap:1.5rem;
+}
+.phase-range-item { text-align:center; }
+.phase-range-item .val {
+  font-family:'DM Mono',monospace;
+  font-size:.95rem; font-weight:500;
+  color:var(--gold2);
+}
+.phase-range-item .lbl {
+  font-size:.65rem; text-transform:uppercase;
+  letter-spacing:1px; color:var(--muted);
+  display:block; margin-top:.15rem;
+}
+
+/* ─── ENTRY FORM ─── */
+.entry-section h2 {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.3rem; letter-spacing:3px;
+  color:var(--muted); margin-bottom:1.2rem;
+}
+
+.day-selector {
+  display:flex; align-items:center; gap:1rem; margin-bottom:1.5rem;
+}
+.day-selector label {
+  font-size:.75rem; text-transform:uppercase;
+  letter-spacing:2px; color:var(--muted);
+  font-family:'DM Mono',monospace;
+}
+.day-btns { display:flex; gap:.5rem; }
+.day-btn {
+  width:36px; height:36px;
+  background:var(--bg3); border:1px solid var(--border2);
+  border-radius:6px; color:var(--cream);
+  font-size:1.1rem; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .15s;
+}
+.day-btn:hover { background:var(--border2); border-color:var(--gold-dim); }
+#current-day-display {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:2.2rem;
+  color:var(--gold2);
+  letter-spacing:2px;
+  min-width:60px; text-align:center;
+  line-height:1;
+}
+#current-day-display span {
+  font-family:'DM Mono',monospace;
+  font-size:.75rem;
+  color:var(--muted);
+  display:block;
+  text-transform:uppercase;
+  letter-spacing:2px;
+  margin-top:2px;
+}
+
+.inputs-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:1rem;
+  margin-bottom:1.2rem;
+}
+.input-block { display:flex; flex-direction:column; gap:.5rem; }
+.input-block label {
+  font-size:.72rem;
+  text-transform:uppercase;
+  letter-spacing:2px;
+  color:var(--muted);
+  font-family:'DM Mono',monospace;
+}
+.input-wrap {
+  position:relative;
+  display:flex; align-items:center;
+}
+.input-wrap input {
+  width:100%;
+  background:var(--bg3);
+  border:1px solid var(--border2);
+  border-radius:8px;
+  padding:.85rem 2.8rem .85rem 1rem;
+  color:var(--cream);
+  font-family:'DM Mono',monospace;
+  font-size:1.1rem;
+  outline:none;
+  transition:border-color .2s, box-shadow .2s;
+  -moz-appearance:textfield;
+}
+.input-wrap input::-webkit-outer-spin-button,
+.input-wrap input::-webkit-inner-spin-button { -webkit-appearance:none; }
+.input-wrap input:focus {
+  border-color:var(--gold-dim);
+  box-shadow: 0 0 0 3px rgba(200,151,58,.1);
+}
+.input-wrap .unit {
+  position:absolute; right:.9rem;
+  font-family:'DM Mono',monospace;
+  font-size:.8rem; color:var(--muted);
+  pointer-events:none;
+}
+
+/* Deviation indicator */
+.dev-indicator {
+  margin-top:.4rem;
+  font-family:'DM Mono',monospace;
+  font-size:.78rem;
+  height:1.2rem;
+  transition:color .2s;
+}
+.dev-ok    { color:var(--green); }
+.dev-warn  { color:var(--warn); }
+.dev-alert { color:var(--red-soft); }
+.dev-empty { color:transparent; }
+
+/* Notes */
+.notes-wrap { margin-bottom:1.2rem; }
+.notes-wrap label {
+  font-size:.72rem; text-transform:uppercase;
+  letter-spacing:2px; color:var(--muted);
+  font-family:'DM Mono',monospace;
+  display:block; margin-bottom:.5rem;
+}
+.notes-wrap textarea {
+  width:100%; background:var(--bg3);
+  border:1px solid var(--border2); border-radius:8px;
+  padding:.7rem 1rem; color:var(--cream);
+  font-family:'DM Sans',sans-serif; font-size:.9rem;
+  resize:vertical; min-height:60px; outline:none;
+  transition:border-color .2s;
+}
+.notes-wrap textarea:focus { border-color:var(--gold-dim); }
+
+.btn-row { display:flex; gap:.8rem; }
+
+.btn-primary {
+  flex:1;
+  background: linear-gradient(135deg, var(--amber), var(--gold));
+  border:none; border-radius:8px;
+  padding:.85rem 1.5rem;
+  color:#1a0a00;
+  font-family:'DM Sans',sans-serif;
+  font-size:.95rem; font-weight:600;
+  cursor:pointer;
+  transition:all .2s;
+  letter-spacing:.5px;
+}
+.btn-primary:hover {
+  transform:translateY(-1px);
+  box-shadow:0 6px 20px rgba(200,151,58,.3);
+}
+.btn-primary:active { transform:translateY(0); }
+
+.btn-secondary {
+  background:var(--bg3); border:1px solid var(--border2);
+  border-radius:8px; padding:.85rem 1.2rem;
+  color:var(--muted); font-family:'DM Sans',sans-serif;
+  font-size:.9rem; cursor:pointer;
+  transition:all .2s;
+}
+.btn-secondary:hover { border-color:var(--gold-dim); color:var(--cream); }
+
+/* ─── CHART ─── */
+.chart-section { flex:1; min-height:0; }
+.chart-section h2 {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.3rem; letter-spacing:3px;
+  color:var(--muted); margin-bottom:1rem;
+  display:flex; align-items:center; gap:1rem;
+}
+.chart-legend {
+  display:flex; gap:1.2rem; margin-left:auto;
+}
+.legend-item {
+  display:flex; align-items:center; gap:.4rem;
+  font-family:'DM Mono',monospace; font-size:.72rem;
+  color:var(--muted);
+}
+.legend-dot { width:10px; height:10px; border-radius:50%; }
+
+.chart-wrap {
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:1.2rem 1.2rem 1rem;
+  position:relative;
+}
+#main-chart { width:100%; height:220px; }
+
+.chart-tabs {
+  display:flex; gap:.5rem; margin-bottom:1rem;
+}
+.chart-tab {
+  padding:.35rem .9rem;
+  border-radius:20px;
+  border:1px solid var(--border2);
+  background:transparent;
+  color:var(--muted);
+  font-family:'DM Mono',monospace;
+  font-size:.72rem; cursor:pointer;
+  transition:all .15s;
+  letter-spacing:1px;
+}
+.chart-tab.active {
+  background:var(--gold-dim);
+  border-color:var(--gold);
+  color:var(--gold2);
+}
+
+/* ─── RIGHT PANEL ─── */
+.right-panel {
+  padding:2rem 1.8rem;
+  display:flex; flex-direction:column;
+  gap:1.5rem;
+  overflow-y:auto;
+}
+
+/* Progress ring */
+.progress-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:1.5rem;
+  display:flex; align-items:center; gap:1.5rem;
+}
+.ring-wrap { position:relative; width:90px; height:90px; flex-shrink:0; }
+.ring-wrap svg { transform:rotate(-90deg); }
+.ring-bg { fill:none; stroke:var(--border2); stroke-width:7; }
+.ring-fill {
+  fill:none; stroke:url(#ringGrad); stroke-width:7;
+  stroke-linecap:round;
+  transition: stroke-dashoffset .6s cubic-bezier(.4,0,.2,1);
+}
+.ring-text {
+  position:absolute; inset:0;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+}
+.ring-pct {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.6rem; color:var(--gold2); line-height:1;
+}
+.ring-sub {
+  font-family:'DM Mono',monospace;
+  font-size:.6rem; color:var(--muted);
+  text-transform:uppercase; letter-spacing:1px;
+}
+.progress-info h3 {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.1rem; letter-spacing:2px; color:var(--cream);
+}
+.progress-info p {
+  font-size:.8rem; color:var(--muted); margin-top:.3rem; line-height:1.5;
+}
+.progress-info .days-left {
+  font-family:'DM Mono',monospace;
+  font-size:.85rem; color:var(--gold);
+  margin-top:.5rem;
+}
+
+/* Stats row */
+.stats-row {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:.8rem;
+}
+.stat-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:1rem;
+}
+.stat-card .s-label {
+  font-size:.68rem; text-transform:uppercase;
+  letter-spacing:2px; color:var(--muted);
+  font-family:'DM Mono',monospace;
+  margin-bottom:.4rem;
+}
+.stat-card .s-val {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.6rem; letter-spacing:1px;
+  line-height:1;
+}
+.stat-card .s-sub {
+  font-size:.7rem; color:var(--muted);
+  margin-top:.2rem;
+  font-family:'DM Mono',monospace;
+}
+.s-ok   { color:var(--green); }
+.s-warn { color:var(--warn); }
+.s-bad  { color:var(--red-soft); }
+.s-neutral { color:var(--gold2); }
+
+/* Log table */
+.log-section h3 {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.1rem; letter-spacing:3px;
+  color:var(--muted); margin-bottom:.8rem;
+}
+.log-table-wrap {
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  overflow:hidden;
+  max-height:280px;
+  overflow-y:auto;
+}
+.log-table-wrap::-webkit-scrollbar { width:4px; }
+.log-table-wrap::-webkit-scrollbar-track { background:var(--bg2); }
+.log-table-wrap::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+
+table { width:100%; border-collapse:collapse; }
+thead th {
+  background:var(--bg3);
+  padding:.5rem .7rem;
+  font-size:.65rem; text-transform:uppercase;
+  letter-spacing:1.5px; color:var(--muted);
+  font-family:'DM Mono',monospace;
+  text-align:left; position:sticky; top:0; z-index:1;
+  border-bottom:1px solid var(--border);
+}
+tbody tr { border-bottom:1px solid var(--border); transition:background .1s; }
+tbody tr:hover { background:var(--bg3); }
+tbody tr:last-child { border-bottom:none; }
+tbody td {
+  padding:.5rem .7rem;
+  font-family:'DM Mono',monospace;
+  font-size:.75rem; color:var(--cream);
+}
+.td-day { color:var(--gold); font-weight:500; }
+.td-ok   { color:var(--green); }
+.td-warn { color:var(--warn); }
+.td-bad  { color:var(--red-soft); }
+.td-muted { color:var(--muted); }
+
+/* Export btn */
+.export-section { margin-top:auto; }
+.btn-export {
+  width:100%;
+  background:transparent;
+  border:1px solid var(--gold-dim);
+  border-radius:8px;
+  padding:.9rem;
+  color:var(--gold);
+  font-family:'DM Sans',sans-serif;
+  font-size:.9rem; font-weight:500;
+  cursor:pointer;
+  transition:all .2s;
+  display:flex; align-items:center; justify-content:center; gap:.6rem;
+}
+.btn-export:hover {
+  background:rgba(200,151,58,.08);
+  border-color:var(--gold);
+}
+
+/* ─── MODAL ─── */
+.modal-overlay {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.85);
+  z-index:1000;
+  display:none; align-items:center; justify-content:center;
+  backdrop-filter:blur(4px);
+}
+.modal-overlay.open { display:flex; }
+.modal {
+  background:var(--bg2);
+  border:1px solid var(--border2);
+  border-radius:14px;
+  padding:2rem;
+  width:min(500px, 90vw);
+  max-height:90vh; overflow-y:auto;
+}
+.modal h2 {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.6rem; letter-spacing:3px;
+  color:var(--gold2); margin-bottom:1.5rem;
+}
+.modal-fields { display:flex; flex-direction:column; gap:1rem; }
+.modal-field label {
+  font-size:.72rem; text-transform:uppercase;
+  letter-spacing:2px; color:var(--muted);
+  font-family:'DM Mono',monospace;
+  display:block; margin-bottom:.4rem;
+}
+.modal-field input, .modal-field select {
+  width:100%; background:var(--bg3);
+  border:1px solid var(--border2); border-radius:8px;
+  padding:.75rem 1rem; color:var(--cream);
+  font-family:'DM Mono',monospace; font-size:.95rem;
+  outline:none; transition:border-color .2s;
+}
+.modal-field input:focus, .modal-field select:focus { border-color:var(--gold-dim); }
+.modal-field select option { background:var(--bg3); }
+.modal-btns { display:flex; gap:.8rem; margin-top:1.5rem; }
+
+/* ─── TOAST ─── */
+#toast {
+  position:fixed; bottom:2rem; left:50%;
+  transform:translateX(-50%) translateY(120%);
+  background:var(--bg3);
+  border:1px solid var(--gold-dim);
+  border-radius:8px;
+  padding:.7rem 1.5rem;
+  font-family:'DM Mono',monospace;
+  font-size:.85rem; color:var(--gold2);
+  z-index:9999;
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  white-space:nowrap;
+}
+#toast.show { transform:translateX(-50%) translateY(0); }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width:900px) {
+  main { grid-template-columns:1fr; }
+  .right-panel { border-top:1px solid var(--border); }
+}
+@media (max-width:600px) {
+  header { flex-direction:column; align-items:flex-start; padding:1.5rem; }
+  .left-panel { padding:1.5rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <div class="logo-mark">🧄</div>
+    <div class="header-titles">
+      <h1>AJO NEGRO</h1>
+      <p>Sistema de Control de Producción</p>
+    </div>
+  </div>
+  <div id="lote-badge" onclick="openLoteModal()">
+    <div class="lote-num" id="badge-lote">—</div>
+    <div class="lote-label">Lote activo · click para editar</div>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+  <!-- ── LEFT ── -->
+  <div class="left-panel">
+
+    <!-- Phase Banner -->
+    <div class="phase-banner ph1" id="phase-banner">
+      <div class="phase-dot"></div>
+      <div class="phase-info">
+        <h3 id="phase-name">FASE 1 — DESHIDRATACIÓN</h3>
+        <p id="phase-desc">Días 1–7 · Concentración de azúcares y pérdida de agua libre</p>
+      </div>
+      <div class="phase-ranges">
+        <div class="phase-range-item">
+          <div class="val" id="banner-temp-range">70–75°C</div>
+          <span class="lbl">Temperatura</span>
+        </div>
+        <div class="phase-range-item">
+          <div class="val" id="banner-hr-range">70–75%</div>
+          <span class="lbl">Humedad</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Entry Form -->
+    <div class="entry-section">
+      <h2>REGISTRO DEL DÍA</h2>
+
+      <div class="day-selector">
+        <label>Día del ciclo</label>
+        <div class="day-btns">
+          <button class="day-btn" onclick="changeDay(-1)">−</button>
+          <div id="current-day-display">1<span>de 40</span></div>
+          <button class="day-btn" onclick="changeDay(1)">+</button>
+        </div>
+      </div>
+
+      <div class="inputs-grid">
+        <div class="input-block">
+          <label>Temperatura Mañana</label>
+          <div class="input-wrap">
+            <input type="number" id="t1" placeholder="65.0" step="0.1" oninput="updateDeviation()">
+            <span class="unit">°C</span>
+          </div>
+        </div>
+        <div class="input-block">
+          <label>Humedad Mañana</label>
+          <div class="input-wrap">
+            <input type="number" id="h1" placeholder="85" step="0.5" oninput="updateDeviation()">
+            <span class="unit">%</span>
+          </div>
+        </div>
+        <div class="input-block">
+          <label>Temperatura Tarde</label>
+          <div class="input-wrap">
+            <input type="number" id="t2" placeholder="65.0" step="0.1" oninput="updateDeviation()">
+            <span class="unit">°C</span>
+          </div>
+        </div>
+        <div class="input-block">
+          <label>Humedad Tarde</label>
+          <div class="input-wrap">
+            <input type="number" id="h2" placeholder="85" step="0.5" oninput="updateDeviation()">
+            <span class="unit">%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live deviation display -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+        <div>
+          <div class="dev-indicator dev-empty" id="dev-temp">—</div>
+          <div style="font-size:.68rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:1px;">Desvío temperatura</div>
+        </div>
+        <div>
+          <div class="dev-indicator dev-empty" id="dev-hr">—</div>
+          <div style="font-size:.68rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:1px;">Desvío humedad</div>
+        </div>
+      </div>
+
+      <div class="notes-wrap">
+        <label>Observaciones del día</label>
+        <textarea id="obs" placeholder="Ej: Se ajustó humidificador. Olor normal. Sin signos de moho."></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-primary" onclick="saveDay()">Guardar registro</button>
+        <button class="btn-secondary" onclick="clearForm()">Limpiar</button>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-section">
+      <h2>
+        CURVA DEL LOTE
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#c8973a"></div>Temperatura</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#4fc3f7"></div>Humedad</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#555;border:1px dashed #888"></div>Objetivo</div>
+        </div>
+      </h2>
+      <div class="chart-tabs">
+        <button class="chart-tab active" onclick="setChartMode('both')">Ambos</button>
+        <button class="chart-tab" onclick="setChartMode('temp')">Temperatura</button>
+        <button class="chart-tab" onclick="setChartMode('hr')">Humedad</button>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="main-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT ── -->
+  <div class="right-panel">
+
+    <!-- Progress Ring -->
+    <div class="progress-card">
+      <div class="ring-wrap">
+        <svg width="90" height="90" viewBox="0 0 90 90">
+          <defs>
+            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#c8973a"/>
+              <stop offset="100%" style="stop-color:#e8b84b"/>
+            </linearGradient>
+          </defs>
+          <circle class="ring-bg" cx="45" cy="45" r="38"/>
+          <circle class="ring-fill" id="ring-circle" cx="45" cy="45" r="38"
+                  stroke-dasharray="238.76" stroke-dashoffset="238.76"/>
+        </svg>
+        <div class="ring-text">
+          <div class="ring-pct" id="ring-pct">0%</div>
+          <div class="ring-sub">ciclo</div>
+        </div>
+      </div>
+      <div class="progress-info">
+        <h3 id="prog-title">DÍA 1 DE 40</h3>
+        <p id="prog-desc">Inicio del ciclo. Configura el lote para comenzar.</p>
+        <div class="days-left" id="prog-days-left">39 días restantes</div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="s-label">Días OK (T°)</div>
+        <div class="s-val s-ok" id="stat-ok-t">0</div>
+        <div class="s-sub" id="stat-ok-t-sub">de 0 registrados</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Días OK (HR)</div>
+        <div class="s-val s-ok" id="stat-ok-h">0</div>
+        <div class="s-sub" id="stat-ok-h-sub">de 0 registrados</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">T° Promedio</div>
+        <div class="s-val s-neutral" id="stat-avg-t">—</div>
+        <div class="s-sub">°C del ciclo</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">HR Promedio</div>
+        <div class="s-val s-neutral" id="stat-avg-h">—</div>
+        <div class="s-sub">% del ciclo</div>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="log-section">
+      <h3>HISTORIAL</h3>
+      <div class="log-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Día</th>
+              <th>T° Prom</th>
+              <th>HR Prom</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="log-tbody">
+            <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.5rem;font-family:'DM Mono',monospace;font-size:.8rem;">Sin registros aún</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Export -->
+    <div class="export-section">
+      <button class="btn-export" onclick="exportReport()">
+        <span>⬇</span> Exportar Reporte del Lote (CSV)
+      </button>
+    </div>
+
+  </div>
+</main>
+
+<!-- ── LOTE MODAL ── -->
+<div class="modal-overlay" id="lote-modal">
+  <div class="modal">
+    <h2>CONFIGURAR LOTE</h2>
+    <div class="modal-fields">
+      <div class="modal-field">
+        <label>Número de Lote</label>
+        <input type="text" id="m-lote" placeholder="Ej: L-001">
+      </div>
+      <div class="modal-field">
+        <label>Variedad de Ajo</label>
+        <select id="m-variedad">
+          <option value="Colorado Argentino">Colorado Argentino</option>
+          <option value="Ajo Blanco Común">Ajo Blanco Común</option>
+          <option value="Ajo Morado">Ajo Morado</option>
+          <option value="Ajo Rosado">Ajo Rosado</option>
+          <option value="Ajo Elefante">Ajo Elefante</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Fecha de Inicio</label>
+        <input type="date" id="m-fecha">
+      </div>
+      <div class="modal-field">
+        <label>Peso Inicial (kg)</label>
+        <input type="number" id="m-peso" placeholder="Ej: 5.0" step="0.1">
+      </div>
+      <div class="modal-field">
+        <label>Responsable</label>
+        <input type="text" id="m-responsable" placeholder="Nombre">
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-primary" onclick="saveLote()">Guardar lote</button>
+      <button class="btn-secondary" onclick="closeLoteModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── PHASE DATA ───────────────────────────────────────────────
+const PHASES = [
+  { name:"FASE 1 — DESHIDRATACIÓN", desc:"Días 1–7 · Concentración de azúcares y pérdida de agua libre",
+    days:[1,7],  tMin:70, tMax:75, hMin:70, hMax:75, cls:"ph1",
+    tempLabel:"70–75°C", hrLabel:"70–75%" },
+  { name:"FASE 2 — REACCIÓN DE MAILLARD", desc:"Días 8–30 · Caramelización y transformación profunda",
+    days:[8,30], tMin:60, tMax:65, hMin:80, hMax:90, cls:"ph2",
+    tempLabel:"60–65°C", hrLabel:"80–90%" },
+  { name:"FASE 3 — ESTABILIZACIÓN", desc:"Días 31–40 · Homogeneización final de color y textura",
+    days:[31,40],tMin:55, tMax:60, hMin:75, hMax:80, cls:"ph3",
+    tempLabel:"55–60°C", hrLabel:"75–80%" },
+];
+
+function getPhase(day) {
+  return PHASES.find(p => day >= p.days[0] && day <= p.days[1]) || PHASES[0];
+}
+
+// ─── STATE ───────────────────────────────────────────────────
+let currentDay = 1;
+let records    = {};   // { day: {t1,t2,h1,h2,obs,tAvg,hAvg,date} }
+let loteInfo   = { lote:"—", variedad:"—", fecha:"—", peso:"—", responsable:"—" };
+let chartMode  = 'both';
+
+// Load from localStorage
+function loadState() {
+  try {
+    const r = localStorage.getItem('ajn_records');
+    if (r) records = JSON.parse(r);
+    const l = localStorage.getItem('ajn_lote');
+    if (l) loteInfo = JSON.parse(l);
+    const d = localStorage.getItem('ajn_day');
+    if (d) currentDay = parseInt(d);
+  } catch(e){}
+}
+function saveState() {
+  localStorage.setItem('ajn_records', JSON.stringify(records));
+  localStorage.setItem('ajn_lote',    JSON.stringify(loteInfo));
+  localStorage.setItem('ajn_day',     String(currentDay));
+}
+
+// ─── UI UPDATES ──────────────────────────────────────────────
+function refreshAll() {
+  updateDayDisplay();
+  updatePhaseBanner();
+  updateProgress();
+  updateStats();
+  updateLogTable();
+  drawChart();
+  loadDayIntoForm();
+  document.getElementById('badge-lote').textContent = loteInfo.lote;
+}
+
+function updateDayDisplay() {
+  document.getElementById('current-day-display').innerHTML =
+    `${currentDay}<span>de 40</span>`;
+}
+
+function updatePhaseBanner() {
+  const ph = getPhase(currentDay);
+  const banner = document.getElementById('phase-banner');
+  banner.className = `phase-banner ${ph.cls}`;
+  document.getElementById('phase-name').textContent     = ph.name;
+  document.getElementById('phase-desc').textContent     = ph.desc;
+  document.getElementById('banner-temp-range').textContent = ph.tempLabel;
+  document.getElementById('banner-hr-range').textContent   = ph.hrLabel;
+}
+
+function updateProgress() {
+  const pct = Math.round((currentDay / 40) * 100);
+  const circumference = 238.76;
+  const offset = circumference - (pct / 100) * circumference;
+  document.getElementById('ring-circle').style.strokeDashoffset = offset;
+  document.getElementById('ring-pct').textContent = pct + '%';
+  document.getElementById('prog-title').textContent = `DÍA ${currentDay} DE 40`;
+  const left = 40 - currentDay;
+  document.getElementById('prog-days-left').textContent =
+    left > 0 ? `${left} días restantes` : '¡Ciclo completado!';
+
+  const ph = getPhase(currentDay);
+  document.getElementById('prog-desc').textContent =
+    `${ph.name} · Objetivo: ${ph.tempLabel} / ${ph.hrLabel}`;
+}
+
+function updateStats() {
+  const days = Object.keys(records).map(Number);
+  const n = days.length;
+
+  let okT = 0, okH = 0, sumT = 0, sumH = 0;
+  days.forEach(d => {
+    const r = records[d];
+    const ph = getPhase(d);
+    if (r.tAvg !== null) {
+      sumT += r.tAvg;
+      if (r.tAvg >= ph.tMin && r.tAvg <= ph.tMax) okT++;
+    }
+    if (r.hAvg !== null) {
+      sumH += r.hAvg;
+      if (r.hAvg >= ph.hMin && r.hAvg <= ph.hMax) okH++;
+    }
+  });
+
+  document.getElementById('stat-ok-t').textContent = okT;
+  document.getElementById('stat-ok-h').textContent = okH;
+  document.getElementById('stat-ok-t-sub').textContent = `de ${n} registrados`;
+  document.getElementById('stat-ok-h-sub').textContent = `de ${n} registrados`;
+  document.getElementById('stat-avg-t').textContent = n ? (sumT/n).toFixed(1) : '—';
+  document.getElementById('stat-avg-h').textContent = n ? (sumH/n).toFixed(1) : '—';
+
+  // Color stats
+  const okTEl = document.getElementById('stat-ok-t');
+  okTEl.className = `s-val ${n > 0 && okT/n >= .8 ? 's-ok' : n > 0 && okT/n >= .6 ? 's-warn' : 's-bad'}`;
+}
+
+function updateLogTable() {
+  const tbody = document.getElementById('log-tbody');
+  const days = Object.keys(records).map(Number).sort((a,b) => b-a);
+
+  if (!days.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.5rem;font-family:'DM Mono',monospace;font-size:.8rem;">Sin registros aún</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = days.map(d => {
+    const r   = records[d];
+    const ph  = getPhase(d);
+    const tOk = r.tAvg !== null && r.tAvg >= ph.tMin && r.tAvg <= ph.tMax;
+    const hOk = r.hAvg !== null && r.hAvg >= ph.hMin && r.hAvg <= ph.hMax;
+    const bothOk = tOk && hOk;
+    const status = (r.tAvg===null && r.hAvg===null) ? '—'
+                 : bothOk ? '✓ OK'
+                 : (!tOk && !hOk) ? '⚠ T°+HR'
+                 : !tOk ? '⚠ T°'
+                 : '⚠ HR';
+    const sCls = bothOk ? 'td-ok' : status === '—' ? 'td-muted' : 'td-warn';
+    return `<tr>
+      <td class="td-day">Día ${d}</td>
+      <td>${r.tAvg !== null ? r.tAvg.toFixed(1)+'°' : '—'}</td>
+      <td>${r.hAvg !== null ? r.hAvg.toFixed(1)+'%' : '—'}</td>
+      <td class="${sCls}">${status}</td>
+    </tr>`;
+  }).join('');
+}
+
+function loadDayIntoForm() {
+  const r = records[currentDay];
+  document.getElementById('t1').value = r ? (r.t1 ?? '') : '';
+  document.getElementById('t2').value = r ? (r.t2 ?? '') : '';
+  document.getElementById('h1').value = r ? (r.h1 ?? '') : '';
+  document.getElementById('h2').value = r ? (r.h2 ?? '') : '';
+  document.getElementById('obs').value = r ? (r.obs || '') : '';
+  updateDeviation();
+}
+
+// ─── DEVIATION ───────────────────────────────────────────────
+function avg(...vals) {
+  const valid = vals.filter(v => v !== null && v !== '' && !isNaN(v));
+  if (!valid.length) return null;
+  return valid.reduce((a,b) => a + parseFloat(b), 0) / valid.length;
+}
+
+function updateDeviation() {
+  const ph = getPhase(currentDay);
+  const t1 = document.getElementById('t1').value;
+  const t2 = document.getElementById('t2').value;
+  const h1 = document.getElementById('h1').value;
+  const h2 = document.getElementById('h2').value;
+
+  const tAvg = avg(t1, t2);
+  const hAvg = avg(h1, h2);
+
+  const devTEl = document.getElementById('dev-temp');
+  const devHEl = document.getElementById('dev-hr');
+
+  if (tAvg !== null) {
+    const tMid = (ph.tMin + ph.tMax) / 2;
+    const dev  = tAvg - tMid;
+    const inRange = tAvg >= ph.tMin && tAvg <= ph.tMax;
+    const cls  = inRange ? 'dev-ok' : Math.abs(dev) <= 3 ? 'dev-warn' : 'dev-alert';
+    devTEl.className = `dev-indicator ${cls}`;
+    devTEl.textContent = inRange
+      ? `✓ ${tAvg.toFixed(1)}°C — dentro del rango (${ph.tMin}–${ph.tMax}°C)`
+      : `${dev > 0 ? '+' : ''}${dev.toFixed(1)}°C vs objetivo · Actual: ${tAvg.toFixed(1)}°C`;
+  } else {
+    devTEl.className = 'dev-indicator dev-empty';
+    devTEl.textContent = `Objetivo: ${ph.tMin}–${ph.tMax}°C`;
+  }
+
+  if (hAvg !== null) {
+    const hMid = (ph.hMin + ph.hMax) / 2;
+    const dev  = hAvg - hMid;
+    const inRange = hAvg >= ph.hMin && hAvg <= ph.hMax;
+    const cls  = inRange ? 'dev-ok' : Math.abs(dev) <= 5 ? 'dev-warn' : 'dev-alert';
+    devHEl.className = `dev-indicator ${cls}`;
+    devHEl.textContent = inRange
+      ? `✓ ${hAvg.toFixed(1)}% — dentro del rango (${ph.hMin}–${ph.hMax}%)`
+      : `${dev > 0 ? '+' : ''}${dev.toFixed(1)}% vs objetivo · Actual: ${hAvg.toFixed(1)}%`;
+  } else {
+    devHEl.className = 'dev-indicator dev-empty';
+    devHEl.textContent = `Objetivo: ${ph.hMin}–${ph.hMax}%`;
+  }
+}
+
+// ─── SAVE DAY ────────────────────────────────────────────────
+function saveDay() {
+  const t1 = parseFloat(document.getElementById('t1').value) || null;
+  const t2 = parseFloat(document.getElementById('t2').value) || null;
+  const h1 = parseFloat(document.getElementById('h1').value) || null;
+  const h2 = parseFloat(document.getElementById('h2').value) || null;
+  const obs = document.getElementById('obs').value.trim();
+
+  if (t1 === null && t2 === null && h1 === null && h2 === null) {
+    toast('Ingresá al menos un valor para guardar');
+    return;
+  }
+
+  records[currentDay] = {
+    t1, t2, h1, h2, obs,
+    tAvg: avg(t1, t2),
+    hAvg: avg(h1, h2),
+    date: new Date().toISOString()
+  };
+
+  saveState();
+  refreshAll();
+  toast(`Día ${currentDay} guardado correctamente`);
+}
+
+function clearForm() {
+  ['t1','t2','h1','h2','obs'].forEach(id => {
+    const el = document.getElementById(id);
+    el.tagName === 'TEXTAREA' ? el.value = '' : el.value = '';
+  });
+  updateDeviation();
+}
+
+function changeDay(delta) {
+  const next = currentDay + delta;
+  if (next < 1 || next > 40) return;
+  currentDay = next;
+  saveState();
+  refreshAll();
+}
+
+// ─── CHART ───────────────────────────────────────────────────
+let chartCtx, chartAnimFrame;
+
+function setChartMode(mode) {
+  chartMode = mode;
+  document.querySelectorAll('.chart-tab').forEach((t,i) => {
+    t.classList.toggle('active', ['both','temp','hr'][i] === mode);
+  });
+  drawChart();
+}
+
+function drawChart() {
+  const canvas = document.getElementById('main-chart');
+  const ctx    = canvas.getContext('2d');
+  const W = canvas.offsetWidth;
+  const H = canvas.offsetHeight;
+  canvas.width  = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+
+  ctx.clearRect(0, 0, W, H);
+
+  const PAD = { top:10, right:20, bottom:30, left:42 };
+  const cW = W - PAD.left - PAD.right;
+  const cH = H - PAD.top  - PAD.bottom;
+
+  // Grid
+  ctx.strokeStyle = '#1e1a12';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = PAD.top + (cH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + cW, y);
+    ctx.stroke();
+  }
+
+  // Phase separators
+  [7, 30].forEach(d => {
+    const x = PAD.left + (d / 40) * cW;
+    ctx.strokeStyle = '#3d3020';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + cH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#5a4e38';
+    ctx.font = `9px 'DM Mono', monospace`;
+    ctx.fillText(d === 7 ? 'F2' : 'F3', x + 3, PAD.top + 10);
+  });
+
+  const days = Object.keys(records).map(Number).sort((a,b) => a-b);
+  if (!days.length) {
+    ctx.fillStyle = '#3d3020';
+    ctx.font = `11px 'DM Mono', monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText('Ingresá datos para ver la curva', W/2, H/2);
+    ctx.textAlign = 'left';
+    return;
+  }
+
+  // Determine ranges
+  const showT = chartMode !== 'hr';
+  const showH = chartMode !== 'temp';
+
+  // Y axes: temp 45-85, hr 50-100
+  const tRange = { min:45, max:85 };
+  const hRange = { min:50, max:100 };
+
+  function xOf(day) { return PAD.left + ((day - 1) / 39) * cW; }
+  function yOfT(v)  { return PAD.top + cH - ((v - tRange.min) / (tRange.max - tRange.min)) * cH; }
+  function yOfH(v)  { return PAD.top + cH - ((v - hRange.min) / (hRange.max - hRange.min)) * cH; }
+
+  // Target bands
+  if (showT) {
+    PHASES.forEach(ph => {
+      const x1 = xOf(ph.days[0]);
+      const x2 = xOf(ph.days[1]);
+      const y1 = yOfT(ph.tMax);
+      const y2 = yOfT(ph.tMin);
+      ctx.fillStyle = 'rgba(200,151,58,0.07)';
+      ctx.fillRect(x1, y1, x2-x1, y2-y1);
+    });
+  }
+  if (showH) {
+    PHASES.forEach(ph => {
+      const x1 = xOf(ph.days[0]);
+      const x2 = xOf(ph.days[1]);
+      const y1 = yOfH(ph.hMax);
+      const y2 = yOfH(ph.hMin);
+      ctx.fillStyle = 'rgba(79,195,247,0.05)';
+      ctx.fillRect(x1, y1, x2-x1, y2-y1);
+    });
+  }
+
+  // Objective midline (dashed)
+  if (showT) {
+    ctx.strokeStyle = 'rgba(200,151,58,0.3)';
+    ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+    ctx.beginPath();
+    PHASES.forEach((ph, i) => {
+      const mid = (ph.tMin + ph.tMax) / 2;
+      const x1 = xOf(ph.days[0]);
+      const x2 = xOf(ph.days[1]);
+      const y  = yOfT(mid);
+      if (i === 0) ctx.moveTo(x1, y); else ctx.lineTo(x1, y);
+      ctx.lineTo(x2, y);
+    });
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  if (showH) {
+    ctx.strokeStyle = 'rgba(79,195,247,0.25)';
+    ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+    ctx.beginPath();
+    PHASES.forEach((ph, i) => {
+      const mid = (ph.hMin + ph.hMax) / 2;
+      const x1 = xOf(ph.days[0]);
+      const x2 = xOf(ph.days[1]);
+      const y  = yOfH(mid);
+      if (i === 0) ctx.moveTo(x1, y); else ctx.lineTo(x1, y);
+      ctx.lineTo(x2, y);
+    });
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // Data lines
+  function drawLine(days, valFn, yFn, color) {
+    const pts = days.filter(d => valFn(d) !== null);
+    if (pts.length < 1) return;
+    // Gradient fill
+    const grad = ctx.createLinearGradient(0, PAD.top, 0, PAD.top + cH);
+    grad.addColorStop(0, color.replace(')', ',0.25)').replace('rgb','rgba'));
+    grad.addColorStop(1, color.replace(')', ',0)').replace('rgb','rgba'));
+
+    ctx.beginPath();
+    pts.forEach((d,i) => {
+      const x = xOf(d), y = yFn(valFn(d));
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    // Fill to bottom
+    ctx.lineTo(xOf(pts[pts.length-1]), PAD.top + cH);
+    ctx.lineTo(xOf(pts[0]), PAD.top + cH);
+    ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    pts.forEach((d,i) => {
+      const x = xOf(d), y = yFn(valFn(d));
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = color; ctx.lineWidth = 2;
+    ctx.lineJoin = 'round'; ctx.stroke();
+
+    // Dots
+    pts.forEach(d => {
+      const x = xOf(d), y = yFn(valFn(d));
+      const ph = getPhase(d);
+      const val = valFn(d);
+      const inRange = (color.includes('200,151') )
+        ? (val >= ph.tMin && val <= ph.tMax)
+        : (val >= ph.hMin && val <= ph.hMax);
+      ctx.beginPath();
+      ctx.arc(x, y, 3.5, 0, Math.PI*2);
+      ctx.fillStyle = inRange ? color : '#e74c3c';
+      ctx.fill();
+      ctx.strokeStyle = '#0a0804'; ctx.lineWidth = 1.5; ctx.stroke();
+    });
+  }
+
+  if (showT) drawLine(days, d => records[d]?.tAvg, yOfT, 'rgb(200,151,58)');
+  if (showH) drawLine(days, d => records[d]?.hAvg, yOfH, 'rgb(79,195,247)');
+
+  // Y axis labels
+  ctx.fillStyle = '#5a4e38';
+  ctx.font = `9px 'DM Mono', monospace`;
+  ctx.textAlign = 'right';
+  if (showT) {
+    [50,60,70,80].forEach(v => {
+      ctx.fillStyle = '#c8973a88';
+      ctx.fillText(`${v}°`, PAD.left - 4, yOfT(v) + 3);
+    });
+  } else {
+    [60,70,80,90,100].forEach(v => {
+      ctx.fillStyle = '#4fc3f788';
+      ctx.fillText(`${v}%`, PAD.left - 4, yOfH(v) + 3);
+    });
+  }
+
+  // X axis
+  ctx.fillStyle = '#5a4e38';
+  ctx.textAlign = 'center';
+  [1, 7, 14, 21, 30, 40].forEach(d => {
+    const x = xOf(d);
+    ctx.fillText(d, x, PAD.top + cH + 14);
+  });
+
+  // Current day line
+  const cx = xOf(currentDay);
+  ctx.strokeStyle = 'rgba(232,184,75,0.4)';
+  ctx.lineWidth = 1.5; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(cx, PAD.top); ctx.lineTo(cx, PAD.top + cH);
+  ctx.stroke();
+}
+
+// ─── LOTE MODAL ──────────────────────────────────────────────
+function openLoteModal() {
+  document.getElementById('m-lote').value         = loteInfo.lote !== '—' ? loteInfo.lote : '';
+  document.getElementById('m-variedad').value     = loteInfo.variedad !== '—' ? loteInfo.variedad : 'Colorado Argentino';
+  document.getElementById('m-fecha').value        = loteInfo.fecha !== '—' ? loteInfo.fecha : '';
+  document.getElementById('m-peso').value         = loteInfo.peso !== '—' ? loteInfo.peso : '';
+  document.getElementById('m-responsable').value  = loteInfo.responsable !== '—' ? loteInfo.responsable : '';
+  document.getElementById('lote-modal').classList.add('open');
+}
+function closeLoteModal() {
+  document.getElementById('lote-modal').classList.remove('open');
+}
+function saveLote() {
+  loteInfo = {
+    lote:         document.getElementById('m-lote').value || '—',
+    variedad:     document.getElementById('m-variedad').value,
+    fecha:        document.getElementById('m-fecha').value || '—',
+    peso:         document.getElementById('m-peso').value || '—',
+    responsable:  document.getElementById('m-responsable').value || '—',
+  };
+  saveState();
+  refreshAll();
+  closeLoteModal();
+  toast('Lote configurado');
+}
+
+// ─── EXPORT CSV ──────────────────────────────────────────────
+function exportReport() {
+  const days = Object.keys(records).map(Number).sort((a,b) => a-b);
+  if (!days.length) { toast('Sin datos para exportar'); return; }
+
+  const lines = [
+    `AJO NEGRO — REPORTE DE LOTE`,
+    `Lote: ${loteInfo.lote}`,
+    `Variedad: ${loteInfo.variedad}`,
+    `Fecha inicio: ${loteInfo.fecha}`,
+    `Peso inicial: ${loteInfo.peso} kg`,
+    `Responsable: ${loteInfo.responsable}`,
+    ``,
+    `Día;Fase;T°Mañana(°C);T°Tarde(°C);T°Promedio(°C);T°Objetivo(°C);DesvíoT°;HRMañana(%);HRTarde(%);HRPromedio(%);HRObjetivo(%);DesvíoHR;EstadoT°;EstadoHR;Observaciones`
+  ];
+
+  days.forEach(d => {
+    const r  = records[d];
+    const ph = getPhase(d);
+    const tOk = r.tAvg !== null ? (r.tAvg >= ph.tMin && r.tAvg <= ph.tMax ? 'OK' : 'REVISAR') : '—';
+    const hOk = r.hAvg !== null ? (r.hAvg >= ph.hMin && r.hAvg <= ph.hMax ? 'OK' : 'REVISAR') : '—';
+    const tDev = r.tAvg !== null ? (r.tAvg - (ph.tMin+ph.tMax)/2).toFixed(1) : '—';
+    const hDev = r.hAvg !== null ? (r.hAvg - (ph.hMin+ph.hMax)/2).toFixed(1) : '—';
+    lines.push([
+      d,
+      ph.name.split('—')[0].trim(),
+      r.t1 ?? '—', r.t2 ?? '—',
+      r.tAvg !== null ? r.tAvg.toFixed(1) : '—',
+      `${ph.tMin}–${ph.tMax}`, tDev, tOk,
+      r.h1 ?? '—', r.h2 ?? '—',
+      r.hAvg !== null ? r.hAvg.toFixed(1) : '—',
+      `${ph.hMin}–${ph.hMax}`, hDev, hOk,
+      `"${(r.obs||'').replace(/"/g,'""')}"`
+    ].join(';'));
+  });
+
+  // Stats summary
+  const n = days.length;
+  let okT=0, okH=0, sumT=0, sumH=0;
+  days.forEach(d => {
+    const r=records[d], ph=getPhase(d);
+    if(r.tAvg!==null){sumT+=r.tAvg;if(r.tAvg>=ph.tMin&&r.tAvg<=ph.tMax)okT++;}
+    if(r.hAvg!==null){sumH+=r.hAvg;if(r.hAvg>=ph.hMin&&r.hAvg<=ph.hMax)okH++;}
+  });
+  lines.push(``);
+  lines.push(`RESUMEN`);
+  lines.push(`Días registrados;${n}`);
+  lines.push(`Días OK temperatura;${okT} (${n?Math.round(okT/n*100):0}%)`);
+  lines.push(`Días OK humedad;${okH} (${n?Math.round(okH/n*100):0}%)`);
+  lines.push(`Temperatura promedio;${n?(sumT/n).toFixed(1):0}°C`);
+  lines.push(`Humedad promedio;${n?(sumH/n).toFixed(1):0}%`);
+
+  const blob = new Blob(['\uFEFF'+lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `ajo_negro_lote_${loteInfo.lote.replace(/[^a-zA-Z0-9]/g,'_')}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Reporte exportado');
+}
+
+// ─── TOAST ───────────────────────────────────────────────────
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ─── KEYBOARD ────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'ArrowRight') changeDay(1);
+  if (e.key === 'ArrowLeft')  changeDay(-1);
+  if (e.key === 'Enter')      saveDay();
+});
+
+// Close modal on overlay click
+document.getElementById('lote-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeLoteModal();
+});
+
+// Redraw chart on resize
+window.addEventListener('resize', drawChart);
+
+// ─── SERVICE WORKER ──────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+
+// ─── INIT ────────────────────────────────────────────────────
+loadState();
+// Set today's date in modal default
+document.getElementById('m-fecha').value = new Date().toISOString().split('T')[0];
+refreshAll();
+
+// Open lote modal on first visit
+if (loteInfo.lote === '—') {
+  setTimeout(openLoteModal, 600);
+}
+</script>
+</body>
+</html>

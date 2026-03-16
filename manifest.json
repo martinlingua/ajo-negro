@@ -1,0 +1,26 @@
+{
+  "name": "Ajo Negro — Control de Producción",
+  "short_name": "Ajo Negro",
+  "description": "Sistema de registro y control de temperatura y humedad para producción de ajo negro",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a0804",
+  "theme_color": "#0a0804",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "food"],
+  "lang": "es"
+}
