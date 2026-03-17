@@ -558,16 +558,7 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 
 <script>
 // ── STATE ────────────────────────────────────────────────────
-let S={
-  // Multi-lote: activeLoteId points to current lote being edited
-  activeLoteId: null,
-  lotes: [],         // [{id, lote, variedad, fecha, peso, resp, prodRecords, prodDay, completado, fechaCompletado}]
-  // Legacy single-lote fields kept for compatibility (mapped to activeLote)
-  lote:{lote:'—',variedad:'—',fecha:'—',peso:'—',resp:'—'},
-  prodRecords:{}, prodDay:1, prodChart:'both',
-  costoItems:[],costoFijos:[],kgProducidos:0,
-  productos:[],ventas:[],activeMes:''
-};
+let S={activeLoteId:null,lotes:[],lote:{lote:'—',variedad:'—',fecha:'—',peso:'—',resp:'—'},prodRecords:{},prodDay:1,prodChart:'both',costoItems:[],costoFijos:[],kgProducidos:0,productos:[],ventas:[],activeMes:''};
 
 // ── LOTE HELPERS ──────────────────────────────────────────────
 function getActiveLote(){
@@ -659,6 +650,7 @@ function setupRealtime(){
 
 // Refresh all visible UI after remote sync
 function refreshAll(){
+  if(!S.lotes) S.lotes=[];
   refreshHeader();
   prodRefreshBanner();
   prodRefreshLoteSelect();
@@ -789,6 +781,7 @@ function prodExport(){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`kaizen_lote_${S.lote.lote}.csv`;a.click();toast('CSV exportado');
 }
 function saveLote(){
+  if(!S.lotes) S.lotes=[];
   const loteData={
     lote:document.getElementById('ml-lote').value||'—',
     variedad:document.getElementById('ml-variedad').value,
@@ -819,7 +812,9 @@ function saveLote(){
 }
 
 function prodRefreshLoteSelect(){
+  if(!S.lotes) S.lotes=[];
   const sel=document.getElementById('prod-lote-select');
+  if(!sel) return;
   const activos=S.lotes.filter(l=>!l.completado);
   if(!activos.length){
     sel.innerHTML='<option value="">Sin lotes activos</option>';
@@ -829,8 +824,10 @@ function prodRefreshLoteSelect(){
   sel.innerHTML=activos.map(l=>`<option value="${l.id}" ${l.id===S.activeLoteId?'selected':''}>${l.lote} — ${l.variedad} · Día ${l.prodDay||1}/40</option>`).join('');
   // Show archivar button if current lote reached day 40
   const active=getActiveLote();
-  const showArch=active&&(active.prodDay>=40||Object.keys(active.prodRecords||{}).length>=40);
-  document.getElementById('btn-archivar').style.display=showArch?'':'none';
+  const daysRecorded=Object.keys(active?.prodRecords||{}).length;
+  const showArch=active&&!active.completado&&(active.prodDay>=40||daysRecorded>=40);
+  const archBtn=document.getElementById('btn-archivar');
+  if(archBtn) archBtn.style.display=showArch?'':'none';
 }
 
 function switchLote(id){
@@ -847,6 +844,7 @@ function switchLote(id){
 }
 
 function archivarLote(){
+  if(!S.lotes) S.lotes=[];
   const active=getActiveLote();
   if(!active){toast('No hay lote activo');return;}
   if(!confirm(`¿Archivar el lote ${active.lote}? Quedará guardado en el historial.`))return;
@@ -872,6 +870,7 @@ function toggleArchivo(){
 }
 
 function renderArchivo(){
+  if(!S.lotes) S.lotes=[];
   const archivados=S.lotes.filter(l=>l.completado).sort((a,b)=>(b.fechaCompletado||'').localeCompare(a.fechaCompletado||''));
   const list=document.getElementById('archivo-list');
   if(!archivados.length){
@@ -1681,17 +1680,31 @@ if('serviceWorker'in navigator){
 try{const d=localStorage.getItem('kaizen_v3');if(d)S=JSON.parse(d);}catch(e){}
 if(!S.activeMes)S.activeMes=todayYM();
 
-// Migration: if old single-lote data exists with no lotes array, migrate it
+// Ensure lotes array always exists
 if(!S.lotes) S.lotes=[];
+// Migration: if old single-lote data exists with no lotes array, migrate it
 if(S.lote&&S.lote.lote!=='—'&&!S.lotes.length){
   const migId=uid();
-  S.lotes.push({id:migId,...S.lote,prodRecords:S.prodRecords||{},prodDay:S.prodDay||1,completado:false,fechaCompletado:null});
+  S.lotes.push({
+    id:migId,lote:S.lote.lote,variedad:S.lote.variedad||'—',
+    fecha:S.lote.fecha||'—',peso:S.lote.peso||'—',resp:S.lote.resp||'—',
+    prodRecords:S.prodRecords||{},prodDay:S.prodDay||1,
+    completado:false,fechaCompletado:null
+  });
   S.activeLoteId=migId;
 }
-// Set active lote on startup
-if(S.activeLoteId){
+// Set active lote fields from lotes array on startup
+if(S.activeLoteId&&S.lotes.length){
   const al=S.lotes.find(l=>l.id===S.activeLoteId);
-  if(al){S.lote={lote:al.lote,variedad:al.variedad,fecha:al.fecha,peso:al.peso,resp:al.resp};S.prodRecords=al.prodRecords||{};S.prodDay=al.prodDay||1;}
+  if(al){
+    S.lote={lote:al.lote,variedad:al.variedad,fecha:al.fecha,peso:al.peso,resp:al.resp};
+    S.prodRecords=al.prodRecords||{};
+    S.prodDay=al.prodDay||1;
+  }
+} else if(!S.activeLoteId&&S.lotes.length){
+  // If no active but lotes exist, pick first active one
+  const first=S.lotes.find(l=>!l.completado);
+  if(first) setActiveLote(first.id);
 }
 
 refreshHeader();
