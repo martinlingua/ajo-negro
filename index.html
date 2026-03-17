@@ -164,6 +164,27 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 
 <!-- ══ TAB PRODUCCIÓN ══ -->
 <div class="page active" id="page-produccion">
+
+  <!-- Lote selector bar -->
+  <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.8rem;flex-wrap:wrap;">
+    <select id="prod-lote-select" onchange="switchLote(this.value)"
+      style="flex:1;min-width:0;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;padding:.5rem .8rem;color:var(--cream);font-family:'DM Mono',monospace;font-size:.82rem;outline:none;">
+      <option value="">Sin lotes activos</option>
+    </select>
+    <button class="btn btn-gold btn-sm" onclick="openModal('modal-lote')" style="flex-shrink:0;">+ Nuevo lote</button>
+    <button class="btn btn-outline btn-sm" id="btn-archivar" onclick="archivarLote()" style="flex-shrink:0;display:none;">📁 Archivar</button>
+  </div>
+
+  <!-- Archive viewer -->
+  <div id="archivo-lotes" style="display:none;" class="card" style="margin-bottom:.8rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.7rem;">
+      <span style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.9rem;">ARCHIVO DE LOTES</span>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('archivo-lotes').style.display='none'">✕</button>
+    </div>
+    <div id="archivo-list"></div>
+  </div>
+  <button class="btn btn-outline btn-sm" style="width:100%;margin-bottom:.8rem;font-size:.72rem;" onclick="toggleArchivo()">📂 Ver lotes archivados</button>
+
   <div style="display:flex;gap:.7rem;align-items:stretch;margin-bottom:.8rem;">
     <div class="ring-wrap">
       <svg width="72" height="72" viewBox="0 0 72 72">
@@ -376,6 +397,7 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
       </div>
       <div class="field"><label>Responsable</label><input type="text" id="ml-resp"></div>
     </div>
+    <input type="hidden" id="ml-edit-id">
     <div class="btn-row"><button class="btn btn-gold btn-full" onclick="saveLote()">Guardar</button><button class="btn btn-outline" onclick="closeModal('modal-lote')">Cancelar</button></div>
   </div>
 </div>
@@ -470,6 +492,24 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-archivo">
+  <div class="modal" style="max-width:600px;">
+    <h2 id="modal-archivo-titulo">LOTE</h2>
+    <div style="font-family:monospace;font-size:.72rem;color:var(--muted);margin-bottom:1rem;" id="modal-archivo-info"></div>
+    <canvas id="archivo-chart" style="width:100%;height:150px;margin-bottom:1rem;"></canvas>
+    <div class="tbl-wrap" style="max-height:300px;overflow-y:auto;">
+      <table>
+        <thead><tr><th>Día</th><th>T° Prom</th><th>HR Prom</th><th>Estado</th><th>Obs</th></tr></thead>
+        <tbody id="modal-archivo-tbody"></tbody>
+      </table>
+    </div>
+    <div class="btn-row" style="margin-top:1rem;">
+      <button class="btn btn-outline btn-sm" onclick="exportLoteArchivado(_archivoLote?.id)">⬇ Exportar CSV</button>
+      <button class="btn btn-outline btn-full" onclick="closeModal('modal-archivo')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-venta">
   <div class="modal"><h2>REGISTRAR VENTA</h2>
     <div class="modal-fields">
@@ -518,7 +558,38 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 
 <script>
 // ── STATE ────────────────────────────────────────────────────
-let S={lote:{lote:'—',variedad:'—',fecha:'—',peso:'—',resp:'—'},prodRecords:{},prodDay:1,prodChart:'both',costoItems:[],costoFijos:[],kgProducidos:0,productos:[],ventas:[],activeMes:''};
+let S={
+  // Multi-lote: activeLoteId points to current lote being edited
+  activeLoteId: null,
+  lotes: [],         // [{id, lote, variedad, fecha, peso, resp, prodRecords, prodDay, completado, fechaCompletado}]
+  // Legacy single-lote fields kept for compatibility (mapped to activeLote)
+  lote:{lote:'—',variedad:'—',fecha:'—',peso:'—',resp:'—'},
+  prodRecords:{}, prodDay:1, prodChart:'both',
+  costoItems:[],costoFijos:[],kgProducidos:0,
+  productos:[],ventas:[],activeMes:''
+};
+
+// ── LOTE HELPERS ──────────────────────────────────────────────
+function getActiveLote(){
+  if(!S.activeLoteId||!S.lotes.length) return null;
+  return S.lotes.find(l=>l.id===S.activeLoteId)||null;
+}
+function setActiveLote(id){
+  S.activeLoteId=id;
+  const l=S.lotes.find(x=>x.id===id);
+  if(l){
+    S.lote={lote:l.lote,variedad:l.variedad,fecha:l.fecha,peso:l.peso,resp:l.resp};
+    S.prodRecords=l.prodRecords||{};
+    S.prodDay=l.prodDay||1;
+  }
+}
+function syncActiveLoteToArray(){
+  if(!S.activeLoteId) return;
+  const idx=S.lotes.findIndex(l=>l.id===S.activeLoteId);
+  if(idx>=0){
+    S.lotes[idx]={...S.lotes[idx],...S.lote,prodRecords:S.prodRecords,prodDay:S.prodDay};
+  }
+}
 // ── SUPABASE ─────────────────────────────────────────────────
 const SB_URL='https://dlzboitfcxytcatgkxkg.supabase.co';
 const SB_KEY='sb_publishable_1Cc9H-gjdxtq8w_vN6Ql2Q_16ms1J4x';
@@ -590,6 +661,7 @@ function setupRealtime(){
 function refreshAll(){
   refreshHeader();
   prodRefreshBanner();
+  prodRefreshLoteSelect();
   prodLoadDay();
   prodRefreshLog();
   setTimeout(prodDrawChart,80);
@@ -654,7 +726,7 @@ function prodRefreshBanner(){
   document.getElementById('prod-day-display').textContent=S.prodDay;
   document.getElementById('prod-lote-info').textContent=S.lote.lote==='—'?'Sin lote — tocar para configurar':`Lote: ${S.lote.lote} · ${S.lote.variedad} · ${S.lote.peso}kg`;
 }
-function prodChangeDay(d){const n=S.prodDay+d;if(n<1||n>40)return;S.prodDay=n;saveS();prodRefreshBanner();prodLoadDay();prodUpdateDev();prodDrawChart();}
+function prodChangeDay(d){const n=S.prodDay+d;if(n<1||n>40)return;S.prodDay=n;syncActiveLoteToArray();saveS();prodRefreshBanner();prodLoadDay();prodUpdateDev();prodDrawChart();}
 function prodLoadDay(){const r=S.prodRecords[S.prodDay];['pt1','pt2','ph1','ph2'].forEach(id=>document.getElementById(id).value=r?r[id]??'':'');document.getElementById('prod-obs').value=r?r.obs||'':"";prodUpdateDev();}
 function prodUpdateDev(){
   const ph=getPhase(S.prodDay);
@@ -672,7 +744,15 @@ function prodSaveDay(){
   const h1=parseFloat(document.getElementById('ph1').value)||null,h2=parseFloat(document.getElementById('ph2').value)||null;
   if(t1===null&&t2===null&&h1===null&&h2===null){toast('Ingresá al menos un valor');return;}
   S.prodRecords[S.prodDay]={pt1:t1,pt2:t2,ph1:h1,ph2:h2,obs:document.getElementById('prod-obs').value.trim(),tAvg:avgVals(t1,t2),hAvg:avgVals(h1,h2)};
-  saveS();prodDrawChart();prodRefreshLog();toast(`Día ${S.prodDay} guardado`);
+  syncActiveLoteToArray();
+  // Auto-suggest archiving when all 40 days are done
+  const totalDays=Object.keys(S.prodRecords).length;
+  if(totalDays>=40&&!document.getElementById('btn-archivar').dataset.shown){
+    document.getElementById('btn-archivar').style.display='';
+    document.getElementById('btn-archivar').dataset.shown='1';
+    toast('¡Ciclo completo! Podés archivar el lote.');
+  }
+  saveS();prodDrawChart();prodRefreshLog();prodRefreshLoteSelect();toast(`Día ${S.prodDay} guardado`);
 }
 function prodClear(){['pt1','pt2','ph1','ph2'].forEach(id=>document.getElementById(id).value='');document.getElementById('prod-obs').value='';prodUpdateDev();}
 function prodRefreshLog(){
@@ -708,7 +788,176 @@ function prodExport(){
   const blob=new Blob([lines.join(String.fromCharCode(10))],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`kaizen_lote_${S.lote.lote}.csv`;a.click();toast('CSV exportado');
 }
-function saveLote(){S.lote={lote:document.getElementById('ml-lote').value||'—',variedad:document.getElementById('ml-variedad').value,fecha:document.getElementById('ml-fecha').value||'—',peso:document.getElementById('ml-peso').value||'—',resp:document.getElementById('ml-resp').value||'—'};saveS();prodRefreshBanner();closeModal('modal-lote');toast('Lote guardado');}
+function saveLote(){
+  const loteData={
+    lote:document.getElementById('ml-lote').value||'—',
+    variedad:document.getElementById('ml-variedad').value,
+    fecha:document.getElementById('ml-fecha').value||'—',
+    peso:document.getElementById('ml-peso').value||'—',
+    resp:document.getElementById('ml-resp').value||'—'
+  };
+  const editId=document.getElementById('ml-edit-id')?.value;
+  if(editId){
+    // Editing existing lote
+    const idx=S.lotes.findIndex(l=>l.id===editId);
+    if(idx>=0) S.lotes[idx]={...S.lotes[idx],...loteData};
+    if(S.activeLoteId===editId){
+      S.lote=loteData;
+    }
+    document.getElementById('ml-edit-id').value='';
+  } else {
+    // New lote
+    const newId=uid();
+    S.lotes.push({id:newId,...loteData,prodRecords:{},prodDay:1,completado:false,fechaCompletado:null});
+    setActiveLote(newId);
+  }
+  saveS();
+  prodRefreshBanner();
+  prodRefreshLoteSelect();
+  closeModal('modal-lote');
+  toast('Lote guardado');
+}
+
+function prodRefreshLoteSelect(){
+  const sel=document.getElementById('prod-lote-select');
+  const activos=S.lotes.filter(l=>!l.completado);
+  if(!activos.length){
+    sel.innerHTML='<option value="">Sin lotes activos</option>';
+    document.getElementById('btn-archivar').style.display='none';
+    return;
+  }
+  sel.innerHTML=activos.map(l=>`<option value="${l.id}" ${l.id===S.activeLoteId?'selected':''}>${l.lote} — ${l.variedad} · Día ${l.prodDay||1}/40</option>`).join('');
+  // Show archivar button if current lote reached day 40
+  const active=getActiveLote();
+  const showArch=active&&(active.prodDay>=40||Object.keys(active.prodRecords||{}).length>=40);
+  document.getElementById('btn-archivar').style.display=showArch?'':'none';
+}
+
+function switchLote(id){
+  if(!id)return;
+  syncActiveLoteToArray();
+  setActiveLote(id);
+  saveS();
+  prodRefreshBanner();
+  prodLoadDay();
+  prodUpdateDev();
+  prodDrawChart();
+  prodRefreshLog();
+  prodRefreshLoteSelect();
+}
+
+function archivarLote(){
+  const active=getActiveLote();
+  if(!active){toast('No hay lote activo');return;}
+  if(!confirm(`¿Archivar el lote ${active.lote}? Quedará guardado en el historial.`))return;
+  const idx=S.lotes.findIndex(l=>l.id===S.activeLoteId);
+  if(idx>=0){
+    S.lotes[idx].completado=true;
+    S.lotes[idx].fechaCompletado=todayStr();
+  }
+  // Switch to next active lote if any
+  const nextActivo=S.lotes.find(l=>!l.completado);
+  if(nextActivo){setActiveLote(nextActivo.id);}
+  else{S.activeLoteId=null;S.lote={lote:'—',variedad:'—',fecha:'—',peso:'—',resp:'—'};S.prodRecords={};S.prodDay=1;}
+  saveS();prodRefreshBanner();prodRefreshLoteSelect();prodRefreshLog();prodDrawChart();
+  toast('Lote archivado correctamente');
+}
+
+function toggleArchivo(){
+  const el=document.getElementById('archivo-lotes');
+  const visible=el.style.display!=='none';
+  if(visible){el.style.display='none';return;}
+  el.style.display='block';
+  renderArchivo();
+}
+
+function renderArchivo(){
+  const archivados=S.lotes.filter(l=>l.completado).sort((a,b)=>(b.fechaCompletado||'').localeCompare(a.fechaCompletado||''));
+  const list=document.getElementById('archivo-list');
+  if(!archivados.length){
+    list.innerHTML='<div style="font-family:monospace;font-size:.78rem;color:var(--muted);padding:.5rem 0;">No hay lotes archivados aún.</div>';
+    return;
+  }
+  list.innerHTML=archivados.map(l=>{
+    const days=Object.keys(l.prodRecords||{}).length;
+    const okDays=Object.entries(l.prodRecords||{}).filter(([d,r])=>{
+      const ph=getPhase(parseInt(d));
+      return r.tAvg>=ph.tMin&&r.tAvg<=ph.tMax&&r.hAvg>=ph.hMin&&r.hAvg<=ph.hMax;
+    }).length;
+    const pct=days>0?Math.round(okDays/days*100):0;
+    return `<div style="border:1px solid var(--border);border-radius:8px;padding:.7rem;margin-bottom:.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;">
+        <div>
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:2px;color:var(--gold2);">${l.lote}</span>
+          <span style="font-family:monospace;font-size:.7rem;color:var(--muted);margin-left:.5rem;">${l.variedad} · ${l.peso}kg</span>
+        </div>
+        <div style="display:flex;gap:.4rem;">
+          <button class="btn btn-outline btn-sm" onclick="verLoteArchivado('${l.id}')">Ver</button>
+          <button class="btn btn-outline btn-sm" onclick="exportLoteArchivado('${l.id}')">⬇</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:1rem;font-family:monospace;font-size:.7rem;color:var(--muted);">
+        <span>Inicio: ${l.fecha}</span>
+        <span>Archivado: ${l.fechaCompletado||'—'}</span>
+        <span>Días: ${days}/40</span>
+        <span style="color:${pct>=80?'var(--greens)':'var(--warn)'};">OK: ${pct}%</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function verLoteArchivado(id){
+  const l=S.lotes.find(x=>x.id===id);if(!l)return;
+  // Open modal showing full chart and log of archived lote
+  document.getElementById('modal-archivo-titulo').textContent=`LOTE ${l.lote} — ${l.variedad}`;
+  document.getElementById('modal-archivo-info').textContent=`Inicio: ${l.fecha} · Archivado: ${l.fechaCompletado} · ${l.peso}kg · Responsable: ${l.resp}`;
+  // Render log table
+  const days=Object.keys(l.prodRecords||{}).map(Number).sort((a,b)=>a-b);
+  document.getElementById('modal-archivo-tbody').innerHTML=days.length?days.map(d=>{
+    const r=l.prodRecords[d],ph=getPhase(d);
+    const ok=(r.tAvg!==null&&r.tAvg>=ph.tMin&&r.tAvg<=ph.tMax)&&(r.hAvg!==null&&r.hAvg>=ph.hMin&&r.hAvg<=ph.hMax);
+    return `<tr>
+      <td class="td-gold">${d}</td>
+      <td>${r.tAvg!==null?r.tAvg.toFixed(1)+'°':'—'}</td>
+      <td>${r.hAvg!==null?r.hAvg.toFixed(1)+'%':'—'}</td>
+      <td class="${ok?'td-green':'td-warn'}">${ok?'✓ OK':'⚠'}</td>
+      <td class="td-muted" style="font-size:.68rem;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.obs||''}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--muted);">Sin registros</td></tr>';
+  // Draw chart for archived lote
+  setTimeout(()=>drawArchivoChart(l),50);
+  openModal('modal-archivo');
+}
+let _archivoLote=null;
+function drawArchivoChart(l){
+  _archivoLote=l;
+  const canvas=document.getElementById('archivo-chart');
+  const ctx=canvas.getContext('2d');
+  const W=canvas.offsetWidth||300,H=150;
+  canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;ctx.scale(devicePixelRatio,devicePixelRatio);
+  ctx.clearRect(0,0,W,H);
+  const PAD={t:6,r:14,b:20,l:34};const cW=W-PAD.l-PAD.r,cH=H-PAD.t-PAD.b;
+  for(let i=0;i<=4;i++){const y=PAD.t+(cH/4)*i;ctx.strokeStyle='#1e1a12';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(PAD.l+cW,y);ctx.stroke();}
+  [7,30].forEach(d=>{const x=PAD.l+(d/40)*cW;ctx.strokeStyle='#3d3020';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(x,PAD.t);ctx.lineTo(x,PAD.t+cH);ctx.stroke();ctx.setLineDash([]);});
+  const days=Object.keys(l.prodRecords||{}).map(Number).sort((a,b)=>a-b);
+  if(!days.length){ctx.fillStyle='#3d3020';ctx.font="11px monospace";ctx.textAlign='center';ctx.fillText('Sin datos',W/2,H/2);return;}
+  const xOf=d=>PAD.l+((d-1)/39)*cW,yOfT=v=>PAD.t+cH-((v-45)/40)*cH,yOfH=v=>PAD.t+cH-((v-50)/50)*cH;
+  function drawLine(days,vFn,yFn,color){const pts=days.filter(d=>vFn(d)!==null);if(!pts.length)return;ctx.beginPath();pts.forEach((d,i)=>{const x=xOf(d),y=yFn(vFn(d));i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();pts.forEach(d=>{ctx.beginPath();ctx.arc(xOf(d),yFn(vFn(d)),2.5,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();});}
+  drawLine(days,d=>l.prodRecords[d]?.tAvg,yOfT,'rgb(200,151,58)');
+  drawLine(days,d=>l.prodRecords[d]?.hAvg,yOfH,'rgb(79,195,247)');
+  ctx.font="9px monospace";ctx.textAlign='right';
+  [50,65,80].forEach(v=>{ctx.fillStyle='#c8973a88';ctx.fillText(`${v}°`,PAD.l-2,yOfT(v)+3);});
+  ctx.fillStyle='#5a4e38';ctx.textAlign='center';[1,7,14,21,30,40].forEach(d=>ctx.fillText(d,xOf(d),PAD.t+cH+13));
+}
+
+function exportLoteArchivado(id){
+  const l=S.lotes.find(x=>x.id===id);if(!l)return;
+  const days=Object.keys(l.prodRecords||{}).map(Number).sort((a,b)=>a-b);
+  const lines=[`KAIZEN — Lote ${l.lote}`,`Variedad: ${l.variedad} · Peso: ${l.peso}kg · Resp: ${l.resp}`,`Inicio: ${l.fecha} · Archivado: ${l.fechaCompletado}`,``,`Día;Fase;T°Prom;HR Prom;Estado;Obs`];
+  days.forEach(d=>{const r=l.prodRecords[d],ph=getPhase(d);const ok=(r.tAvg>=ph.tMin&&r.tAvg<=ph.tMax)&&(r.hAvg>=ph.hMin&&r.hAvg<=ph.hMax);lines.push([d,ph.name.split('—')[0].trim(),r.tAvg?.toFixed(1)??'—',r.hAvg?.toFixed(1)??'—',ok?'OK':'REVISAR',`"${(r.obs||'').replace(/"/g,'""')}"`].join(';'));});
+  const blob=new Blob([lines.join(String.fromCharCode(10))],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`kaizen_lote_${l.lote}.csv`;a.click();toast('CSV exportado');
+}
 
 // ── COSTOS ───────────────────────────────────────────────────
 function cpuSaveAndRefresh(){
@@ -1431,8 +1680,23 @@ if('serviceWorker'in navigator){
 // 1. Boot from localStorage immediately so UI is instant
 try{const d=localStorage.getItem('kaizen_v3');if(d)S=JSON.parse(d);}catch(e){}
 if(!S.activeMes)S.activeMes=todayYM();
+
+// Migration: if old single-lote data exists with no lotes array, migrate it
+if(!S.lotes) S.lotes=[];
+if(S.lote&&S.lote.lote!=='—'&&!S.lotes.length){
+  const migId=uid();
+  S.lotes.push({id:migId,...S.lote,prodRecords:S.prodRecords||{},prodDay:S.prodDay||1,completado:false,fechaCompletado:null});
+  S.activeLoteId=migId;
+}
+// Set active lote on startup
+if(S.activeLoteId){
+  const al=S.lotes.find(l=>l.id===S.activeLoteId);
+  if(al){S.lote={lote:al.lote,variedad:al.variedad,fecha:al.fecha,peso:al.peso,resp:al.resp};S.prodRecords=al.prodRecords||{};S.prodDay=al.prodDay||1;}
+}
+
 refreshHeader();
 prodRefreshBanner();
+prodRefreshLoteSelect();
 prodLoadDay();
 prodRefreshLog();
 document.getElementById('ml-fecha').value=todayStr();
@@ -1441,7 +1705,7 @@ populateMesFilter('ventas-mes-filter',S.activeMes);
 populateMesFilter('balance-mes-filter',S.activeMes);
 setTimeout(prodDrawChart,120);
 window.addEventListener('resize',prodDrawChart);
-if(S.lote.lote==='—')setTimeout(()=>openModal('modal-lote'),500);
+if(!S.lotes.filter(l=>!l.completado).length) setTimeout(()=>openModal('modal-lote'),500);
 // 2. Then sync from cloud + subscribe to realtime changes
 loadS().then(()=>setupRealtime());
 </script>
