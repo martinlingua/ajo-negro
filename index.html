@@ -164,6 +164,27 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 
 <!-- ══ TAB PRODUCCIÓN ══ -->
 <div class="page active" id="page-produccion">
+
+  <!-- Lote selector bar -->
+  <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.8rem;flex-wrap:wrap;">
+    <select id="prod-lote-select" onchange="switchLote(this.value)"
+      style="flex:1;min-width:0;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;padding:.5rem .8rem;color:var(--cream);font-family:'DM Mono',monospace;font-size:.82rem;outline:none;">
+      <option value="">Sin lotes activos</option>
+    </select>
+    <button class="btn btn-gold btn-sm" onclick="openModal('modal-lote')" style="flex-shrink:0;">+ Nuevo lote</button>
+    <button class="btn btn-outline btn-sm" id="btn-archivar" onclick="archivarLote()" style="flex-shrink:0;display:none;">📁 Archivar</button>
+  </div>
+
+  <!-- Archive viewer -->
+  <div id="archivo-lotes" style="display:none;" class="card" style="margin-bottom:.8rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.7rem;">
+      <span style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.9rem;">ARCHIVO DE LOTES</span>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('archivo-lotes').style.display='none'">✕</button>
+    </div>
+    <div id="archivo-list"></div>
+  </div>
+  <button class="btn btn-outline btn-sm" style="width:100%;margin-bottom:.8rem;font-size:.72rem;" onclick="toggleArchivo()">📂 Ver lotes archivados</button>
+
   <div style="display:flex;gap:.7rem;align-items:stretch;margin-bottom:.8rem;">
     <div class="ring-wrap">
       <svg width="72" height="72" viewBox="0 0 72 72">
@@ -376,12 +397,13 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
       </div>
       <div class="field"><label>Responsable</label><input type="text" id="ml-resp"></div>
     </div>
+    <input type="hidden" id="ml-edit-id">
     <div class="btn-row"><button class="btn btn-gold btn-full" onclick="saveLote()">Guardar</button><button class="btn btn-outline" onclick="closeModal('modal-lote')">Cancelar</button></div>
   </div>
 </div>
 
 <div class="modal-overlay" id="modal-costo-item">
-  <div class="modal"><h2>AGREGAR INSUMO</h2>
+  <div class="modal"><h2 id="ci-modal-title">AGREGAR INSUMO</h2>
     <div class="modal-fields">
       <div class="field"><label>Nombre del insumo</label><input type="text" id="ci-nombre" placeholder="Ej: Ajo fresco, Bolsas, Etiquetas..."></div>
       <div class="grid3">
@@ -390,7 +412,12 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
         <div class="field"><label>Precio / unidad ($)</label><input type="number" id="ci-precio" step="0.01"></div>
       </div>
       <div class="field"><label>Categoría</label><select id="ci-categoria"><option>Materia Prima</option><option>Envase / Packaging</option><option>Energía</option><option>Insumos varios</option></select></div>
+      <div id="ci-precio-history" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.65rem .9rem;">
+        <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:.5rem;">Historial de precios</div>
+        <div id="ci-precio-history-list" style="display:flex;flex-direction:column;gap:.3rem;font-family:'DM Mono',monospace;font-size:.75rem;"></div>
+      </div>
     </div>
+    <input type="hidden" id="ci-edit-id">
     <div class="btn-row"><button class="btn btn-gold btn-full" onclick="saveCostoItem()">Guardar</button><button class="btn btn-outline" onclick="closeModal('modal-costo-item')">Cancelar</button></div>
   </div>
 </div>
@@ -443,6 +470,46 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-venta-edit">
+  <div class="modal"><h2>EDITAR VENTA</h2>
+    <div class="modal-fields">
+      <div class="grid2">
+        <div class="field"><label>Fecha</label><input type="date" id="ve-fecha"></div>
+        <div class="field"><label>Cliente</label><input type="text" id="ve-cliente"></div>
+      </div>
+      <div class="field"><label>Estado</label>
+        <select id="ve-estado"><option>Cobrada</option><option>Pendiente</option><option>Cancelada</option></select>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.9rem;margin-top:.3rem;">ÍTEMS</div>
+      <div id="ve-items-list" style="display:flex;flex-direction:column;gap:.4rem;"></div>
+      <div class="field"><label>Notas</label><input type="text" id="ve-notas"></div>
+    </div>
+    <input type="hidden" id="ve-venta-id">
+    <div class="btn-row">
+      <button class="btn btn-gold btn-full" onclick="saveVentaEdit()">Guardar cambios</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-venta-edit')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-archivo">
+  <div class="modal" style="max-width:600px;">
+    <h2 id="modal-archivo-titulo">LOTE</h2>
+    <div style="font-family:monospace;font-size:.72rem;color:var(--muted);margin-bottom:1rem;" id="modal-archivo-info"></div>
+    <canvas id="archivo-chart" style="width:100%;height:150px;margin-bottom:1rem;"></canvas>
+    <div class="tbl-wrap" style="max-height:300px;overflow-y:auto;">
+      <table>
+        <thead><tr><th>Día</th><th>T° Prom</th><th>HR Prom</th><th>Estado</th><th>Obs</th></tr></thead>
+        <tbody id="modal-archivo-tbody"></tbody>
+      </table>
+    </div>
+    <div class="btn-row" style="margin-top:1rem;">
+      <button class="btn btn-outline btn-sm" onclick="exportLoteArchivado(_archivoLote?.id)">⬇ Exportar CSV</button>
+      <button class="btn btn-outline btn-full" onclick="closeModal('modal-archivo')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-venta">
   <div class="modal"><h2>REGISTRAR VENTA</h2>
     <div class="modal-fields">
@@ -491,7 +558,33 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 
 <script>
 // ── STATE ────────────────────────────────────────────────────
-let S={lote:{lote:'—',variedad:'—',fecha:'—',peso:'—',resp:'—'},prodRecords:{},prodDay:1,prodChart:'both',costoItems:[],costoFijos:[],kgProducidos:0,productos:[],ventas:[],activeMes:''};
+let S={activeLoteId:null,lotes:[],lote:{lote:'—',variedad:'—',fecha:'—',peso:'—',resp:'—'},prodRecords:{},prodDay:1,prodChart:'both',costoItems:[],costoFijos:[],kgProducidos:0,productos:[],ventas:[],activeMes:''};
+
+// ── LOTE HELPERS ──────────────────────────────────────────────
+function getActiveLote(){
+  if(!S.activeLoteId||!S.lotes.length) return null;
+  return S.lotes.find(l=>l.id===S.activeLoteId)||null;
+}
+function setActiveLote(id){
+  S.activeLoteId=id;
+  const l=S.lotes.find(x=>x.id===id);
+  if(l){
+    S.lote={lote:l.lote,variedad:l.variedad,fecha:l.fecha,peso:l.peso,resp:l.resp};
+    S.prodRecords=l.prodRecords||{};
+    S.prodDay=l.prodDay||1;
+  }
+}
+function syncActiveLoteToArray(){
+  if(!S.activeLoteId||!S.lotes) return;
+  const idx=S.lotes.findIndex(l=>l.id===S.activeLoteId);
+  if(idx>=0){
+    const l=S.lotes[idx];
+    l.lote=S.lote.lote; l.variedad=S.lote.variedad;
+    l.fecha=S.lote.fecha; l.peso=S.lote.peso; l.resp=S.lote.resp;
+    l.prodRecords=S.prodRecords;
+    l.prodDay=S.prodDay;
+  }
+}
 // ── SUPABASE ─────────────────────────────────────────────────
 const SB_URL='https://dlzboitfcxytcatgkxkg.supabase.co';
 const SB_KEY='sb_publishable_1Cc9H-gjdxtq8w_vN6Ql2Q_16ms1J4x';
@@ -560,9 +653,38 @@ function setupRealtime(){
 }
 
 // Refresh all visible UI after remote sync
+function ensureLotesReady(){
+  if(!S.lotes) S.lotes=[];
+  // Migration: old data with no lotes array
+  if(S.lote&&S.lote.lote!=='—'&&!S.lotes.length){
+    const migId=uid();
+    S.lotes.push({id:migId,lote:S.lote.lote,variedad:S.lote.variedad||'—',
+      fecha:S.lote.fecha||'—',peso:S.lote.peso||'—',resp:S.lote.resp||'—',
+      prodRecords:S.prodRecords||{},prodDay:S.prodDay||1,completado:false,fechaCompletado:null});
+    S.activeLoteId=migId;
+  }
+  // Sync active lote fields from lotes array
+  if(S.activeLoteId){
+    const al=S.lotes.find(l=>l.id===S.activeLoteId);
+    if(al){S.lote={lote:al.lote,variedad:al.variedad,fecha:al.fecha,peso:al.peso,resp:al.resp};
+      S.prodRecords=al.prodRecords||{};S.prodDay=al.prodDay||1;}
+    else{
+      // activeLoteId points to non-existent lote, fix it
+      const first=S.lotes.find(l=>!l.completado);
+      if(first){setActiveLote(first.id);}
+      else{S.activeLoteId=null;}
+    }
+  } else if(S.lotes.length){
+    const first=S.lotes.find(l=>!l.completado);
+    if(first) setActiveLote(first.id);
+  }
+}
+
 function refreshAll(){
+  ensureLotesReady();
   refreshHeader();
   prodRefreshBanner();
+  prodRefreshLoteSelect();
   prodLoadDay();
   prodRefreshLog();
   setTimeout(prodDrawChart,80);
@@ -627,7 +749,7 @@ function prodRefreshBanner(){
   document.getElementById('prod-day-display').textContent=S.prodDay;
   document.getElementById('prod-lote-info').textContent=S.lote.lote==='—'?'Sin lote — tocar para configurar':`Lote: ${S.lote.lote} · ${S.lote.variedad} · ${S.lote.peso}kg`;
 }
-function prodChangeDay(d){const n=S.prodDay+d;if(n<1||n>40)return;S.prodDay=n;saveS();prodRefreshBanner();prodLoadDay();prodUpdateDev();prodDrawChart();}
+function prodChangeDay(d){const n=S.prodDay+d;if(n<1||n>40)return;S.prodDay=n;syncActiveLoteToArray();saveS();prodRefreshBanner();prodLoadDay();prodUpdateDev();prodDrawChart();}
 function prodLoadDay(){const r=S.prodRecords[S.prodDay];['pt1','pt2','ph1','ph2'].forEach(id=>document.getElementById(id).value=r?r[id]??'':'');document.getElementById('prod-obs').value=r?r.obs||'':"";prodUpdateDev();}
 function prodUpdateDev(){
   const ph=getPhase(S.prodDay);
@@ -645,7 +767,15 @@ function prodSaveDay(){
   const h1=parseFloat(document.getElementById('ph1').value)||null,h2=parseFloat(document.getElementById('ph2').value)||null;
   if(t1===null&&t2===null&&h1===null&&h2===null){toast('Ingresá al menos un valor');return;}
   S.prodRecords[S.prodDay]={pt1:t1,pt2:t2,ph1:h1,ph2:h2,obs:document.getElementById('prod-obs').value.trim(),tAvg:avgVals(t1,t2),hAvg:avgVals(h1,h2)};
-  saveS();prodDrawChart();prodRefreshLog();toast(`Día ${S.prodDay} guardado`);
+  syncActiveLoteToArray();
+  // Auto-suggest archiving when all 40 days are done
+  const totalDays=Object.keys(S.prodRecords).length;
+  if(totalDays>=40&&!document.getElementById('btn-archivar').dataset.shown){
+    document.getElementById('btn-archivar').style.display='';
+    document.getElementById('btn-archivar').dataset.shown='1';
+    toast('¡Ciclo completo! Podés archivar el lote.');
+  }
+  saveS();prodDrawChart();prodRefreshLog();prodRefreshLoteSelect();toast(`Día ${S.prodDay} guardado`);
 }
 function prodClear(){['pt1','pt2','ph1','ph2'].forEach(id=>document.getElementById(id).value='');document.getElementById('prod-obs').value='';prodUpdateDev();}
 function prodRefreshLog(){
@@ -681,7 +811,210 @@ function prodExport(){
   const blob=new Blob([lines.join(String.fromCharCode(10))],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`kaizen_lote_${S.lote.lote}.csv`;a.click();toast('CSV exportado');
 }
-function saveLote(){S.lote={lote:document.getElementById('ml-lote').value||'—',variedad:document.getElementById('ml-variedad').value,fecha:document.getElementById('ml-fecha').value||'—',peso:document.getElementById('ml-peso').value||'—',resp:document.getElementById('ml-resp').value||'—'};saveS();prodRefreshBanner();closeModal('modal-lote');toast('Lote guardado');}
+function saveLote(){
+  if(!S.lotes) S.lotes=[];
+  const loteData={
+    lote:document.getElementById('ml-lote').value||'—',
+    variedad:document.getElementById('ml-variedad').value,
+    fecha:document.getElementById('ml-fecha').value||'—',
+    peso:document.getElementById('ml-peso').value||'—',
+    resp:document.getElementById('ml-resp').value||'—'
+  };
+  const editId=document.getElementById('ml-edit-id')?.value;
+  if(editId){
+    // Editing existing lote
+    const idx=S.lotes.findIndex(l=>l.id===editId);
+    if(idx>=0) S.lotes[idx]={...S.lotes[idx],...loteData};
+    if(S.activeLoteId===editId){
+      S.lote=loteData;
+    }
+    document.getElementById('ml-edit-id').value='';
+  } else {
+    // New lote
+    const newId=uid();
+    S.lotes.push({id:newId,...loteData,prodRecords:{},prodDay:1,completado:false,fechaCompletado:null});
+    setActiveLote(newId);
+  }
+  saveS();
+  prodRefreshBanner();
+  prodRefreshLoteSelect();
+  closeModal('modal-lote');
+  toast('Lote guardado');
+}
+
+function prodRefreshLoteSelect(){
+  if(!S.lotes) S.lotes=[];
+  const sel=document.getElementById('prod-lote-select');
+  if(!sel) return;
+  const activos=S.lotes.filter(l=>!l.completado);
+  if(!activos.length){
+    sel.innerHTML='<option value="">Sin lotes activos</option>';
+    document.getElementById('btn-archivar').style.display='none';
+    return;
+  }
+  sel.innerHTML=activos.map(l=>`<option value="${l.id}" ${l.id===S.activeLoteId?'selected':''}>${l.lote} — ${l.variedad} · Día ${l.prodDay||1}/40</option>`).join('');
+  // Show archivar button if current lote reached day 40
+  const active=getActiveLote();
+  const daysRecorded=Object.keys(active?.prodRecords||{}).length;
+  const showArch=active&&!active.completado&&(active.prodDay>=40||daysRecorded>=40);
+  const archBtn=document.getElementById('btn-archivar');
+  if(archBtn) archBtn.style.display=showArch?'':'none';
+}
+
+function switchLote(id){
+  if(!id)return;
+  syncActiveLoteToArray();
+  setActiveLote(id);
+  saveS();
+  prodRefreshBanner();
+  prodLoadDay();
+  prodUpdateDev();
+  prodDrawChart();
+  prodRefreshLog();
+  prodRefreshLoteSelect();
+}
+
+function archivarLote(){
+  if(!S.lotes) S.lotes=[];
+  syncActiveLoteToArray(); // ensure latest data is in array before archiving
+  const active=getActiveLote();
+  if(!active){toast('No hay lote activo');return;}
+  if(!confirm(`¿Archivar el lote ${active.lote}? Quedará guardado en el historial.`))return;
+  const idx=S.lotes.findIndex(l=>l.id===S.activeLoteId);
+  if(idx>=0){
+    S.lotes[idx].completado=true;
+    S.lotes[idx].fechaCompletado=todayStr();
+  }
+  // Switch to next active lote if any
+  const nextActivo=S.lotes.find(l=>!l.completado);
+  if(nextActivo){setActiveLote(nextActivo.id);}
+  else{S.activeLoteId=null;S.lote={lote:'—',variedad:'—',fecha:'—',peso:'—',resp:'—'};S.prodRecords={};S.prodDay=1;}
+  saveS();prodRefreshBanner();prodRefreshLoteSelect();prodRefreshLog();prodDrawChart();
+  toast('Lote archivado correctamente');
+}
+
+function toggleArchivo(){
+  const el=document.getElementById('archivo-lotes');
+  const visible=el.style.display!=='none';
+  if(visible){el.style.display='none';return;}
+  el.style.display='block';
+  renderArchivo();
+}
+
+function renderArchivo(){
+  if(!S.lotes) S.lotes=[];
+  const archivados=S.lotes.filter(l=>l.completado).sort((a,b)=>(b.fechaCompletado||'').localeCompare(a.fechaCompletado||''));
+  const list=document.getElementById('archivo-list');
+  if(!archivados.length){
+    list.innerHTML='<div style="font-family:monospace;font-size:.78rem;color:var(--muted);padding:.5rem 0;">No hay lotes archivados aún.</div>';
+    return;
+  }
+  list.innerHTML=archivados.map(l=>{
+    const days=Object.keys(l.prodRecords||{}).length;
+    const okDays=Object.entries(l.prodRecords||{}).filter(([d,r])=>{
+      const ph=getPhase(parseInt(d));
+      return r.tAvg>=ph.tMin&&r.tAvg<=ph.tMax&&r.hAvg>=ph.hMin&&r.hAvg<=ph.hMax;
+    }).length;
+    const pct=days>0?Math.round(okDays/days*100):0;
+    return `<div style="border:1px solid var(--border);border-radius:8px;padding:.7rem;margin-bottom:.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;">
+        <div>
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:2px;color:var(--gold2);">${l.lote}</span>
+          <span style="font-family:monospace;font-size:.7rem;color:var(--muted);margin-left:.5rem;">${l.variedad} · ${l.peso}kg</span>
+        </div>
+        <div style="display:flex;gap:.4rem;">
+          <button class="btn btn-outline btn-sm" onclick="verLoteArchivado('${l.id}')">Ver</button>
+          <button class="btn btn-outline btn-sm" onclick="exportLoteArchivado('${l.id}')">⬇</button>
+          <button class="btn btn-danger btn-sm" onclick="eliminarLoteArchivado('${l.id}')">✕</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:1rem;font-family:monospace;font-size:.7rem;color:var(--muted);margin-bottom:.4rem;">
+        <span>Inicio: ${l.fecha}</span>
+        <span>Archivado: ${l.fechaCompletado||'—'}</span>
+        <span>Días: ${days}/40</span>
+        <span style="color:${pct>=80?'var(--greens)':'var(--warn)'};">OK: ${pct}%</span>
+      </div>
+      <div style="display:flex;gap:.5rem;align-items:center;">
+        <input type="text" placeholder="Agregar comentario..." value="${l.comentario||''}"
+          style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:.35rem .7rem;color:var(--cream);font-family:monospace;font-size:.72rem;outline:none;"
+          onchange="guardarComentarioLote('${l.id}',this.value)"
+          onblur="guardarComentarioLote('${l.id}',this.value)">
+      </div>
+      ${l.comentario?`<div style="font-family:monospace;font-size:.7rem;color:var(--gold);margin-top:.3rem;">💬 ${l.comentario}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function guardarComentarioLote(id, comentario){
+  const l=S.lotes.find(x=>x.id===id);
+  if(!l) return;
+  l.comentario=comentario.trim();
+  saveS();
+  showSyncStatus('Comentario guardado');
+}
+
+function eliminarLoteArchivado(id){
+  const l=S.lotes.find(x=>x.id===id);
+  if(!l) return;
+  if(!confirm(`¿Eliminar permanentemente el lote ${l.lote}? Esta acción no se puede deshacer.`)) return;
+  S.lotes=S.lotes.filter(x=>x.id!==id);
+  saveS();
+  renderArchivo();
+  toast('Lote eliminado');
+}
+
+function verLoteArchivado(id){
+  const l=S.lotes.find(x=>x.id===id);if(!l)return;
+  // Open modal showing full chart and log of archived lote
+  document.getElementById('modal-archivo-titulo').textContent=`LOTE ${l.lote} — ${l.variedad}`;
+  document.getElementById('modal-archivo-info').textContent=`Inicio: ${l.fecha} · Archivado: ${l.fechaCompletado} · ${l.peso}kg · Responsable: ${l.resp}`;
+  // Render log table
+  const days=Object.keys(l.prodRecords||{}).map(Number).sort((a,b)=>a-b);
+  document.getElementById('modal-archivo-tbody').innerHTML=days.length?days.map(d=>{
+    const r=l.prodRecords[d],ph=getPhase(d);
+    const ok=(r.tAvg!==null&&r.tAvg>=ph.tMin&&r.tAvg<=ph.tMax)&&(r.hAvg!==null&&r.hAvg>=ph.hMin&&r.hAvg<=ph.hMax);
+    return `<tr>
+      <td class="td-gold">${d}</td>
+      <td>${r.tAvg!==null?r.tAvg.toFixed(1)+'°':'—'}</td>
+      <td>${r.hAvg!==null?r.hAvg.toFixed(1)+'%':'—'}</td>
+      <td class="${ok?'td-green':'td-warn'}">${ok?'✓ OK':'⚠'}</td>
+      <td class="td-muted" style="font-size:.68rem;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.obs||''}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--muted);">Sin registros</td></tr>';
+  // Draw chart for archived lote
+  setTimeout(()=>drawArchivoChart(l),50);
+  openModal('modal-archivo');
+}
+let _archivoLote=null;
+function drawArchivoChart(l){
+  _archivoLote=l;
+  const canvas=document.getElementById('archivo-chart');
+  const ctx=canvas.getContext('2d');
+  const W=canvas.offsetWidth||300,H=150;
+  canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;ctx.scale(devicePixelRatio,devicePixelRatio);
+  ctx.clearRect(0,0,W,H);
+  const PAD={t:6,r:14,b:20,l:34};const cW=W-PAD.l-PAD.r,cH=H-PAD.t-PAD.b;
+  for(let i=0;i<=4;i++){const y=PAD.t+(cH/4)*i;ctx.strokeStyle='#1e1a12';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(PAD.l+cW,y);ctx.stroke();}
+  [7,30].forEach(d=>{const x=PAD.l+(d/40)*cW;ctx.strokeStyle='#3d3020';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(x,PAD.t);ctx.lineTo(x,PAD.t+cH);ctx.stroke();ctx.setLineDash([]);});
+  const days=Object.keys(l.prodRecords||{}).map(Number).sort((a,b)=>a-b);
+  if(!days.length){ctx.fillStyle='#3d3020';ctx.font="11px monospace";ctx.textAlign='center';ctx.fillText('Sin datos',W/2,H/2);return;}
+  const xOf=d=>PAD.l+((d-1)/39)*cW,yOfT=v=>PAD.t+cH-((v-45)/40)*cH,yOfH=v=>PAD.t+cH-((v-50)/50)*cH;
+  function drawLine(days,vFn,yFn,color){const pts=days.filter(d=>vFn(d)!==null);if(!pts.length)return;ctx.beginPath();pts.forEach((d,i)=>{const x=xOf(d),y=yFn(vFn(d));i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();pts.forEach(d=>{ctx.beginPath();ctx.arc(xOf(d),yFn(vFn(d)),2.5,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();});}
+  drawLine(days,d=>l.prodRecords[d]?.tAvg,yOfT,'rgb(200,151,58)');
+  drawLine(days,d=>l.prodRecords[d]?.hAvg,yOfH,'rgb(79,195,247)');
+  ctx.font="9px monospace";ctx.textAlign='right';
+  [50,65,80].forEach(v=>{ctx.fillStyle='#c8973a88';ctx.fillText(`${v}°`,PAD.l-2,yOfT(v)+3);});
+  ctx.fillStyle='#5a4e38';ctx.textAlign='center';[1,7,14,21,30,40].forEach(d=>ctx.fillText(d,xOf(d),PAD.t+cH+13));
+}
+
+function exportLoteArchivado(id){
+  const l=S.lotes.find(x=>x.id===id);if(!l)return;
+  const days=Object.keys(l.prodRecords||{}).map(Number).sort((a,b)=>a-b);
+  const lines=[`KAIZEN — Lote ${l.lote}`,`Variedad: ${l.variedad} · Peso: ${l.peso}kg · Resp: ${l.resp}`,`Inicio: ${l.fecha} · Archivado: ${l.fechaCompletado}`,``,`Día;Fase;T°Prom;HR Prom;Estado;Obs`];
+  days.forEach(d=>{const r=l.prodRecords[d],ph=getPhase(d);const ok=(r.tAvg>=ph.tMin&&r.tAvg<=ph.tMax)&&(r.hAvg>=ph.hMin&&r.hAvg<=ph.hMax);lines.push([d,ph.name.split('—')[0].trim(),r.tAvg?.toFixed(1)??'—',r.hAvg?.toFixed(1)??'—',ok?'OK':'REVISAR',`"${(r.obs||'').replace(/"/g,'""')}"`].join(';'));});
+  const blob=new Blob([lines.join(String.fromCharCode(10))],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`kaizen_lote_${l.lote}.csv`;a.click();toast('CSV exportado');
+}
 
 // ── COSTOS ───────────────────────────────────────────────────
 function cpuSaveAndRefresh(){
@@ -697,13 +1030,91 @@ function costosRefresh(){
   const fijoXkg=kg>0?totalFijo/kg:0;
   const varXkg=kg>0?totalVar/kg:0;
   document.getElementById('costos-stats').innerHTML=`<div class="stat"><div class="s-lbl">Costos Variables</div><div class="s-val c-warn">${fmtMoney(totalVar)}</div></div><div class="stat"><div class="s-lbl">Costos Fijos</div><div class="s-val c-red">${fmtMoney(totalFijo)}</div></div><div class="stat"><div class="s-lbl">Costo Total</div><div class="s-val c-gold">${fmtMoney(totalVar+totalFijo)}</div></div>`;
-  document.getElementById('costos-insumos-tbody').innerHTML=S.costoItems.length?S.costoItems.map(i=>`<tr><td>${i.nombre}<br><span class="td-muted" style="font-size:.62rem;">${i.categoria}</span></td><td>${i.cantidad}</td><td>${i.unidad}</td><td class="td-gold">${fmtMoney(i.precio)}</td><td class="c-warn">${fmtMoney(i.cantidad*i.precio)}</td><td><button class="btn btn-danger btn-sm" onclick="deleteCostoItem('${i.id}')">✕</button></td></tr>`).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--muted);">Sin insumos</td></tr>`;
+  document.getElementById('costos-insumos-tbody').innerHTML=S.costoItems.length?S.costoItems.map(i=>{
+    const hist=i.precioHistorial||[];
+    const prevPrice=hist.length?hist[hist.length-1].precio:null;
+    const priceChange=prevPrice&&prevPrice!==i.precio
+      ?`<span style="font-size:.6rem;color:${i.precio>prevPrice?'var(--reds)':'var(--greens)'};">${i.precio>prevPrice?'▲':'▼'}${fmtMoney(prevPrice)}</span>`:'';
+    return `<tr>
+      <td>${i.nombre}<br><span class="td-muted" style="font-size:.62rem;">${i.categoria}</span></td>
+      <td>${i.cantidad}</td><td>${i.unidad}</td>
+      <td class="td-gold">${fmtMoney(i.precio)}<br>${priceChange}</td>
+      <td class="c-warn">${fmtMoney(i.cantidad*i.precio)}</td>
+      <td style="display:flex;gap:.3rem;">
+        <button class="btn btn-outline btn-sm" onclick="editCostoItem('${i.id}')">✎</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCostoItem('${i.id}')">✕</button>
+      </td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--muted);">Sin insumos</td></tr>`;
   document.getElementById('costos-fijos-tbody').innerHTML=S.costoFijos.length?S.costoFijos.map(f=>`<tr><td>${f.concepto}</td><td class="td-gold">${fmtMoney(f.monto)}</td><td><button class="btn btn-danger btn-sm" onclick="deleteCostoFijo('${f.id}')">✕</button></td></tr>`).join(''):`<tr><td colspan="3" style="text-align:center;padding:1.5rem;color:var(--muted);">Sin costos fijos</td></tr>`;
   document.getElementById('cpu-var').textContent=kg>0?fmtMoney(varXkg):'$0';
   document.getElementById('cpu-fijo').textContent=kg>0?fmtMoney(fijoXkg):'$0';
   document.getElementById('cpu-total').textContent=kg>0?fmtMoney(varXkg+fijoXkg):'$0';
 }
-function saveCostoItem(){const n=document.getElementById('ci-nombre').value.trim(),c=parseFloat(document.getElementById('ci-cantidad').value),p=parseFloat(document.getElementById('ci-precio').value);if(!n||isNaN(c)||isNaN(p)){toast('Completá todos los campos');return;}S.costoItems.push({id:uid(),nombre:n,cantidad:c,unidad:document.getElementById('ci-unidad').value,precio:p,categoria:document.getElementById('ci-categoria').value});saveS();closeModal('modal-costo-item');costosRefresh();toast('Insumo agregado');['ci-nombre','ci-cantidad','ci-precio'].forEach(id=>document.getElementById(id).value='');}
+function saveCostoItem(){
+  const n=document.getElementById('ci-nombre').value.trim();
+  const c=parseFloat(document.getElementById('ci-cantidad').value);
+  const p=parseFloat(document.getElementById('ci-precio').value);
+  if(!n||isNaN(c)||isNaN(p)){toast('Completá todos los campos');return;}
+  const editId=document.getElementById('ci-edit-id').value;
+  if(editId){
+    // Editing existing insumo — update price with history
+    const ins=S.costoItems.find(i=>i.id===editId);
+    if(ins){
+      const oldPrice=ins.precio;
+      if(p!==oldPrice){
+        // Save price history entry
+        if(!ins.precioHistorial) ins.precioHistorial=[];
+        ins.precioHistorial.push({precio:oldPrice,hasta:todayStr()});
+      }
+      ins.nombre=n; ins.cantidad=c; ins.precio=p;
+      ins.unidad=document.getElementById('ci-unidad').value;
+      ins.categoria=document.getElementById('ci-categoria').value;
+      // Recalculate pcosto for all products that use this insumo
+      S.productos.forEach(prod=>{
+        if((prod.composicion||[]).some(c=>c.insumo_id===editId)){
+          const cv=calcCostoVar(prod.composicion);
+          const totalFijo=S.costoFijos.reduce((a,f)=>a+f.monto,0);
+          const kgTotal=S.kgProducidos||0;
+          const cf=kgTotal>0&&prod.gramos>0?(totalFijo/kgTotal)*prod.gramos:0;
+          prod.pcosto=cv+cf;
+        }
+      });
+      toast(`Precio actualizado: ${fmtMoney(oldPrice)} → ${fmtMoney(p)}`);
+    }
+  } else {
+    S.costoItems.push({id:uid(),nombre:n,cantidad:c,unidad:document.getElementById('ci-unidad').value,precio:p,categoria:document.getElementById('ci-categoria').value,precioHistorial:[]});
+    toast('Insumo agregado');
+  }
+  saveS();closeModal('modal-costo-item');costosRefresh();
+  ['ci-nombre','ci-cantidad','ci-precio','ci-edit-id'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ci-modal-title').textContent='AGREGAR INSUMO';
+  document.getElementById('ci-precio-history').style.display='none';
+}
+
+function editCostoItem(id){
+  const ins=S.costoItems.find(i=>i.id===id);if(!ins)return;
+  document.getElementById('ci-modal-title').textContent='EDITAR INSUMO';
+  document.getElementById('ci-nombre').value=ins.nombre;
+  document.getElementById('ci-cantidad').value=ins.cantidad;
+  document.getElementById('ci-precio').value=ins.precio;
+  document.getElementById('ci-unidad').value=ins.unidad;
+  document.getElementById('ci-categoria').value=ins.categoria;
+  document.getElementById('ci-edit-id').value=id;
+  // Show price history if any
+  const hist=ins.precioHistorial||[];
+  const histEl=document.getElementById('ci-precio-history');
+  if(hist.length){
+    histEl.style.display='block';
+    document.getElementById('ci-precio-history-list').innerHTML=
+      hist.slice().reverse().map(h=>`<div style="display:flex;justify-content:space-between;color:var(--muted);">
+        <span>${fmtMoney(h.precio)}</span><span>hasta ${h.hasta}</span></div>`).join('');
+  } else {
+    histEl.style.display='none';
+  }
+  openModal('modal-costo-item');
+}
+
 function saveCostoFijo(){const c=document.getElementById('cf-concepto').value.trim(),m=parseFloat(document.getElementById('cf-monto').value);if(!c||isNaN(m)){toast('Completá todos los campos');return;}S.costoFijos.push({id:uid(),concepto:c,monto:m});saveS();closeModal('modal-costo-fijo');costosRefresh();toast('Costo fijo agregado');['cf-concepto','cf-monto'].forEach(id=>document.getElementById(id).value='');}
 function deleteCostoItem(id){S.costoItems=S.costoItems.filter(i=>i.id!==id);saveS();costosRefresh();}
 function deleteCostoFijo(id){S.costoFijos=S.costoFijos.filter(f=>f.id!==id);saveS();costosRefresh();}
@@ -971,6 +1382,79 @@ function saveVenta(){
   _mvItems=[];
 }
 
+function openVentaEdit(ventaId){
+  const items=S.ventas.filter(v=>(v.venta_id||v.id)===ventaId);
+  if(!items.length)return;
+  const first=items[0];
+  document.getElementById('ve-fecha').value=first.fecha;
+  document.getElementById('ve-cliente').value=first.cliente;
+  document.getElementById('ve-estado').value=first.estado;
+  document.getElementById('ve-notas').value=first.notas||'';
+  document.getElementById('ve-venta-id').value=ventaId;
+  // Render editable items
+  document.getElementById('ve-items-list').innerHTML=items.map((it,i)=>`
+    <div style="display:flex;align-items:center;gap:.5rem;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:.5rem .7rem;">
+      <span style="flex:1;font-family:monospace;font-size:.75rem;">${it.producto_nombre}</span>
+      <span style="font-family:monospace;font-size:.7rem;color:var(--muted);">Cant:</span>
+      <input type="number" value="${it.cantidad}" min="1" step="1"
+        style="width:52px;background:var(--bg2);border:1px solid var(--border2);border-radius:5px;padding:.3rem .4rem;color:var(--cream);font-family:monospace;font-size:.78rem;outline:none;"
+        onchange="veUpdateItem('${it.id}','cantidad',this.value)">
+      <span style="font-family:monospace;font-size:.7rem;color:var(--muted);">Precio:</span>
+      <input type="number" value="${it.precio}" min="0" step="0.01"
+        style="width:68px;background:var(--bg2);border:1px solid var(--border2);border-radius:5px;padding:.3rem .4rem;color:var(--cream);font-family:monospace;font-size:.78rem;outline:none;"
+        onchange="veUpdateItem('${it.id}','precio',this.value)">
+    </div>`).join('');
+  openModal('modal-venta-edit');
+}
+
+function veUpdateItem(itemId,field,val){
+  // Live preview update (actual save happens on saveVentaEdit)
+  const input=event.target;
+  input.style.borderColor='var(--gold-dim)';
+}
+
+function saveVentaEdit(){
+  const ventaId=document.getElementById('ve-venta-id').value;
+  const newFecha=document.getElementById('ve-fecha').value;
+  const newCliente=document.getElementById('ve-cliente').value||'—';
+  const newEstado=document.getElementById('ve-estado').value;
+  const newNotas=document.getElementById('ve-notas').value||'';
+  if(!newFecha){toast('Ingresá la fecha');return;}
+
+  const items=S.ventas.filter(v=>(v.venta_id||v.id)===ventaId);
+  const oldEstado=items[0]?.estado;
+
+  // Read updated quantities and prices from inputs
+  const itemEls=document.getElementById('ve-items-list').querySelectorAll('div[style]');
+  items.forEach((it,i)=>{
+    const inputs=itemEls[i]?.querySelectorAll('input');
+    if(!inputs||inputs.length<2) return;
+    const newCant=parseInt(inputs[0].value)||it.cantidad;
+    const newPrecio=parseFloat(inputs[1].value)||it.precio;
+
+    // Adjust stock if estado changes or quantity changes
+    const prod=S.productos.find(p=>p.id===it.producto_id);
+    if(prod){
+      // Restore old stock first
+      if(oldEstado==='Cobrada') prod.stock+=it.cantidad;
+      // Apply new stock if still cobrada
+      if(newEstado==='Cobrada') prod.stock=Math.max(0,prod.stock-newCant);
+    }
+
+    // Update venta record — price stays as recorded (historical)
+    it.fecha=newFecha;
+    it.cliente=newCliente;
+    it.estado=newEstado;
+    it.notas=newNotas;
+    it.cantidad=newCant;
+    it.precio=newPrecio;       // allow price correction
+    it.total=newCant*newPrecio;
+  });
+
+  saveS();closeModal('modal-venta-edit');ventasRefresh();stockRefresh();
+  toast('Venta actualizada');
+}
+
 function ventasRefresh(){
   const mesVal=document.getElementById('ventas-mes-filter').value||S.activeMes;
   populateMesFilter('ventas-mes-filter',mesVal);
@@ -1002,7 +1486,10 @@ function ventasRefresh(){
       <td class="c-green" style="font-weight:600;">${fmtMoney(g.total)}</td>
       <td>${g.cliente}</td>
       <td><span class="badge ${badge}">${g.estado}</span></td>
-      <td><button class="btn btn-danger btn-sm" onclick="deleteVenta('${gid}')">✕</button></td>
+      <td style="display:flex;gap:.3rem;">
+        <button class="btn btn-outline btn-sm" onclick="openVentaEdit('${gid}')">✎</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteVenta('${gid}')">✕</button>
+      </td>
     </tr>`;
   }).join(''):`<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted);">Sin ventas este mes</td></tr>`;
 }
@@ -1250,8 +1737,13 @@ if('serviceWorker'in navigator){
 // 1. Boot from localStorage immediately so UI is instant
 try{const d=localStorage.getItem('kaizen_v3');if(d)S=JSON.parse(d);}catch(e){}
 if(!S.activeMes)S.activeMes=todayYM();
+
+// Setup lotes (migration + active lote sync)
+ensureLotesReady();
+
 refreshHeader();
 prodRefreshBanner();
+prodRefreshLoteSelect();
 prodLoadDay();
 prodRefreshLog();
 document.getElementById('ml-fecha').value=todayStr();
@@ -1260,7 +1752,7 @@ populateMesFilter('ventas-mes-filter',S.activeMes);
 populateMesFilter('balance-mes-filter',S.activeMes);
 setTimeout(prodDrawChart,120);
 window.addEventListener('resize',prodDrawChart);
-if(S.lote.lote==='—')setTimeout(()=>openModal('modal-lote'),500);
+if(!S.lotes.filter(l=>!l.completado).length) setTimeout(()=>openModal('modal-lote'),500);
 // 2. Then sync from cloud + subscribe to realtime changes
 loadS().then(()=>setupRealtime());
 </script>
