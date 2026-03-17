@@ -423,11 +423,16 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 </div>
 
 <div class="modal-overlay" id="modal-costo-fijo">
-  <div class="modal"><h2>COSTO FIJO</h2>
+  <div class="modal"><h2 id="cf-modal-title">COSTO FIJO</h2>
     <div class="modal-fields">
       <div class="field"><label>Concepto</label><input type="text" id="cf-concepto" placeholder="Ej: Alquiler, Luz, Gas..."></div>
       <div class="field"><label>Monto mensual ($)</label><input type="number" id="cf-monto" step="0.01"></div>
+      <div id="cf-historial-wrap" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.65rem .9rem;">
+        <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:.4rem;">Historial de montos</div>
+        <div id="cf-historial-list" style="font-family:'DM Mono',monospace;font-size:.75rem;display:flex;flex-direction:column;gap:.25rem;"></div>
+      </div>
     </div>
+    <input type="hidden" id="cf-edit-id">
     <div class="btn-row"><button class="btn btn-gold btn-full" onclick="saveCostoFijo()">Guardar</button><button class="btn btn-outline" onclick="closeModal('modal-costo-fijo')">Cancelar</button></div>
   </div>
 </div>
@@ -1046,7 +1051,21 @@ function costosRefresh(){
       </td>
     </tr>`;
   }).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--muted);">Sin insumos</td></tr>`;
-  document.getElementById('costos-fijos-tbody').innerHTML=S.costoFijos.length?S.costoFijos.map(f=>`<tr><td>${f.concepto}</td><td class="td-gold">${fmtMoney(f.monto)}</td><td><button class="btn btn-danger btn-sm" onclick="deleteCostoFijo('${f.id}')">✕</button></td></tr>`).join(''):`<tr><td colspan="3" style="text-align:center;padding:1.5rem;color:var(--muted);">Sin costos fijos</td></tr>`;
+  document.getElementById('costos-fijos-tbody').innerHTML=S.costoFijos.length?S.costoFijos.map(f=>{
+    const hist=f.historial||[];
+    const prevMonto=hist.length?hist[hist.length-1].monto:null;
+    const change=prevMonto&&prevMonto!==f.monto
+      ?`<br><span style="font-size:.6rem;color:${f.monto>prevMonto?'var(--reds)':'var(--greens)'};">${f.monto>prevMonto?'▲':'▼'}${fmtMoney(prevMonto)}</span>`:'';
+    return `<tr>
+      <td>${f.concepto}${f.desde?`<br><span class="td-muted" style="font-size:.62rem;">desde ${fmtMes(f.desde)}</span>`:''}
+      </td>
+      <td class="td-gold">${fmtMoney(f.monto)}${change}</td>
+      <td style="display:flex;gap:.3rem;">
+        <button class="btn btn-outline btn-sm" onclick="editCostoFijo('${f.id}')">✎</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCostoFijo('${f.id}')">✕</button>
+      </td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="3" style="text-align:center;padding:1.5rem;color:var(--muted);">Sin costos fijos</td></tr>`;
   document.getElementById('cpu-var').textContent=kg>0?fmtMoney(varXkg):'$0';
   document.getElementById('cpu-fijo').textContent=kg>0?fmtMoney(fijoXkg):'$0';
   document.getElementById('cpu-total').textContent=kg>0?fmtMoney(varXkg+fijoXkg):'$0';
@@ -1115,9 +1134,59 @@ function editCostoItem(id){
   openModal('modal-costo-item');
 }
 
-function saveCostoFijo(){const c=document.getElementById('cf-concepto').value.trim(),m=parseFloat(document.getElementById('cf-monto').value);if(!c||isNaN(m)){toast('Completá todos los campos');return;}S.costoFijos.push({id:uid(),concepto:c,monto:m});saveS();closeModal('modal-costo-fijo');costosRefresh();toast('Costo fijo agregado');['cf-concepto','cf-monto'].forEach(id=>document.getElementById(id).value='');}
+function saveCostoFijo(){
+  const c=document.getElementById('cf-concepto').value.trim();
+  const m=parseFloat(document.getElementById('cf-monto').value);
+  if(!c||isNaN(m)){toast('Completá todos los campos');return;}
+  const editId=document.getElementById('cf-edit-id').value;
+  const mesActual=S.activeMes||todayYM();
+  if(editId){
+    const fijo=S.costoFijos.find(f=>f.id===editId);
+    if(fijo){
+      // Save history entry with old value and the month it applied to
+      if(m!==fijo.monto){
+        if(!fijo.historial) fijo.historial=[];
+        fijo.historial.push({monto:fijo.monto,hasta:mesActual});
+      }
+      fijo.concepto=c;
+      fijo.monto=m;
+      fijo.desde=mesActual; // new value applies from this month
+      toast(`Costo fijo actualizado: ${fmtMoney(fijo.historial?.[fijo.historial.length-1]?.monto||m)} → ${fmtMoney(m)}`);
+    }
+  } else {
+    S.costoFijos.push({id:uid(),concepto:c,monto:m,desde:mesActual,historial:[]});
+    toast('Costo fijo agregado');
+  }
+  saveS();closeModal('modal-costo-fijo');costosRefresh();
+  ['cf-concepto','cf-monto','cf-edit-id'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cf-modal-title').textContent='COSTO FIJO';
+  document.getElementById('cf-historial-wrap').style.display='none';
+}
+
+function editCostoFijo(id){
+  const f=S.costoFijos.find(x=>x.id===id);if(!f)return;
+  document.getElementById('cf-modal-title').textContent='EDITAR COSTO FIJO';
+  document.getElementById('cf-concepto').value=f.concepto;
+  document.getElementById('cf-monto').value=f.monto;
+  document.getElementById('cf-edit-id').value=id;
+  const hist=f.historial||[];
+  const wrap=document.getElementById('cf-historial-wrap');
+  if(hist.length){
+    wrap.style.display='block';
+    document.getElementById('cf-historial-list').innerHTML=
+      hist.slice().reverse().map(h=>`<div style="display:flex;justify-content:space-between;color:var(--muted);">
+        <span>${fmtMoney(h.monto)}</span><span>hasta ${fmtMes(h.hasta)}</span>
+      </div>`).join('');
+  } else wrap.style.display='none';
+  openModal('modal-costo-fijo');
+}
+
 function deleteCostoItem(id){S.costoItems=S.costoItems.filter(i=>i.id!==id);saveS();costosRefresh();}
-function deleteCostoFijo(id){S.costoFijos=S.costoFijos.filter(f=>f.id!==id);saveS();costosRefresh();}
+function deleteCostoFijo(id){
+  if(!confirm('¿Eliminar este costo fijo?'))return;
+  S.costoFijos=S.costoFijos.filter(f=>f.id!==id);
+  saveS();costosRefresh();toast('Costo fijo eliminado');
+}
 
 // ── STOCK ────────────────────────────────────────────────────
 
@@ -1134,6 +1203,30 @@ function calcCostoFijoProd(kgProducto){
 }
 function calcPcosto(producto){
   return calcCostoVar(producto.composicion||[])+calcCostoFijoProd(producto.gramos||0);
+}
+
+// Get the fijos total that was active during a specific month (YYYY-MM)
+// Each fijo has a 'desde' month. For a given mes, use the value
+// that was active at that time (latest historial entry before that month, or current if none)
+function getFijosParaMes(mes){
+  if(!mes) return S.costoFijos.reduce((a,f)=>a+f.monto,0);
+  return S.costoFijos.reduce((a,f)=>{
+    // Find what value this fijo had during 'mes'
+    const hist=f.historial||[];
+    // If fijo started after 'mes', it didn't exist yet
+    if(f.desde&&f.desde>mes) return a; // not yet active
+    // Find the most recent historial entry that applies to 'mes'
+    // historial entries have {monto, hasta} where hasta is the month the change happened
+    // If mes < hasta, that entry's monto was still active
+    const applicable=hist.filter(h=>h.hasta>mes); // entries that changed AFTER mes
+    if(applicable.length){
+      // Use the oldest applicable entry's monto (what it was before changes after 'mes')
+      const oldest=applicable.sort((a,b)=>a.hasta.localeCompare(b.hasta))[0];
+      return a+oldest.monto;
+    }
+    // No changes after 'mes' — use current value
+    return a+f.monto;
+  },0);
 }
 
 function stockRefresh(){
@@ -1522,7 +1615,8 @@ function balanceRefresh(){
   // Costo var.  = Σ (costo variable unitario de cada producto × unidades vendidas)
   // Costo total = Costo fijo + Costo variable
 
-  const totalFijosMes=S.costoFijos.reduce((a,f)=>a+f.monto,0);
+  // Use the fijos value that was active during mesVal (historical-aware)
+  const totalFijosMes=getFijosParaMes(mesVal);
 
   // Costo variable: por cada línea vendida, costo variable del producto × cantidad
   let costoVarVendido=0;
@@ -1640,8 +1734,8 @@ function balanceExport(){
     const prod=S.productos.find(p=>p.id===v.producto_id);
     if(prod) costoVar+=calcCostoVar(prod.composicion||[])*v.cantidad;
   });
-  const fijosMes=S.costoFijos.reduce((a,f)=>a+f.monto,0);
-  const costoFijo=fijosMes; // total fijos del mes completo
+  const fijosMes=getFijosParaMes(mesVal); // value active during that month
+  const costoFijo=fijosMes;
   const costoTotal=costoVar+costoFijo;
   const ganancia=ingresos-costoTotal;
   const margen=ingresos>0?((ganancia/ingresos)*100):0;
