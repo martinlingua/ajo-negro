@@ -1,4 +1,5 @@
-const CACHE = 'kaizen-v0';
+// KAIZEN Service Worker v20260318174704
+const CACHE = 'kaizen-v20260318174704';
 
 const STATIC = [
   './manifest.json',
@@ -20,7 +21,10 @@ self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
-        keys.filter(k => k !== CACHE).map(k => caches.delete(k))
+        keys.filter(k => k !== CACHE).map(k => {
+          console.log('[SW] Deleting old cache:', k);
+          return caches.delete(k);
+        })
       ))
       .then(() => self.clients.claim())
   );
@@ -40,7 +44,7 @@ self.addEventListener('message', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-  // Always network-first for Supabase API calls (never cache)
+  // Never cache Supabase API calls
   if (url.hostname.includes('supabase.co')) {
     e.respondWith(fetch(e.request).catch(() => new Response('', {status: 503})));
     return;
@@ -49,6 +53,7 @@ self.addEventListener('fetch', e => {
     || url.pathname.endsWith('.html')
     || url.pathname === '/';
   if (isHTML) {
+    // Always network-first for HTML so login screen always loads fresh
     e.respondWith(
       fetch(e.request)
         .then(res => {
