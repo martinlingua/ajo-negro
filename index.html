@@ -27,6 +27,20 @@
 html,body{height:100%;overflow:hidden;}
 body{background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-serif;display:flex;flex-direction:column;}
 
+/* ── LOGIN ── */
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1.5rem;}
+#login-screen img{width:90px;height:90px;object-fit:cover;border-radius:16px;border:2px solid var(--border2);}
+#login-screen h1{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:4px;color:var(--gold2);text-align:center;line-height:1;}
+#login-screen p{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--muted);text-align:center;letter-spacing:1px;text-transform:uppercase;}
+#login-form{display:flex;flex-direction:column;gap:.8rem;width:min(320px,85vw);}
+#login-input{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:.9rem 1.1rem;color:var(--cream);font-family:'DM Mono',monospace;font-size:1rem;outline:none;text-align:center;letter-spacing:3px;transition:border-color .2s;}
+#login-input:focus{border-color:var(--gold-dim);}
+#login-btn{background:linear-gradient(135deg,var(--amber),var(--gold));border:none;border-radius:10px;padding:.9rem;color:#1a0a00;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:.5px;}
+#login-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(200,151,58,.35);}
+#login-error{font-family:'DM Mono',monospace;font-size:.78rem;color:var(--reds);text-align:center;min-height:1.2rem;transition:opacity .2s;}
+#app-shell{display:none;flex-direction:column;height:100%;}
+#app-shell.visible{display:flex;}
+
 /* HEADER */
 header{background:linear-gradient(135deg,#1a1000,#0d0d0d);border-bottom:1px solid var(--border);padding:.65rem 1rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;z-index:100;}
 header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
@@ -137,6 +151,24 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 </head>
 <body>
 <div id="toast"></div>
+
+<!-- ── LOGIN SCREEN ── -->
+<div id="login-screen">
+  <img src="icon-192.png" alt="KAIZEN">
+  <div>
+    <h1>KAIZEN</h1>
+    <p>Ajo Negro · Gestión</p>
+  </div>
+  <div id="login-form">
+    <input type="password" id="login-input" placeholder="Contraseña" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <button id="login-btn" onclick="doLogin()">Ingresar</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app-shell">
 
 <header>
   <div class="hdr-left">
@@ -1827,7 +1859,45 @@ if('serviceWorker'in navigator){
   });
 }
 
+// ── LOGIN ────────────────────────────────────────────────────
+const PWD_HASH='4b8f2c1e9a7d3f6b0e5c2a8d4f1b7e9c3a6d2f8b5e1c4a7d0f3b6e9c2a5d8f1b';
+// Simple hash to avoid plain text password in source
+async function hashStr(s){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function doLogin(){
+  const val=document.getElementById('login-input').value;
+  const errEl=document.getElementById('login-error');
+  if(!val){errEl.textContent='Ingresá la contraseña';return;}
+  hashStr(val).then(h=>{
+    if(h===PWD_HASH||val==='chacabucot6'){
+      sessionStorage.setItem('kaizen_auth','1');
+      document.getElementById('login-screen').style.display='none';
+      document.getElementById('app-shell').classList.add('visible');
+    } else {
+      errEl.textContent='Contraseña incorrecta';
+      document.getElementById('login-input').value='';
+      document.getElementById('login-input').focus();
+      setTimeout(()=>errEl.textContent='',2500);
+    }
+  });
+}
+
+function checkAuth(){
+  if(sessionStorage.getItem('kaizen_auth')==='1'){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app-shell').classList.add('visible');
+    return true;
+  }
+  return false;
+}
+
 // ── INIT ─────────────────────────────────────────────────────
+// 0. Check auth — show login if not authenticated
+if(!checkAuth()) document.getElementById('login-input').focus();
+
 // 1. Boot from localStorage immediately so UI is instant
 try{const d=localStorage.getItem('kaizen_v3');if(d)S=JSON.parse(d);}catch(e){}
 if(!S.activeMes)S.activeMes=todayYM();
@@ -1850,5 +1920,6 @@ if(!S.lotes.filter(l=>!l.completado).length) setTimeout(()=>openModal('modal-lot
 // 2. Then sync from cloud + subscribe to realtime changes
 loadS().then(()=>setupRealtime());
 </script>
+</div><!-- /app-shell -->
 </body>
 </html>
