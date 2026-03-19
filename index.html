@@ -204,6 +204,7 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
       <option value="">Sin lotes activos</option>
     </select>
     <button class="btn btn-gold btn-sm" onclick="openModal('modal-lote')" style="flex-shrink:0;">+ Nuevo lote</button>
+    <button class="btn btn-outline btn-sm" onclick="openFasesConfig()" style="flex-shrink:0;" title="Configurar etapas para nuevos lotes">⚙ Etapas</button>
     <button class="btn btn-outline btn-sm" id="btn-archivar" onclick="archivarLote()" style="flex-shrink:0;display:none;">📁 Archivar</button>
   </div>
 
@@ -507,6 +508,22 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-fases">
+  <div class="modal" style="max-width:520px;">
+    <h2>CONFIGURAR ETAPAS</h2>
+    <div style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);margin-bottom:1rem;line-height:1.5;">
+      Estos parámetros se aplicarán a los <strong style="color:var(--gold);">nuevos lotes</strong> que crees. Los lotes en curso y archivados mantienen su configuración original.
+    </div>
+    <div id="fases-editor" style="display:flex;flex-direction:column;gap:.7rem;"></div>
+    <div class="btn-row" style="margin-top:.8rem;flex-wrap:wrap;gap:.5rem;">
+      <button class="btn btn-outline btn-sm" onclick="fasesAddEtapa()">+ Agregar etapa</button>
+      <button class="btn btn-outline btn-sm" onclick="fasesReset()">Restaurar defaults</button>
+      <button class="btn btn-gold" onclick="fasesSave()">Guardar configuración</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-fases')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-venta-edit">
   <div class="modal"><h2>EDITAR VENTA</h2>
     <div class="modal-fields">
@@ -595,7 +612,9 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 
 <script>
 // ── STATE ────────────────────────────────────────────────────
-let S={activeLoteId:null,lotes:[],lote:{lote:'—',variedad:'—',fecha:'—',peso:'—',resp:'—'},prodRecords:{},prodDay:1,prodChart:'both',costoItems:[],costoFijos:[],kgProducidos:0,productos:[],ventas:[],activeMes:''};
+let S={activeLoteId:null,lotes:[],lote:{lote:'—',variedad:'—',fecha:'—',peso:'—',resp:'—'},prodRecords:{},prodDay:1,prodChart:'both',costoItems:[],costoFijos:[],kgProducidos:0,productos:[],ventas:[],activeMes:'',
+  fasesConfig:null // null = use defaults; set when user customizes
+};
 
 // ── LOTE HELPERS ──────────────────────────────────────────────
 function getActiveLote(){
@@ -765,31 +784,74 @@ let _tt;
 function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),2800);}
 
 // ── PRODUCTION ───────────────────────────────────────────────
-const PHASES=[
-  {name:'FASE 1 — DESHIDRATACIÓN',desc:'Días 1–7',days:[1,7],tMin:70,tMax:75,hMin:70,hMax:75,cls:'ph1',tr:'70–75°C',hr:'70–75%'},
-  {name:'FASE 2 — MAILLARD',desc:'Días 8–30',days:[8,30],tMin:60,tMax:65,hMin:80,hMax:90,cls:'ph2',tr:'60–65°C',hr:'80–90%'},
-  {name:'FASE 3 — ESTABILIZACIÓN',desc:'Días 31–40',days:[31,40],tMin:55,tMax:60,hMin:75,hMax:80,cls:'ph3',tr:'55–60°C',hr:'75–80%'},
+// Default phase configuration
+const DEFAULT_FASES=[
+  {nombre:'Deshidratación',diasDesde:1,diasHasta:7, tMin:70,tMax:75,hMin:70,hMax:75},
+  {nombre:'Maillard',      diasDesde:8,diasHasta:30,tMin:60,tMax:65,hMin:80,hMax:90},
+  {nombre:'Estabilización',diasDesde:31,diasHasta:40,tMin:55,tMax:60,hMin:75,hMax:80},
 ];
-function getPhase(d){return PHASES.find(p=>d>=p.days[0]&&d<=p.days[1])||PHASES[0];}
+const PHASE_CLS=['ph1','ph2','ph3','ph1','ph2']; // cycle colors for extra phases
+
+// Get the active phases config:
+// - If viewing an archived/active lote that has saved fases, use those
+// - Otherwise use S.fasesConfig (global config) or defaults
+function getFases(lote){
+  if(lote?.fases&&lote.fases.length) return lote.fases; // lote-specific
+  return S.fasesConfig||DEFAULT_FASES;
+}
+
+function getActiveFases(){
+  const al=getActiveLote();
+  return getFases(al);
+}
+
+function getTotalDias(fases){
+  if(!fases||!fases.length) return 40;
+  return Math.max(...fases.map(f=>f.diasHasta));
+}
+
+// Build PHASES-compatible array for a given fases config
+function buildPhases(fases){
+  return fases.map((f,i)=>({
+    name:`FASE ${i+1} — ${f.nombre.toUpperCase()}`,
+    desc:`Días ${f.diasDesde}–${f.diasHasta}`,
+    days:[f.diasDesde,f.diasHasta],
+    tMin:f.tMin,tMax:f.tMax,hMin:f.hMin,hMax:f.hMax,
+    cls:PHASE_CLS[i%PHASE_CLS.length],
+    tr:`${f.tMin}–${f.tMax}°C`,
+    hr:`${f.hMin}–${f.hMax}%`
+  }));
+}
+
+function getPhase(d, fases){
+  const phases=buildPhases(fases||getActiveFases());
+  return phases.find(p=>d>=p.days[0]&&d<=p.days[1])||phases[0];
+}
 function avgVals(...v){const ok=v.filter(x=>x!==null&&x!==''&&!isNaN(x));return ok.length?ok.reduce((a,b)=>a+parseFloat(b),0)/ok.length:null;}
 
 function prodRefreshBanner(){
-  const ph=getPhase(S.prodDay);
+  const fases=getActiveFases();
+  const totalDias=getTotalDias(fases);
+  const ph=getPhase(S.prodDay,fases);
   document.getElementById('prod-phase-banner').className=`phase-banner ${ph.cls}`;
   document.getElementById('prod-phase-name').textContent=ph.name;
   document.getElementById('prod-phase-desc').textContent=ph.desc;
   document.getElementById('prod-trange').textContent=ph.tr;
   document.getElementById('prod-hrange').textContent=ph.hr;
-  const pct=Math.round((S.prodDay/40)*100);
-  document.getElementById('prod-ring').style.strokeDashoffset=188.5-(pct/100)*188.5;
-  document.getElementById('prod-pct').textContent=pct+'%';
+  const pct=Math.round((S.prodDay/totalDias)*100);
+  const circ=188.5;
+  document.getElementById('prod-ring').style.strokeDashoffset=circ-(pct/100)*circ;
+  document.getElementById('prod-pct').textContent=Math.min(pct,100)+'%';
   document.getElementById('prod-day-display').textContent=S.prodDay;
-  document.getElementById('prod-lote-info').textContent=S.lote.lote==='—'?'Sin lote — tocar para configurar':`Lote: ${S.lote.lote} · ${S.lote.variedad} · ${S.lote.peso}kg`;
+  // Update "de N" label
+  const deLabel=document.querySelector('#current-day-display span,#prod-day-display+span');
+  // Update day change button limit
+  document.getElementById('prod-lote-info').textContent=S.lote.lote==='—'?'Sin lote — tocar para configurar':`Lote: ${S.lote.lote} · ${S.lote.variedad} · ${S.lote.peso}kg · ${totalDias} días`;
 }
-function prodChangeDay(d){const n=S.prodDay+d;if(n<1||n>40)return;S.prodDay=n;syncActiveLoteToArray();saveS();prodRefreshBanner();prodLoadDay();prodUpdateDev();prodDrawChart();}
+function prodChangeDay(d){const totalDias=getTotalDias(getActiveFases());const n=S.prodDay+d;if(n<1||n>totalDias)return;S.prodDay=n;syncActiveLoteToArray();saveS();prodRefreshBanner();prodLoadDay();prodUpdateDev();prodDrawChart();}
 function prodLoadDay(){const r=S.prodRecords[S.prodDay];['pt1','pt2','ph1','ph2'].forEach(id=>document.getElementById(id).value=r?r[id]??'':'');document.getElementById('prod-obs').value=r?r.obs||'':"";prodUpdateDev();}
 function prodUpdateDev(){
-  const ph=getPhase(S.prodDay);
+  const ph=getPhase(S.prodDay,getActiveFases());
   const t1=document.getElementById('pt1').value,t2=document.getElementById('pt2').value;
   const h1=document.getElementById('ph1').value,h2=document.getElementById('ph2').value;
   const tA=avgVals(t1,t2),hA=avgVals(h1,h2);
@@ -806,8 +868,9 @@ function prodSaveDay(){
   S.prodRecords[S.prodDay]={pt1:t1,pt2:t2,ph1:h1,ph2:h2,obs:document.getElementById('prod-obs').value.trim(),tAvg:avgVals(t1,t2),hAvg:avgVals(h1,h2)};
   syncActiveLoteToArray();
   // Auto-suggest archiving when all 40 days are done
+  const _totalDias=getTotalDias(getActiveFases());
   const totalDays=Object.keys(S.prodRecords).length;
-  if(totalDays>=40&&!document.getElementById('btn-archivar').dataset.shown){
+  if(totalDays>=_totalDias&&!document.getElementById('btn-archivar').dataset.shown){
     document.getElementById('btn-archivar').style.display='';
     document.getElementById('btn-archivar').dataset.shown='1';
     toast('¡Ciclo completo! Podés archivar el lote.');
@@ -819,7 +882,7 @@ function prodRefreshLog(){
   const days=Object.keys(S.prodRecords).map(Number).sort((a,b)=>b-a);
   const tbody=document.getElementById('prod-log');
   if(!days.length){tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--muted);">Sin registros</td></tr>`;return;}
-  tbody.innerHTML=days.map(d=>{const r=S.prodRecords[d],ph=getPhase(d);const tOk=r.tAvg!==null&&r.tAvg>=ph.tMin&&r.tAvg<=ph.tMax;const hOk=r.hAvg!==null&&r.hAvg>=ph.hMin&&r.hAvg<=ph.hMax;const ok=tOk&&hOk;const cls=ok?'td-green':'td-warn';const st=ok?'✓ OK':(!tOk&&!hOk)?'⚠ T°+HR':!tOk?'⚠ T°':'⚠ HR';return `<tr><td class="td-gold">${d}</td><td>${r.tAvg!==null?r.tAvg.toFixed(1)+'°':'—'}</td><td>${r.hAvg!==null?r.hAvg.toFixed(1)+'%':'—'}</td><td class="${cls}">${st}</td><td class="td-muted" style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.obs||''}</td></tr>`;}).join('');
+  const _lf=getActiveFases();tbody.innerHTML=days.map(d=>{const r=S.prodRecords[d],ph=getPhase(d,_lf);const tOk=r.tAvg!==null&&r.tAvg>=ph.tMin&&r.tAvg<=ph.tMax;const hOk=r.hAvg!==null&&r.hAvg>=ph.hMin&&r.hAvg<=ph.hMax;const ok=tOk&&hOk;const cls=ok?'td-green':'td-warn';const st=ok?'✓ OK':(!tOk&&!hOk)?'⚠ T°+HR':!tOk?'⚠ T°':'⚠ HR';return `<tr><td class="td-gold">${d}</td><td>${r.tAvg!==null?r.tAvg.toFixed(1)+'°':'—'}</td><td>${r.hAvg!==null?r.hAvg.toFixed(1)+'%':'—'}</td><td class="${cls}">${st}</td><td class="td-muted" style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.obs||''}</td></tr>`;}).join('');
 }
 function prodSetChart(m){S.prodChart=m;['both','t','h'].forEach(x=>{const b=document.getElementById(`cbt-${x}`);const active=m===(x==='t'?'temp':x==='h'?'hr':x);b.style.borderColor=active?'var(--gold-dim)':'';b.style.color=active?'var(--gold2)':'';});prodDrawChart();}
 function prodDrawChart(){
@@ -827,18 +890,21 @@ function prodDrawChart(){
   const W=canvas.offsetWidth||300,H=165;canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;ctx.scale(devicePixelRatio,devicePixelRatio);ctx.clearRect(0,0,W,H);
   const PAD={t:6,r:14,b:20,l:34};const cW=W-PAD.l-PAD.r,cH=H-PAD.t-PAD.b;
   for(let i=0;i<=4;i++){const y=PAD.t+(cH/4)*i;ctx.strokeStyle='#1e1a12';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(PAD.l+cW,y);ctx.stroke();}
-  [7,30].forEach(d=>{const x=PAD.l+(d/40)*cW;ctx.strokeStyle='#3d3020';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(x,PAD.t);ctx.lineTo(x,PAD.t+cH);ctx.stroke();ctx.setLineDash([]);});
+  buildPhases(_pFases).slice(0,-1).forEach(p=>{const x=PAD.l+(p.days[1]/_pTD)*cW;ctx.strokeStyle='#3d3020';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(x,PAD.t);ctx.lineTo(x,PAD.t+cH);ctx.stroke();ctx.setLineDash([]);});
   const days=Object.keys(S.prodRecords).map(Number).sort((a,b)=>a-b);
   if(!days.length){ctx.fillStyle='#3d3020';ctx.font="11px 'DM Mono',monospace";ctx.textAlign='center';ctx.fillText('Sin datos aún',W/2,H/2);ctx.textAlign='left';return;}
   const showT=S.prodChart!=='hr',showH=S.prodChart!=='temp';
-  const xOf=d=>PAD.l+((d-1)/39)*cW,yOfT=v=>PAD.t+cH-((v-45)/40)*cH,yOfH=v=>PAD.t+cH-((v-50)/50)*cH;
+  const _pFases=getActiveFases();const _pTD=getTotalDias(_pFases);
+  const xOf=d=>PAD.l+((d-1)/(_pTD-1))*cW,yOfT=v=>PAD.t+cH-((v-45)/40)*cH,yOfH=v=>PAD.t+cH-((v-50)/50)*cH;
   function drawLine(days,vFn,yFn,color){const pts=days.filter(d=>vFn(d)!==null);if(!pts.length)return;const grad=ctx.createLinearGradient(0,PAD.t,0,PAD.t+cH);grad.addColorStop(0,color.replace('rgb','rgba').replace(')',',0.18)'));grad.addColorStop(1,color.replace('rgb','rgba').replace(')',',0)'));ctx.beginPath();pts.forEach((d,i)=>{const x=xOf(d),y=yFn(vFn(d));i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.lineTo(xOf(pts[pts.length-1]),PAD.t+cH);ctx.lineTo(xOf(pts[0]),PAD.t+cH);ctx.closePath();ctx.fillStyle=grad;ctx.fill();ctx.beginPath();pts.forEach((d,i)=>{const x=xOf(d),y=yFn(vFn(d));i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();pts.forEach(d=>{ctx.beginPath();ctx.arc(xOf(d),yFn(vFn(d)),3,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();ctx.strokeStyle='#0a0804';ctx.lineWidth=1.5;ctx.stroke();});}
   if(showT)drawLine(days,d=>S.prodRecords[d]?.tAvg,yOfT,'rgb(200,151,58)');
   if(showH)drawLine(days,d=>S.prodRecords[d]?.hAvg,yOfH,'rgb(79,195,247)');
   ctx.font="9px 'DM Mono',monospace";ctx.textAlign='right';
   if(showT)[50,60,70,80].forEach(v=>{ctx.fillStyle='#c8973a88';ctx.fillText(`${v}°`,PAD.l-2,yOfT(v)+3);});
   else[60,70,80,90,100].forEach(v=>{ctx.fillStyle='#4fc3f788';ctx.fillText(`${v}%`,PAD.l-2,yOfH(v)+3);});
-  ctx.fillStyle='#5a4e38';ctx.textAlign='center';[1,7,14,21,30,40].forEach(d=>ctx.fillText(d,xOf(d),PAD.t+cH+13));
+  ctx.fillStyle='#5a4e38';ctx.textAlign='center';
+  const _xTicks=[1,...buildPhases(_pFases).map(p=>p.days[1])];
+  _xTicks.forEach(d=>{if(d<=_pTD)ctx.fillText(d,xOf(d),PAD.t+cH+13);});
   ctx.strokeStyle='rgba(232,184,75,.3)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(xOf(S.prodDay),PAD.t);ctx.lineTo(xOf(S.prodDay),PAD.t+cH);ctx.stroke();
 }
 function prodExport(){
@@ -869,7 +935,7 @@ function saveLote(){
   } else {
     // New lote
     const newId=uid();
-    S.lotes.push({id:newId,...loteData,prodRecords:{},prodDay:1,completado:false,fechaCompletado:null});
+    S.lotes.push({id:newId,...loteData,fases:JSON.parse(JSON.stringify(S.fasesConfig||DEFAULT_FASES)),prodRecords:{},prodDay:1,completado:false,fechaCompletado:null});
     setActiveLote(newId);
   }
   saveS();
@@ -892,8 +958,9 @@ function prodRefreshLoteSelect(){
   sel.innerHTML=activos.map(l=>`<option value="${l.id}" ${l.id===S.activeLoteId?'selected':''}>${l.lote} — ${l.variedad} · Día ${l.prodDay||1}/40</option>`).join('');
   // Show archivar button if current lote reached day 40
   const active=getActiveLote();
+  const _td=getTotalDias(getFases(active));
   const daysRecorded=Object.keys(active?.prodRecords||{}).length;
-  const showArch=active&&!active.completado&&(active.prodDay>=40||daysRecorded>=40);
+  const showArch=active&&!active.completado&&(active.prodDay>=_td||daysRecorded>=_td);
   const archBtn=document.getElementById('btn-archivar');
   if(archBtn) archBtn.style.display=showArch?'':'none';
 }
@@ -949,7 +1016,7 @@ function renderArchivo(){
   list.innerHTML=archivados.map(l=>{
     const days=Object.keys(l.prodRecords||{}).length;
     const okDays=Object.entries(l.prodRecords||{}).filter(([d,r])=>{
-      const ph=getPhase(parseInt(d));
+      const ph=getPhase(parseInt(d),getFases(l));
       return r.tAvg>=ph.tMin&&r.tAvg<=ph.tMax&&r.hAvg>=ph.hMin&&r.hAvg<=ph.hMax;
     }).length;
     const pct=days>0?Math.round(okDays/days*100):0;
@@ -1006,9 +1073,10 @@ function verLoteArchivado(id){
   document.getElementById('modal-archivo-titulo').textContent=`LOTE ${l.lote} — ${l.variedad}`;
   document.getElementById('modal-archivo-info').textContent=`Inicio: ${l.fecha} · Archivado: ${l.fechaCompletado} · ${l.peso}kg · Responsable: ${l.resp}`;
   // Render log table
+  const _lFases=getFases(l);
   const days=Object.keys(l.prodRecords||{}).map(Number).sort((a,b)=>a-b);
   document.getElementById('modal-archivo-tbody').innerHTML=days.length?days.map(d=>{
-    const r=l.prodRecords[d],ph=getPhase(d);
+    const r=l.prodRecords[d],ph=getPhase(d,_lFases);
     const ok=(r.tAvg!==null&&r.tAvg>=ph.tMin&&r.tAvg<=ph.tMax)&&(r.hAvg!==null&&r.hAvg>=ph.hMin&&r.hAvg<=ph.hMax);
     return `<tr>
       <td class="td-gold">${d}</td>
@@ -1035,13 +1103,15 @@ function drawArchivoChart(l){
   [7,30].forEach(d=>{const x=PAD.l+(d/40)*cW;ctx.strokeStyle='#3d3020';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(x,PAD.t);ctx.lineTo(x,PAD.t+cH);ctx.stroke();ctx.setLineDash([]);});
   const days=Object.keys(l.prodRecords||{}).map(Number).sort((a,b)=>a-b);
   if(!days.length){ctx.fillStyle='#3d3020';ctx.font="11px monospace";ctx.textAlign='center';ctx.fillText('Sin datos',W/2,H/2);return;}
-  const xOf=d=>PAD.l+((d-1)/39)*cW,yOfT=v=>PAD.t+cH-((v-45)/40)*cH,yOfH=v=>PAD.t+cH-((v-50)/50)*cH;
+  const _af=getFases(l);const _atd=getTotalDias(_af);
+  const xOf=d=>PAD.l+((d-1)/(_atd-1))*cW,yOfT=v=>PAD.t+cH-((v-45)/40)*cH,yOfH=v=>PAD.t+cH-((v-50)/50)*cH;
   function drawLine(days,vFn,yFn,color){const pts=days.filter(d=>vFn(d)!==null);if(!pts.length)return;ctx.beginPath();pts.forEach((d,i)=>{const x=xOf(d),y=yFn(vFn(d));i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();pts.forEach(d=>{ctx.beginPath();ctx.arc(xOf(d),yFn(vFn(d)),2.5,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();});}
   drawLine(days,d=>l.prodRecords[d]?.tAvg,yOfT,'rgb(200,151,58)');
   drawLine(days,d=>l.prodRecords[d]?.hAvg,yOfH,'rgb(79,195,247)');
   ctx.font="9px monospace";ctx.textAlign='right';
   [50,65,80].forEach(v=>{ctx.fillStyle='#c8973a88';ctx.fillText(`${v}°`,PAD.l-2,yOfT(v)+3);});
-  ctx.fillStyle='#5a4e38';ctx.textAlign='center';[1,7,14,21,30,40].forEach(d=>ctx.fillText(d,xOf(d),PAD.t+cH+13));
+  ctx.fillStyle='#5a4e38';ctx.textAlign='center';
+  [1,...buildPhases(_af).map(p=>p.days[1])].forEach(d=>{if(d<=_atd)ctx.fillText(d,xOf(d),PAD.t+cH+13);});
 }
 
 function exportLoteArchivado(id){
@@ -1051,6 +1121,101 @@ function exportLoteArchivado(id){
   days.forEach(d=>{const r=l.prodRecords[d],ph=getPhase(d);const ok=(r.tAvg>=ph.tMin&&r.tAvg<=ph.tMax)&&(r.hAvg>=ph.hMin&&r.hAvg<=ph.hMax);lines.push([d,ph.name.split('—')[0].trim(),r.tAvg?.toFixed(1)??'—',r.hAvg?.toFixed(1)??'—',ok?'OK':'REVISAR',`"${(r.obs||'').replace(/"/g,'""')}"`].join(';'));});
   const blob=new Blob([lines.join(String.fromCharCode(10))],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`kaizen_lote_${l.lote}.csv`;a.click();toast('CSV exportado');
+}
+
+// ── FASES CONFIG ─────────────────────────────────────────────
+let _fasesEditing = []; // temp copy while editing
+
+function openFasesConfig(){
+  // Deep clone current config or defaults
+  _fasesEditing = JSON.parse(JSON.stringify(S.fasesConfig||DEFAULT_FASES));
+  renderFasesEditor();
+  openModal('modal-fases');
+}
+
+function renderFasesEditor(){
+  const container = document.getElementById('fases-editor');
+  container.innerHTML = _fasesEditing.map((f,i) => `
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:.8rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;">
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:.95rem;letter-spacing:2px;color:var(--gold2);">ETAPA ${i+1}</span>
+        ${_fasesEditing.length>1?`<button class="btn btn-danger btn-sm" onclick="fasesRemoveEtapa(${i})">✕ Eliminar</button>`:''}
+      </div>
+      <div class="grid2" style="gap:.55rem;margin-bottom:.55rem;">
+        <div class="field"><label>Nombre</label>
+          <input type="text" value="${f.nombre}" oninput="_fasesEditing[${i}].nombre=this.value" placeholder="Ej: Deshidratación">
+        </div>
+        <div class="field"><label>Días</label>
+          <div style="display:flex;gap:.4rem;align-items:center;">
+            <input type="number" value="${f.diasDesde}" min="1" step="1" style="width:56px;"
+              oninput="_fasesEditing[${i}].diasDesde=parseInt(this.value)||1;fasesAutoFix(${i})">
+            <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--muted);">a</span>
+            <input type="number" value="${f.diasHasta}" min="1" step="1" style="width:56px;"
+              oninput="_fasesEditing[${i}].diasHasta=parseInt(this.value)||1;fasesAutoFix(${i})">
+          </div>
+        </div>
+      </div>
+      <div class="grid2" style="gap:.55rem;">
+        <div class="field"><label>Temp mín (°C)</label>
+          <input type="number" value="${f.tMin}" step="0.5" oninput="_fasesEditing[${i}].tMin=parseFloat(this.value)||0">
+        </div>
+        <div class="field"><label>Temp máx (°C)</label>
+          <input type="number" value="${f.tMax}" step="0.5" oninput="_fasesEditing[${i}].tMax=parseFloat(this.value)||0">
+        </div>
+        <div class="field"><label>HR mín (%)</label>
+          <input type="number" value="${f.hMin}" step="0.5" oninput="_fasesEditing[${i}].hMin=parseFloat(this.value)||0">
+        </div>
+        <div class="field"><label>HR máx (%)</label>
+          <input type="number" value="${f.hMax}" step="0.5" oninput="_fasesEditing[${i}].hMax=parseFloat(this.value)||0">
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function fasesAutoFix(changedIdx){
+  // Auto-adjust next phase start day when current phase end changes
+  for(let i=0;i<_fasesEditing.length-1;i++){
+    _fasesEditing[i+1].diasDesde=_fasesEditing[i].diasHasta+1;
+  }
+}
+
+function fasesAddEtapa(){
+  const last=_fasesEditing[_fasesEditing.length-1];
+  const desde=last.diasHasta+1;
+  _fasesEditing.push({nombre:`Etapa ${_fasesEditing.length+1}`,diasDesde:desde,diasHasta:desde+9,tMin:55,tMax:65,hMin:75,hMax:85});
+  renderFasesEditor();
+}
+
+function fasesRemoveEtapa(idx){
+  if(_fasesEditing.length<=1){toast('Debe haber al menos una etapa');return;}
+  _fasesEditing.splice(idx,1);
+  // Re-sequence days
+  for(let i=1;i<_fasesEditing.length;i++){
+    _fasesEditing[i].diasDesde=_fasesEditing[i-1].diasHasta+1;
+  }
+  renderFasesEditor();
+}
+
+function fasesReset(){
+  if(!confirm('¿Restaurar la configuración por defecto de 3 etapas?'))return;
+  _fasesEditing=JSON.parse(JSON.stringify(DEFAULT_FASES));
+  renderFasesEditor();
+}
+
+function fasesSave(){
+  // Validate
+  for(let i=0;i<_fasesEditing.length;i++){
+    const f=_fasesEditing[i];
+    if(!f.nombre.trim()){toast(`Etapa ${i+1}: ingresá un nombre`);return;}
+    if(f.diasDesde<1||f.diasHasta<f.diasDesde){toast(`Etapa ${i+1}: días inválidos`);return;}
+    if(f.tMin>=f.tMax){toast(`Etapa ${i+1}: temp mín debe ser menor que máx`);return;}
+    if(f.hMin>=f.hMax){toast(`Etapa ${i+1}: HR mín debe ser menor que máx`);return;}
+  }
+  S.fasesConfig=JSON.parse(JSON.stringify(_fasesEditing));
+  saveS();
+  closeModal('modal-fases');
+  const totalDias=getTotalDias(S.fasesConfig);
+  toast(`Configuración guardada · ${_fasesEditing.length} etapas · ${totalDias} días · Se aplicará a nuevos lotes`);
 }
 
 // ── COSTOS ───────────────────────────────────────────────────
