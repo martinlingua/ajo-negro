@@ -108,7 +108,7 @@ tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
 tbody tr:hover{background:var(--bg3);}
 tbody tr:last-child{border-bottom:none;}
 tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;color:var(--cream);}
-.td-muted{color:var(--muted);}.td-gold{color:#3a6228;font-weight:500;}.td-green{color:#2a7835;}.td-red{color:#b03030;}.td-warn{color:#a05010;}
+.td-muted{color:var(--muted);}.td-gold{...}.td-warn{color:#a05010;}.td-blue{color:#1e5a9a;}
 .badge{display:inline-block;padding:.18rem .55rem;border-radius:20px;font-size:.63rem;font-family:'DM Mono',monospace;letter-spacing:.3px;}
 .badge-green{background:#d4eeda;color:#1a5228;border:1px solid #3a9a4a55;}
 .badge-red{background:#f5d8d8;color:#7a1818;border:1px solid #c04040aa;}
@@ -1863,7 +1863,7 @@ function balanceRefresh(){
     ingresos>0?`Margen neto: ${margen.toFixed(1)}% · Por cada $100 vendidos, ${fmtMoney(ganancia/ingresos*100)} de ganancia`:'Sin ventas cobradas este mes';
 
   // ── Barras ──
-  const maxV=Math.max(ingresos,costoVarVendido,costoFijoVendido,Math.abs(ganancia),1);
+  const maxV=Math.max(ingresos,costoVarVendido,costoFijoDeLoVendido,Math.abs(ganancia),1);
   document.getElementById('balance-bars').innerHTML=[
     ['Ventas',       ingresos,          'linear-gradient(90deg,#2a7835,#389848)',  'c-green'],
     ['Costo Var.',   costoVarVendido,   'linear-gradient(90deg,#a05010,#c06820)',  'c-warn'],
