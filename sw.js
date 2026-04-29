@@ -1,5 +1,5 @@
 // KAIZEN Service Worker v20260318174704
-const CACHE = 'kaizen-v20260429133259';
+const CACHE = 'kaizen-v20260429134645';
 
 const STATIC = [
   './manifest.json',
