@@ -55,7 +55,7 @@
 .rf-line{width:160px;border-top:1px solid #aaa;margin:40px auto 4px;}
 .rf-firma p{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;}
 </style>
-<meta name="build" content="20260429141004">
+<meta name="build" content="20260429162141">
 <meta name="build-version" content="202603161544">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a1a1a">
@@ -2047,7 +2047,7 @@ function balanceRefresh(){
 
   // ── KPIs ──
   document.getElementById('balance-kpis').innerHTML=`
-    <div class="stat"><div class="s-lbl">Ingresos</div><div class="s-val c-green">${fmtMoney(ingresos)}</div><div class="s-sub">ventas cobradas</div></div>
+    <div class="stat"><div class="s-lbl">Ingresos</div><div class="s-val c-green">${fmtMoney(ingresos)}</div><div class="s-sub">c/ descuentos incluidos</div></div>
     <div class="stat"><div class="s-lbl">Costo variable</div><div class="s-val c-warn">${fmtMoney(costoVarVendido)}</div><div class="s-sub">de lo vendido</div></div>
     <div class="stat"><div class="s-lbl">Costo fijo</div><div class="s-val c-red">${fmtMoney(costoFijoDeLoVendido)}</div><div class="s-sub">total del mes</div></div>
     <div class="stat"><div class="s-lbl">Margen</div><div class="s-val ${margen>=0?'c-green':'c-red'}">${margen.toFixed(1)}%</div><div class="s-sub">neto</div></div>`;
@@ -2321,7 +2321,7 @@ function printRemito(ventaId){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260429141004';
+  const BUILD='20260429162141';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
