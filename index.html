@@ -57,7 +57,7 @@
 .rf-line{width:160px;border-top:1px solid #aaa;margin:40px auto 4px;}
 .rf-firma p{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;}
 </style>
-<meta name="build" content="20260429123316">
+<meta name="build" content="20260429124233">
 <meta name="build-version" content="202603161544">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a1a1a">
@@ -669,11 +669,11 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
           </div>
         </div>
         <div style="flex:2;background:rgba(74,122,53,.07);border:1px solid var(--gold-dim);border-radius:8px;padding:.65rem .9rem;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.2rem;" id="mv-subtotal-row" style="display:none;">
+          <div style="display:none;" id="mv-subtotal-row">
             <span style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);">SUBTOTAL</span>
             <span style="font-family:'DM Mono',monospace;font-size:.85rem;color:var(--muted);" id="mv-subtotal-display">$0</span>
           </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;" id="mv-desc-row" style="display:none;">
+          <div style="display:none;" id="mv-desc-row">
             <span style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--reds);" id="mv-desc-label">DESC. 0%</span>
             <span style="font-family:'DM Mono',monospace;font-size:.85rem;color:var(--reds);" id="mv-desc-amount">-$0</span>
           </div>
@@ -1637,6 +1637,8 @@ function printRemito(ventaId){
   const subtotalVenta=items.reduce((a,v)=>a+(v.precio*v.cantidad),0);
   const descPct=Number(items[0]?.descuento)||0;
   const descMonto=subtotalVenta-items.reduce((a,v)=>a+v.total,0);
+  // Debug: show discount value
+  console.log('printRemito descPct='+descPct+' items[0].descuento='+items[0]?.descuento);
   const total=items.reduce((a,v)=>a+v.total,0);
 
   // Format date dd/mm/aa
@@ -2331,7 +2333,7 @@ function printRemito(ventaId){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260429123316';
+  const BUILD='20260429124233';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
