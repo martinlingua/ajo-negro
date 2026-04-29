@@ -57,7 +57,7 @@
 .rf-line{width:160px;border-top:1px solid #aaa;margin:40px auto 4px;}
 .rf-firma p{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;}
 </style>
-<meta name="build" content="20260429120705">
+<meta name="build" content="20260429123316">
 <meta name="build-version" content="202603161544">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a1a1a">
@@ -1635,97 +1635,100 @@ function printRemito(ventaId){
   if(!items.length){toast('Venta no encontrada');return;}
   const g=items[0];
   const subtotalVenta=items.reduce((a,v)=>a+(v.precio*v.cantidad),0);
-  const descPct=items[0]?.descuento||0;
+  const descPct=Number(items[0]?.descuento)||0;
   const descMonto=subtotalVenta-items.reduce((a,v)=>a+v.total,0);
   const total=items.reduce((a,v)=>a+v.total,0);
+
+  // Format date dd/mm/aa
   const fecha=g.fecha||todayStr();
-  // dd/mm/aa format
-  const [yy,mm,dd]=fecha.split('-');
-  const fechaFmt=`${dd}/${mm}/${yy.slice(2)}`;
+  const fp=fecha.split('-');
+  const fechaFmt=fp[2]+'/'+fp[1]+'/'+fp[0].slice(2);
+
+  // Format generated timestamp
+  const n=new Date();
+  const genFmt=String(n.getDate()).padStart(2,'0')+'/'+String(n.getMonth()+1).padStart(2,'0')+'/'+String(n.getFullYear()).slice(2)+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+
   const remitoNum='R-'+ventaId.slice(-6).toUpperCase();
   const logoEl=document.querySelector('#app-shell .hdr-left img');
   const logoSrc=logoEl?logoEl.src:'';
 
+  // Build items rows
+  let itemRows='';
+  items.forEach(it=>{
+    itemRows+=`<tr>
+      <td>${it.producto_nombre||'—'}</td>
+      <td style="text-align:right;">${it.cantidad}</td>
+      <td style="text-align:right;">${fmtMoney(it.precio)}</td>
+      <td style="text-align:right;">${fmtMoney(it.total)}</td>
+    </tr>`;
+  });
+
+  // Build discount meta cell
+  const descMetaCell = descPct>0
+    ? `<div><div class="rm-lbl">Descuento aplicado</div><div class="rm-val" style="color:#b03030;">${descPct}% — ${fmtMoney(descMonto)}</div></div>`
+    : '';
+
+  // Build total table rows
+  let totalRows=`<tr style="border-bottom:1px solid #dde0e5;">
+    <td style="padding:.45rem .8rem;font-size:12px;color:#5a6a78;">Subtotal</td>
+    <td style="padding:.45rem .8rem;font-size:13px;font-family:monospace;text-align:right;color:#1a1a1a;">${fmtMoney(subtotalVenta)}</td>
+  </tr>`;
+
+  if(descPct>0){
+    totalRows+=`<tr style="border-bottom:2px solid #2a3a48;">
+      <td style="padding:.45rem .8rem;font-size:12px;color:#b03030;font-weight:600;">Descuento ${descPct}%</td>
+      <td style="padding:.45rem .8rem;font-size:13px;font-family:monospace;text-align:right;color:#b03030;font-weight:600;">- ${fmtMoney(descMonto)}</td>
+    </tr>`;
+  } else {
+    totalRows+=`<tr><td colspan="2" style="border-bottom:2px solid #2a3a48;padding:0;"></td></tr>`;
+  }
+
+  totalRows+=`<tr style="background:#2a3a48;">
+    <td style="padding:.7rem .8rem;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.7);font-weight:600;">TOTAL</td>
+    <td style="padding:.7rem .8rem;font-size:1.2rem;font-family:monospace;font-weight:700;text-align:right;color:#fff;">${fmtMoney(total)}</td>
+  </tr>`;
+
+  // Build notes row
+  const notasRow = g.notas
+    ? `<div style="grid-column:1/-1;"><div class="rm-lbl">Notas</div><div class="rm-val" style="font-weight:400;">${g.notas}</div></div>`
+    : '';
+
   const html=`
   <style>
-    @page { margin: 1.5cm; }
-    @media print {
-      head, header, nav, #login-screen { display:none!important; }
-      body { margin:0; }
-    }
+    @page{margin:1.5cm;size:A4;}
+    @media print{body>*{display:none!important;}#remito-print-area{display:block!important;}}
   </style>
   <div class="remito-doc">
     <div class="remito-header">
       <img class="remito-logo" src="${logoSrc}" alt="KAIZEN">
-      <div class="remito-brand">
-        <h1>KAIZEN</h1>
-        <p>Ajo Negro · Producción Artesanal</p>
-      </div>
-      <div class="remito-tipo">
-        <h2>REMITO DE<br>MOVIMIENTO INTERNO</h2>
-        <div class="r-num">${remitoNum}</div>
-      </div>
+      <div class="remito-brand"><h1>KAIZEN</h1><p>Ajo Negro &middot; Producción Artesanal</p></div>
+      <div class="remito-tipo"><h2>REMITO DE<br>MOVIMIENTO INTERNO</h2><div class="r-num">${remitoNum}</div></div>
     </div>
-
     <div class="remito-meta">
       <div><div class="rm-lbl">Fecha</div><div class="rm-val">${fechaFmt}</div></div>
-      <div><div class="rm-lbl">Cliente / Destinatario</div><div class="rm-val">${g.cliente||'—'}</div></div>
+      <div><div class="rm-lbl">Cliente / Destino</div><div class="rm-val">${g.cliente||'—'}</div></div>
       <div><div class="rm-lbl">Estado</div><div class="rm-val">${g.estado}</div></div>
-      <div><div class="rm-lbl">Lote</div><div class="rm-val">${S.lote?.lote||'—'}</div></div>
-      ${descPct>0?`<div><div class="rm-lbl">Descuento aplicado</div><div class="rm-val" style="color:#b03030;">${descPct}% — ${fmtMoney(descMonto)}</div></div>`:''}
-      ${g.notas?`<div style="grid-column:1/-1;"><div class="rm-lbl">Notas</div><div class="rm-val" style="font-weight:400;">${g.notas}</div></div>`:''}
+      <div><div class="rm-lbl">Referencia</div><div class="rm-val">${remitoNum}</div></div>
+      ${descMetaCell}
+      ${notasRow}
     </div>
-
     <table class="remito-table">
-      <thead>
-        <tr>
-          <th style="width:46%;">Producto</th>
-          <th>Cant.</th>
-          <th>P. Unit.</th>
-          ${descPct>0?'<th>P. c/Desc.</th>':''}
-          <th>Subtotal</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${items.map(it=>`
-          <tr>
-            <td>${it.producto_nombre||'—'}</td>
-            <td style="text-align:right;">${it.cantidad}</td>
-            <td style="text-align:right;">${descPct>0?`<span style="text-decoration:line-through;color:#aaa;font-size:11px;">${fmtMoney(it.precio)}</span>`:fmtMoney(it.precio)}</td>
-            ${descPct>0?`<td style="text-align:right;color:#2a3a48;font-weight:600;">${fmtMoney(it.precioConDesc||it.precio)}</td>`:''}
-            <td style="text-align:right;">${fmtMoney(it.total)}</td>
-          </tr>
-        `).join('')}
-      </tbody>
+      <thead><tr>
+        <th style="width:50%;">Producto</th>
+        <th style="text-align:right;">Cant.</th>
+        <th style="text-align:right;">P. Unit.</th>
+        <th style="text-align:right;">Subtotal</th>
+      </tr></thead>
+      <tbody>${itemRows}</tbody>
     </table>
-
     <div class="remito-total-row">
       <table style="margin-left:auto;border-collapse:collapse;min-width:280px;">
-        <tr style="border-bottom:1px solid #dde0e5;">
-          <td style="padding:.45rem .8rem;font-size:12px;color:#5a6a78;text-align:left;">Subtotal</td>
-          <td style="padding:.45rem .8rem;font-size:13px;font-family:'DM Mono',monospace;text-align:right;color:#1a1a1a;">${fmtMoney(subtotalVenta)}</td>
-        </tr>
-        ${descPct>0?`
-        <tr style="border-bottom:2px solid #2a3a48;">
-          <td style="padding:.45rem .8rem;font-size:12px;color:#b03030;text-align:left;">Descuento ${descPct}%</td>
-          <td style="padding:.45rem .8rem;font-size:13px;font-family:'DM Mono',monospace;text-align:right;color:#b03030;">- ${fmtMoney(descMonto)}</td>
-        </tr>`:'<tr><td colspan="2" style="border-bottom:2px solid #2a3a48;padding:0;"></td></tr>'}
-        <tr style="background:#2a3a48;">
-          <td style="padding:.7rem .8rem;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.7);font-weight:600;">TOTAL</td>
-          <td style="padding:.7rem .8rem;font-size:1.25rem;font-family:'DM Mono',monospace;font-weight:700;text-align:right;color:#fff;letter-spacing:1px;">${fmtMoney(total)}</td>
-        </tr>
+        ${totalRows}
       </table>
     </div>
-
     <div class="remito-footer">
-      <div class="rf-nota">
-        Documento de uso interno · KAIZEN Ajo Negro<br>
-        Generado: ${(()=>{const n=new Date();const d=String(n.getDate()).padStart(2,'0');const m=String(n.getMonth()+1).padStart(2,'0');const y=String(n.getFullYear()).slice(2);const hh=String(n.getHours()).padStart(2,'0');const mm2=String(n.getMinutes()).padStart(2,'0');return d+'/'+m+'/'+y+' '+hh+':'+mm2;})()}
-      </div>
-      <div class="rf-firma">
-        <div class="rf-line"></div>
-        <p>Firma y aclaración</p>
-      </div>
+      <div class="rf-nota">Documento de uso interno &middot; KAIZEN Ajo Negro<br>Generado: ${genFmt}</div>
+      <div class="rf-firma"><div class="rf-line"></div><p>Firma y aclaración</p></div>
     </div>
   </div>`;
 
@@ -2328,7 +2331,7 @@ function printRemito(ventaId){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260429120705';
+  const BUILD='20260429123316';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
