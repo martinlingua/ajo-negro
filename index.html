@@ -57,7 +57,7 @@
 .rf-line{width:160px;border-top:1px solid #aaa;margin:40px auto 4px;}
 .rf-firma p{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;}
 </style>
-<meta name="build" content="20260429124233">
+<meta name="build" content="20260429125015">
 <meta name="build-version" content="202603161544">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a1a1a">
@@ -1635,10 +1635,13 @@ function printRemito(ventaId){
   if(!items.length){toast('Venta no encontrada');return;}
   const g=items[0];
   const subtotalVenta=items.reduce((a,v)=>a+(v.precio*v.cantidad),0);
-  const descPct=Number(items[0]?.descuento)||0;
-  const descMonto=subtotalVenta-items.reduce((a,v)=>a+v.total,0);
-  // Debug: show discount value
-  console.log('printRemito descPct='+descPct+' items[0].descuento='+items[0]?.descuento);
+  // Calculate discount from actual price difference (works even if descuento field is missing)
+  const totalReal=items.reduce((a,v)=>a+v.total,0);
+  const descMonto=Math.max(0, subtotalVenta-totalReal);
+  // Use stored descuento if available, otherwise calculate from difference
+  const descPctStored=Number(items[0]?.descuento)||0;
+  const descPctCalc=subtotalVenta>0?Math.round((descMonto/subtotalVenta)*100*10)/10:0;
+  const descPct=descPctStored>0?descPctStored:descPctCalc;
   const total=items.reduce((a,v)=>a+v.total,0);
 
   // Format date dd/mm/aa
@@ -2333,7 +2336,7 @@ function printRemito(ventaId){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260429124233';
+  const BUILD='20260429125015';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
