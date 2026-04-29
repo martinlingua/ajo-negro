@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>KAIZEN — Ajo Negro v2</title>
+<title>KAIZEN — Ajo Negro</title>
 <style id="print-styles">
 @media print {
   body > *:not(#remito-print) { display: none !important; }
@@ -55,7 +55,7 @@
 .rf-line{width:160px;border-top:1px solid #aaa;margin:40px auto 4px;}
 .rf-firma p{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;}
 </style>
-<meta name="build" content="20260429134645">
+<meta name="build" content="20260429135701">
 <meta name="build-version" content="202603161544">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a1a1a">
@@ -1633,10 +1633,26 @@ function printRemito(ventaId){
   if(!items.length){toast('Venta no encontrada');return;}
   const g=items[0];
 
-  // Discount
-  const descPct=Number(g.descuento)||0;
-
-  // Per-item: use precioOriginal if saved, else reverse from descuento
+  // Calculate discount purely from price difference - doesn't depend on stored field
+  // precioOriginal = original price before discount (saved in new records)
+  // precio = could be original or discounted depending on record version
+  // total = always the final amount paid (with discount applied)
+  // Strategy: compare precio*cantidad vs total to find the discount
+  const primerItem=items[0];
+  const pOrig0=primerItem.precioOriginal!=null?primerItem.precioOriginal:primerItem.precio;
+  const subtotalCheck=items.reduce((a,v)=>{
+    const p=v.precioOriginal!=null?v.precioOriginal:v.precio;
+    return a+p*v.cantidad;
+  },0);
+  const totalCheck=items.reduce((a,v)=>a+v.total,0);
+  const diffCheck=subtotalCheck-totalCheck;
+  // If difference > 0.5% of subtotal, there's a discount
+  const hasDiscount=diffCheck>subtotalCheck*0.005;
+  const descPctCalc=hasDiscount&&subtotalCheck>0?Math.round((diffCheck/subtotalCheck)*100*10)/10:0;
+  // Also try the stored field
+  const descPctStored=Number(primerItem.descuento)||0;
+  // Use whichever is bigger (more reliable)
+  const descPct=Math.max(descPctStored, descPctCalc);
   const factor=descPct>0?(1-descPct/100):1;
 
   // Date
@@ -1651,7 +1667,8 @@ function printRemito(ventaId){
   let itemRows='';
   let subtotal=0;
   items.forEach(it=>{
-    const pOrig=it.precioOriginal!=null?it.precioOriginal:(descPct>0?it.precio/factor:it.precio);
+    // Get original price: use stored precioOriginal, or if total < precio*cant, precio is original
+    const pOrig=it.precioOriginal!=null?it.precioOriginal:it.precio;
     const itemSubtotal=pOrig*it.cantidad;
     subtotal+=itemSubtotal;
     itemRows+=
@@ -2325,7 +2342,7 @@ function printRemito(ventaId){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260429134645';
+  const BUILD='20260429135701';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
