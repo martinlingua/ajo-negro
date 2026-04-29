@@ -4,7 +4,53 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>KAIZEN — Ajo Negro</title>
-<meta name="build" content="20260319181010">
+<style id="print-styles">
+@media print {
+  body > *:not(#remito-print) { display: none !important; }
+  #remito-print { display: block !important; position: fixed; inset: 0; background: white; z-index: 99999; padding: 0; margin: 0; }
+  @page { margin: 15mm; size: A5; }
+}
+#remito-print { display: none; }
+
+/* ── PRINT / REMITO ──────────────────────────────────────────── */
+#remito-print-area{display:none;}
+@media print{
+  body>*{display:none!important;}
+  #remito-print-area{display:block!important;position:fixed;inset:0;background:#fff;z-index:99999;padding:0;margin:0;}
+  #remito-print-area *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+.remito-doc{font-family:'DM Sans',sans-serif;background:#fff;color:#1a1a1a;max-width:680px;margin:0 auto;padding:2.5rem 2rem;font-size:13px;}
+.remito-header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #2a3a48;padding-bottom:1.2rem;margin-bottom:1.5rem;}
+.remito-logo{width:70px;height:70px;object-fit:cover;border-radius:10px;}
+.remito-brand{text-align:center;flex:1;padding:0 1rem;}
+.remito-brand h1{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:4px;color:#2a3a48;line-height:1;}
+.remito-brand p{font-size:11px;color:#5a6a78;letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
+.remito-tipo{text-align:right;}
+.remito-tipo h2{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:2px;color:#4a7a35;line-height:1.3;}
+.remito-tipo .r-num{font-family:'DM Mono',monospace;font-size:.75rem;color:#888;margin-top:4px;}
+.remito-meta{display:grid;grid-template-columns:1fr 1fr;gap:.4rem 2rem;margin-bottom:1.5rem;padding:.9rem 1rem;background:#f5f7fa;border-radius:8px;border:1px solid #e8eaed;}
+.rm-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;margin-bottom:1px;}
+.rm-val{font-size:13px;font-weight:600;color:#1a1a1a;}
+.remito-table{width:100%;border-collapse:collapse;margin-bottom:1.2rem;}
+.remito-table thead tr{background:#2a3a48;}
+.remito-table thead th{padding:.55rem .8rem;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;color:#fff;}
+.remito-table thead th:nth-child(2),.remito-table thead th:nth-child(3),.remito-table thead th:last-child{text-align:right;}
+.remito-table tbody tr{border-bottom:1px solid #e8eaed;}
+.remito-table tbody tr:nth-child(even){background:#f8f9fb;}
+.remito-table tbody td{padding:.5rem .8rem;font-size:13px;color:#2a2a2a;}
+.remito-table tbody td:nth-child(2),.remito-table tbody td:nth-child(3),.remito-table tbody td:last-child{text-align:right;}
+.remito-subtotal-row td{font-weight:600;background:#eef1f5!important;color:#2a3a48;}
+.remito-total-row{display:flex;justify-content:flex-end;margin-bottom:2rem;}
+.remito-total-box{background:#2a3a48;color:#fff;padding:.75rem 1.4rem;border-radius:8px;min-width:220px;}
+.remito-total-box .rt-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;opacity:.7;margin-bottom:3px;}
+.remito-total-box .rt-val{font-family:'DM Mono',monospace;font-size:1.35rem;font-weight:600;letter-spacing:1px;}
+.remito-footer{border-top:1px solid #e8eaed;padding-top:1rem;display:flex;justify-content:space-between;align-items:flex-end;margin-top:.5rem;}
+.rf-nota{font-size:11px;color:#888;line-height:1.6;}
+.rf-firma{text-align:center;}
+.rf-line{width:160px;border-top:1px solid #aaa;margin:40px auto 4px;}
+.rf-firma p{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;}
+</style>
+<meta name="build" content="20260429011516">
 <meta name="build-version" content="202603161544">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a1a1a">
@@ -108,7 +154,7 @@ tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
 tbody tr:hover{background:var(--bg3);}
 tbody tr:last-child{border-bottom:none;}
 tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;color:var(--cream);}
-.td-muted{color:var(--muted);}.td-gold{...}.td-warn{color:#a05010;}.td-blue{color:#1e5a9a;}
+.td-muted{color:var(--muted);}.td-gold{color:#3a6228;font-weight:500;}.td-green{color:#2a7835;}.td-red{color:#b03030;}.td-warn{color:#a05010;}
 .badge{display:inline-block;padding:.18rem .55rem;border-radius:20px;font-size:.63rem;font-family:'DM Mono',monospace;letter-spacing:.3px;}
 .badge-green{background:#d4eeda;color:#1a5228;border:1px solid #3a9a4a55;}
 .badge-red{background:#f5d8d8;color:#7a1818;border:1px solid #c04040aa;}
@@ -156,6 +202,9 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 </head>
 <body>
 <div id="toast"></div>
+
+<!-- ── REMITO PRINT AREA ── -->
+<div id="remito-print-area"></div>
 
 <!-- ── LOGIN SCREEN ── -->
 <div id="login-screen">
@@ -1552,6 +1601,116 @@ function editProducto(id){
 function deleteProducto(id){if(!confirm('¿Eliminar este producto?'))return;S.productos=S.productos.filter(p=>p.id!==id);saveS();stockRefresh();toast('Eliminado');}
 function stockAjuste(){const pid=document.getElementById('adj-producto').value,cant=parseFloat(document.getElementById('adj-cantidad').value);if(!pid||isNaN(cant)){toast('Seleccioná producto y cantidad');return;}const p=S.productos.find(x=>x.id===pid);if(!p)return;p.stock=Math.max(0,p.stock+cant);saveS();stockRefresh();document.getElementById('adj-cantidad').value='';document.getElementById('adj-motivo').value='';toast(`Stock: ${p.nombre} → ${p.stock}`);}
 
+// ── REMITO ───────────────────────────────────────────────────
+
+function printRemito(ventaId){
+  const items=S.ventas.filter(v=>(v.venta_id||v.id)===ventaId);
+  if(!items.length){toast('Venta no encontrada');return;}
+  const g=items[0];
+  const total=items.reduce((a,v)=>a+v.total,0);
+  const fecha=g.fecha||todayStr();
+  const fechaFmt=fecha.split('-').reverse().join('/');
+  // Generate remito number from ventaId (last 6 chars)
+  const remitoNum='R-'+ventaId.slice(-6).toUpperCase();
+
+  // Convert logo to base64 for print
+  const logoEl=document.querySelector('#app-shell .hdr-left img');
+  const logoSrc=logoEl?logoEl.src:'';
+
+  const html=`
+  <div class="remito-doc">
+    <!-- Header -->
+    <div class="remito-header">
+      <img class="remito-logo" src="${logoSrc}" alt="KAIZEN">
+      <div class="remito-brand">
+        <h1>KAIZEN</h1>
+        <p>Ajo Negro · Producción Artesanal</p>
+      </div>
+      <div class="remito-tipo">
+        <h2>REMITO DE<br>MOVIMIENTO INTERNO</h2>
+        <div class="r-num">${remitoNum}</div>
+      </div>
+    </div>
+
+    <!-- Meta -->
+    <div class="remito-meta">
+      <div>
+        <div class="rm-lbl">Fecha</div>
+        <div class="rm-val">${fechaFmt}</div>
+      </div>
+      <div>
+        <div class="rm-lbl">Cliente / Destinatario</div>
+        <div class="rm-val">${g.cliente||'—'}</div>
+      </div>
+      <div>
+        <div class="rm-lbl">Estado</div>
+        <div class="rm-val">${g.estado}</div>
+      </div>
+      <div>
+        <div class="rm-lbl">Lote</div>
+        <div class="rm-val">${S.lote?.lote||'—'}</div>
+      </div>
+      ${g.notas?`<div style="grid-column:1/-1;"><div class="rm-lbl">Notas</div><div class="rm-val" style="font-weight:400;">${g.notas}</div></div>`:''}
+    </div>
+
+    <!-- Items table -->
+    <table class="remito-table">
+      <thead>
+        <tr>
+          <th style="width:50%;">Producto</th>
+          <th>Cantidad</th>
+          <th>Precio Unit.</th>
+          <th>Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${items.map(it=>`
+          <tr>
+            <td>${it.producto_nombre||'—'}</td>
+            <td>${it.cantidad} ${it.unidad||'ud.'}</td>
+            <td>${fmtMoney(it.precio)}</td>
+            <td>${fmtMoney(it.total)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+
+    <!-- Total -->
+    <div class="remito-total-row">
+      <div class="remito-total-box">
+        <div class="rt-lbl">Total</div>
+        <div class="rt-val">${fmtMoney(total)}</div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="remito-footer">
+      <div class="rf-nota">
+        Documento de uso interno.<br>
+        KAIZEN Ajo Negro · ${new Date().getFullYear()}
+      </div>
+      <div class="rf-firma">
+        <div class="rf-line"></div>
+        <p>Firma y sello</p>
+      </div>
+    </div>
+  </div>`;
+
+  const area=document.getElementById('remito-print-area');
+  area.innerHTML=html;
+  area.style.display='block';
+
+  // Small delay to ensure fonts load, then print
+  setTimeout(()=>{
+    window.print();
+    // After print dialog closes, hide the area
+    setTimeout(()=>{
+      area.style.display='none';
+      area.innerHTML='';
+    },500);
+  },300);
+}
+
 // ── VENTAS ───────────────────────────────────────────────────
 
 function populateMesFilter(selId,val){
@@ -1782,6 +1941,7 @@ function ventasRefresh(){
       <td>${g.cliente}</td>
       <td><span class="badge ${badge}">${g.estado}</span></td>
       <td style="display:flex;gap:.3rem;">
+        <button class="btn btn-outline btn-sm" onclick="printRemito('${gid}')" title="Imprimir remito">🖨</button>
         <button class="btn btn-outline btn-sm" onclick="openVentaEdit('${gid}')">✎</button>
         <button class="btn btn-danger btn-sm" onclick="deleteVenta('${gid}')">✕</button>
       </td>
@@ -1863,7 +2023,7 @@ function balanceRefresh(){
     ingresos>0?`Margen neto: ${margen.toFixed(1)}% · Por cada $100 vendidos, ${fmtMoney(ganancia/ingresos*100)} de ganancia`:'Sin ventas cobradas este mes';
 
   // ── Barras ──
-  const maxV=Math.max(ingresos,costoVarVendido,costoFijoDeLoVendido,Math.abs(ganancia),1);
+  const maxV=Math.max(ingresos,costoVarVendido,costoFijoVendido,Math.abs(ganancia),1);
   document.getElementById('balance-bars').innerHTML=[
     ['Ventas',       ingresos,          'linear-gradient(90deg,#2a7835,#389848)',  'c-green'],
     ['Costo Var.',   costoVarVendido,   'linear-gradient(90deg,#a05010,#c06820)',  'c-warn'],
@@ -1998,9 +2158,120 @@ function balanceExport(){
 }
 
 
+// ── REMITO / COMPROBANTE ─────────────────────────────────────
+
+function printRemito(ventaId){
+  const items=S.ventas.filter(v=>(v.venta_id||v.id)===ventaId);
+  if(!items.length){toast('Venta no encontrada');return;}
+  const g=items[0];
+  const total=items.reduce((a,v)=>a+v.total,0);
+
+  // Build remito number from venta id (last 6 chars uppercase)
+  const remitoNum='R-'+ventaId.slice(-6).toUpperCase();
+
+  // Logo as base64 or use text fallback
+  const logoHtml=`<div style="display:flex;align-items:center;gap:12px;">
+    <img src="icon-192.png" style="width:56px;height:56px;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'">
+    <div>
+      <div style="font-family:'Bebas Neue',Arial,sans-serif;font-size:28px;letter-spacing:3px;color:#2a3a48;line-height:1;">KAIZEN</div>
+      <div style="font-size:11px;color:#5a6060;letter-spacing:2px;text-transform:uppercase;font-family:monospace;">Ajo Negro · Producción</div>
+    </div>
+  </div>`;
+
+  const html=`
+  <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;color:#1a2018;padding:8px;">
+
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #2a3a48;">
+      ${logoHtml}
+      <div style="text-align:right;">
+        <div style="font-size:11px;color:#5a6060;text-transform:uppercase;letter-spacing:1px;">Comprobante N°</div>
+        <div style="font-family:monospace;font-size:16px;font-weight:bold;color:#2a3a48;">${remitoNum}</div>
+      </div>
+    </div>
+
+    <!-- Title -->
+    <div style="text-align:center;margin-bottom:14px;">
+      <div style="font-family:'Bebas Neue',Arial,sans-serif;font-size:20px;letter-spacing:3px;color:#2a3a48;text-transform:uppercase;">Remito de Movimiento Interno</div>
+    </div>
+
+    <!-- Info row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;background:#f0f2f5;border-radius:6px;padding:10px 12px;">
+      <div>
+        <div style="font-size:10px;color:#5a6060;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Fecha</div>
+        <div style="font-size:13px;font-weight:600;">${g.fecha}</div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#5a6060;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Cliente / Destino</div>
+        <div style="font-size:13px;font-weight:600;">${g.cliente||'—'}</div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#5a6060;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Estado</div>
+        <div style="font-size:13px;font-weight:600;">${g.estado}</div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#5a6060;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Referencia</div>
+        <div style="font-size:13px;font-weight:600;font-family:monospace;">${remitoNum}</div>
+      </div>
+    </div>
+
+    <!-- Items table -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:12px;">
+      <thead>
+        <tr style="background:#2a3a48;color:white;">
+          <th style="padding:7px 10px;text-align:left;font-size:10px;letter-spacing:1px;text-transform:uppercase;">Producto</th>
+          <th style="padding:7px 10px;text-align:center;font-size:10px;letter-spacing:1px;text-transform:uppercase;">Cant.</th>
+          <th style="padding:7px 10px;text-align:right;font-size:10px;letter-spacing:1px;text-transform:uppercase;">P. Unit.</th>
+          <th style="padding:7px 10px;text-align:right;font-size:10px;letter-spacing:1px;text-transform:uppercase;">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${items.map((it,i)=>`
+        <tr style="background:${i%2===0?'#f8f9fa':'white'};border-bottom:1px solid #e0e4e8;">
+          <td style="padding:8px 10px;font-weight:500;">${it.producto_nombre||'—'}</td>
+          <td style="padding:8px 10px;text-align:center;font-family:monospace;">${it.cantidad}</td>
+          <td style="padding:8px 10px;text-align:right;font-family:monospace;">${fmtMoney(it.precio)}</td>
+          <td style="padding:8px 10px;text-align:right;font-family:monospace;font-weight:600;">${fmtMoney(it.total)}</td>
+        </tr>`).join('')}
+      </tbody>
+      <tfoot>
+        <tr style="background:#2a3a48;color:white;">
+          <td colspan="3" style="padding:9px 10px;text-align:right;font-size:11px;letter-spacing:1px;text-transform:uppercase;">TOTAL</td>
+          <td style="padding:9px 10px;text-align:right;font-family:monospace;font-size:15px;font-weight:bold;">${fmtMoney(total)}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    ${g.notas?`<div style="background:#f0f2f5;border-radius:6px;padding:8px 12px;margin-bottom:14px;font-size:12px;"><span style="font-size:10px;color:#5a6060;text-transform:uppercase;letter-spacing:1px;">Notas: </span>${g.notas}</div>`:''}
+
+    <!-- Footer -->
+    <div style="border-top:1px solid #d0d4da;padding-top:10px;display:flex;justify-content:space-between;align-items:flex-end;">
+      <div style="font-size:10px;color:#8a9080;">
+        Generado: ${new Date().toLocaleDateString('es-AR')} ${new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}
+      </div>
+      <div style="text-align:center;min-width:120px;">
+        <div style="border-top:1px solid #5a6060;padding-top:4px;font-size:10px;color:#5a6060;">Firma y aclaración</div>
+      </div>
+    </div>
+
+  </div>`;
+
+  // Inject into print div
+  const el=document.getElementById('remito-print');
+  el.innerHTML=html;
+  el.style.display='block';
+
+  // Small delay to ensure logo loads, then print
+  setTimeout(()=>{
+    window.print();
+    // After print dialog closes, hide the remito
+    setTimeout(()=>{el.style.display='none';},500);
+  },300);
+}
+
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260319181010';
+  const BUILD='20260429011516';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
@@ -2091,5 +2362,9 @@ if(!S.lotes.filter(l=>!l.completado).length) setTimeout(()=>openModal('modal-lot
 loadS().then(()=>setupRealtime());
 </script>
 </div><!-- /app-shell -->
+
+<!-- REMITO DE IMPRESIÓN -->
+<div id="remito-print"></div>
+
 </body>
 </html>
