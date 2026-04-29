@@ -50,7 +50,7 @@
 .rf-line{width:160px;border-top:1px solid #aaa;margin:40px auto 4px;}
 .rf-firma p{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;}
 </style>
-<meta name="build" content="20260429011516">
+<meta name="build" content="20260429111927">
 <meta name="build-version" content="202603161544">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a1a1a">
@@ -651,10 +651,30 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
       </div>
       <div style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);height:.9rem;" id="mv-item-preview"></div>
 
-      <!-- Total -->
-      <div style="background:rgba(74,122,53,.07);border:1px solid var(--gold-dim);border-radius:8px;padding:.65rem .9rem;display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--muted);">TOTAL DE LA VENTA</span>
-        <span style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--gold2);letter-spacing:1px;" id="mv-total-display">$0</span>
+      <!-- Descuento + Total -->
+      <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:.5rem;">
+        <div class="field" style="flex:1;">
+          <label>Descuento (%)</label>
+          <div style="position:relative;">
+            <input type="number" id="mv-descuento" value="0" min="0" max="100" step="0.5"
+              style="padding-right:2rem;" oninput="mvUpdateTotal()">
+            <span style="position:absolute;right:.8rem;top:50%;transform:translateY(-50%);font-family:'DM Mono',monospace;font-size:.78rem;color:var(--muted);pointer-events:none;">%</span>
+          </div>
+        </div>
+        <div style="flex:2;background:rgba(74,122,53,.07);border:1px solid var(--gold-dim);border-radius:8px;padding:.65rem .9rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.2rem;" id="mv-subtotal-row" style="display:none;">
+            <span style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);">SUBTOTAL</span>
+            <span style="font-family:'DM Mono',monospace;font-size:.85rem;color:var(--muted);" id="mv-subtotal-display">$0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;" id="mv-desc-row" style="display:none;">
+            <span style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--reds);" id="mv-desc-label">DESC. 0%</span>
+            <span style="font-family:'DM Mono',monospace;font-size:.85rem;color:var(--reds);" id="mv-desc-amount">-$0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.2rem;">
+            <span style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);">TOTAL</span>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--gold2);letter-spacing:1px;" id="mv-total-display">$0</span>
+          </div>
+        </div>
       </div>
     </div>
     <div class="btn-row">
@@ -1607,6 +1627,8 @@ function printRemito(ventaId){
   const items=S.ventas.filter(v=>(v.venta_id||v.id)===ventaId);
   if(!items.length){toast('Venta no encontrada');return;}
   const g=items[0];
+  const subtotalVenta=items.reduce((a,v)=>a+(v.precio*v.cantidad),0);
+  const descPct=items[0]?.descuento||0;
   const total=items.reduce((a,v)=>a+v.total,0);
   const fecha=g.fecha||todayStr();
   const fechaFmt=fecha.split('-').reverse().join('/');
@@ -1668,7 +1690,7 @@ function printRemito(ventaId){
           <tr>
             <td>${it.producto_nombre||'—'}</td>
             <td>${it.cantidad} ${it.unidad||'ud.'}</td>
-            <td>${fmtMoney(it.precio)}</td>
+            <td>${it.descuento>0?`<span style="text-decoration:line-through;color:#aaa;font-size:11px;">${fmtMoney(it.precio)}</span><br>${fmtMoney(it.precioConDesc||it.precio)}`:fmtMoney(it.precio)}</td>
             <td>${fmtMoney(it.total)}</td>
           </tr>
         `).join('')}
@@ -1678,6 +1700,16 @@ function printRemito(ventaId){
     <!-- Total -->
     <div class="remito-total-row">
       <div class="remito-total-box">
+        ${descPct>0?`
+          <div style="display:flex;justify-content:space-between;opacity:.7;margin-bottom:4px;">
+            <span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;">Subtotal</span>
+            <span style="font-family:'DM Mono',monospace;font-size:.85rem;">${fmtMoney(subtotalVenta)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;opacity:.8;margin-bottom:6px;">
+            <span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;">Descuento ${descPct}%</span>
+            <span style="font-family:'DM Mono',monospace;font-size:.85rem;">-${fmtMoney(subtotalVenta-total)}</span>
+          </div>
+          <div style="height:1px;background:rgba(255,255,255,.2);margin-bottom:6px;"></div>`:''}
         <div class="rt-lbl">Total</div>
         <div class="rt-val">${fmtMoney(total)}</div>
       </div>
@@ -1730,6 +1762,7 @@ function ventaOpenReset(){
   document.getElementById('mv-producto').value='';
   document.getElementById('mv-cantidad').value='';
   document.getElementById('mv-precio').value='';
+  document.getElementById('mv-descuento').value='0';
   document.getElementById('mv-item-preview').textContent='';
   // populate product select
   const sel=document.getElementById('mv-producto');
@@ -1793,7 +1826,23 @@ function mvRenderItems(){
 }
 
 function mvUpdateTotal(){
-  const total=_mvItems.reduce((a,i)=>a+i.subtotal,0);
+  const subtotal=_mvItems.reduce((a,i)=>a+i.subtotal,0);
+  const desc=Math.min(Math.max(parseFloat(document.getElementById('mv-descuento')?.value)||0,0),100);
+  const descMonto=subtotal*(desc/100);
+  const total=subtotal-descMonto;
+  // Subtotal row
+  const subRow=document.getElementById('mv-subtotal-row');
+  const descRow=document.getElementById('mv-desc-row');
+  if(desc>0){
+    if(subRow) subRow.style.display='flex';
+    if(descRow) descRow.style.display='flex';
+    document.getElementById('mv-subtotal-display').textContent=fmtMoney(subtotal);
+    document.getElementById('mv-desc-label').textContent=`DESC. ${desc}%`;
+    document.getElementById('mv-desc-amount').textContent=`-${fmtMoney(descMonto)}`;
+  } else {
+    if(subRow) subRow.style.display='none';
+    if(descRow) descRow.style.display='none';
+  }
   document.getElementById('mv-total-display').textContent=fmtMoney(total);
 }
 
@@ -1813,26 +1862,35 @@ function saveVenta(){
       }
     }
   }
-  // Discount stock and save each item as a separate venta record under same venta_id
+  // Apply discount proportionally across items
   const ventaId=uid();
-  const totalVenta=_mvItems.reduce((a,i)=>a+i.subtotal,0);
+  const subtotalVenta=_mvItems.reduce((a,i)=>a+i.subtotal,0);
+  const descPct=Math.min(Math.max(parseFloat(document.getElementById('mv-descuento')?.value)||0,0),100);
+  const descFactor=1-(descPct/100);
+  const totalVenta=subtotalVenta*descFactor;
+
   _mvItems.forEach(it=>{
     const prod=S.productos.find(x=>x.id===it.producto_id);
     if(prod&&estado==='Cobrada') prod.stock=Math.max(0,prod.stock-it.cantidad);
+    // Apply discount proportionally to each item's total
+    const totalConDesc=it.subtotal*descFactor;
     S.ventas.push({
       id:uid(),
-      venta_id:ventaId,   // groups items of same sale
+      venta_id:ventaId,
       fecha,cliente,
       producto_id:it.producto_id,
       producto_nombre:it.producto_nombre,
       cantidad:it.cantidad,
       precio:it.precio,
-      total:it.subtotal,
+      precioConDesc:totalConDesc/it.cantidad, // effective price after discount
+      total:totalConDesc,
+      descuento:descPct,
       estado,notas
     });
   });
   saveS();closeModal('modal-venta');ventasRefresh();stockRefresh();
-  toast(`Venta registrada · ${_mvItems.length} ítem${_mvItems.length>1?'s':''} · ${fmtMoney(totalVenta)}`);
+  const descTxt=descPct>0?` · Desc. ${descPct}%`:'';
+  toast(`Venta registrada · ${_mvItems.length} ítem${_mvItems.length>1?'s':''}${descTxt} · ${fmtMoney(totalVenta)}`);
   _mvItems=[];
 }
 
@@ -1933,7 +1991,9 @@ function ventasRefresh(){
   const rows=Object.entries(groups).sort((a,b)=>b[1].fecha.localeCompare(a[1].fecha));
   document.getElementById('ventas-tbody').innerHTML=rows.length?rows.map(([gid,g])=>{
     const badge=g.estado==='Cobrada'?'badge-green':g.estado==='Pendiente'?'badge-warn':'badge-red';
-    const itemsHtml=g.items.map(i=>`<span style="color:var(--muted);font-size:.68rem;">${i.producto_nombre} ×${i.cantidad}</span>`).join('<br>');
+    const descPct=g.items[0]?.descuento||0;
+    const descBadge=descPct>0?` <span style="background:#fde8e8;color:#b03030;font-size:.6rem;padding:.1rem .35rem;border-radius:4px;font-family:monospace;">-${descPct}%</span>`:'';
+    const itemsHtml=g.items.map(i=>`<span style="color:var(--muted);font-size:.68rem;">${i.producto_nombre} ×${i.cantidad}</span>`).join('<br>')+descBadge;
     return `<tr>
       <td class="td-muted">${g.fecha}</td>
       <td>${itemsHtml}</td>
@@ -2164,6 +2224,8 @@ function printRemito(ventaId){
   const items=S.ventas.filter(v=>(v.venta_id||v.id)===ventaId);
   if(!items.length){toast('Venta no encontrada');return;}
   const g=items[0];
+  const subtotalVenta=items.reduce((a,v)=>a+(v.precio*v.cantidad),0);
+  const descPct=items[0]?.descuento||0;
   const total=items.reduce((a,v)=>a+v.total,0);
 
   // Build remito number from venta id (last 6 chars uppercase)
@@ -2271,7 +2333,7 @@ function printRemito(ventaId){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260429011516';
+  const BUILD='20260429111927';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
