@@ -14,10 +14,17 @@
 
 /* ── PRINT / REMITO ──────────────────────────────────────────── */
 #remito-print-area{display:none;}
+@page{
+  margin:1.5cm;
+  /* Suppress browser header/footer (URL, date, page number) */
+  size:A4;
+}
 @media print{
   body>*{display:none!important;}
   #remito-print-area{display:block!important;position:fixed;inset:0;background:#fff;z-index:99999;padding:0;margin:0;}
   #remito-print-area *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  /* Hide browser-added URL and date */
+  html{-webkit-print-color-adjust:exact;}
 }
 .remito-doc{font-family:'DM Sans',sans-serif;background:#fff;color:#1a1a1a;max-width:680px;margin:0 auto;padding:2.5rem 2rem;font-size:13px;}
 .remito-header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #2a3a48;padding-bottom:1.2rem;margin-bottom:1.5rem;}
@@ -50,7 +57,7 @@
 .rf-line{width:160px;border-top:1px solid #aaa;margin:40px auto 4px;}
 .rf-firma p{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;}
 </style>
-<meta name="build" content="20260429111927">
+<meta name="build" content="20260429115842">
 <meta name="build-version" content="202603161544">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a1a1a">
@@ -1629,19 +1636,25 @@ function printRemito(ventaId){
   const g=items[0];
   const subtotalVenta=items.reduce((a,v)=>a+(v.precio*v.cantidad),0);
   const descPct=items[0]?.descuento||0;
+  const descMonto=subtotalVenta-items.reduce((a,v)=>a+v.total,0);
   const total=items.reduce((a,v)=>a+v.total,0);
   const fecha=g.fecha||todayStr();
-  const fechaFmt=fecha.split('-').reverse().join('/');
-  // Generate remito number from ventaId (last 6 chars)
+  // dd/mm/aa format
+  const [yy,mm,dd]=fecha.split('-');
+  const fechaFmt=`${dd}/${mm}/${yy.slice(2)}`;
   const remitoNum='R-'+ventaId.slice(-6).toUpperCase();
-
-  // Convert logo to base64 for print
   const logoEl=document.querySelector('#app-shell .hdr-left img');
   const logoSrc=logoEl?logoEl.src:'';
 
   const html=`
+  <style>
+    @page { margin: 1.5cm; }
+    @media print {
+      head, header, nav, #login-screen { display:none!important; }
+      body { margin:0; }
+    }
+  </style>
   <div class="remito-doc">
-    <!-- Header -->
     <div class="remito-header">
       <img class="remito-logo" src="${logoSrc}" alt="KAIZEN">
       <div class="remito-brand">
@@ -1654,34 +1667,22 @@ function printRemito(ventaId){
       </div>
     </div>
 
-    <!-- Meta -->
     <div class="remito-meta">
-      <div>
-        <div class="rm-lbl">Fecha</div>
-        <div class="rm-val">${fechaFmt}</div>
-      </div>
-      <div>
-        <div class="rm-lbl">Cliente / Destinatario</div>
-        <div class="rm-val">${g.cliente||'—'}</div>
-      </div>
-      <div>
-        <div class="rm-lbl">Estado</div>
-        <div class="rm-val">${g.estado}</div>
-      </div>
-      <div>
-        <div class="rm-lbl">Lote</div>
-        <div class="rm-val">${S.lote?.lote||'—'}</div>
-      </div>
+      <div><div class="rm-lbl">Fecha</div><div class="rm-val">${fechaFmt}</div></div>
+      <div><div class="rm-lbl">Cliente / Destinatario</div><div class="rm-val">${g.cliente||'—'}</div></div>
+      <div><div class="rm-lbl">Estado</div><div class="rm-val">${g.estado}</div></div>
+      <div><div class="rm-lbl">Lote</div><div class="rm-val">${S.lote?.lote||'—'}</div></div>
+      ${descPct>0?`<div><div class="rm-lbl">Descuento aplicado</div><div class="rm-val" style="color:#b03030;">${descPct}% — ${fmtMoney(descMonto)}</div></div>`:''}
       ${g.notas?`<div style="grid-column:1/-1;"><div class="rm-lbl">Notas</div><div class="rm-val" style="font-weight:400;">${g.notas}</div></div>`:''}
     </div>
 
-    <!-- Items table -->
     <table class="remito-table">
       <thead>
         <tr>
-          <th style="width:50%;">Producto</th>
-          <th>Cantidad</th>
-          <th>Precio Unit.</th>
+          <th style="width:46%;">Producto</th>
+          <th>Cant.</th>
+          <th>P. Unit.</th>
+          ${descPct>0?'<th>P. c/Desc.</th>':''}
           <th>Subtotal</th>
         </tr>
       </thead>
@@ -1689,33 +1690,32 @@ function printRemito(ventaId){
         ${items.map(it=>`
           <tr>
             <td>${it.producto_nombre||'—'}</td>
-            <td>${it.cantidad} ${it.unidad||'ud.'}</td>
-            <td>${it.descuento>0?`<span style="text-decoration:line-through;color:#aaa;font-size:11px;">${fmtMoney(it.precio)}</span><br>${fmtMoney(it.precioConDesc||it.precio)}`:fmtMoney(it.precio)}</td>
-            <td>${fmtMoney(it.total)}</td>
+            <td style="text-align:right;">${it.cantidad}</td>
+            <td style="text-align:right;">${descPct>0?`<span style="text-decoration:line-through;color:#aaa;font-size:11px;">${fmtMoney(it.precio)}</span>`:fmtMoney(it.precio)}</td>
+            ${descPct>0?`<td style="text-align:right;color:#2a3a48;font-weight:600;">${fmtMoney(it.precioConDesc||it.precio)}</td>`:''}
+            <td style="text-align:right;">${fmtMoney(it.total)}</td>
           </tr>
         `).join('')}
       </tbody>
     </table>
 
-    <!-- Total -->
     <div class="remito-total-row">
-      <div class="remito-total-box">
+      <div class="remito-total-box" style="min-width:260px;">
         ${descPct>0?`
-          <div style="display:flex;justify-content:space-between;opacity:.7;margin-bottom:4px;">
-            <span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;">Subtotal</span>
-            <span style="font-family:'DM Mono',monospace;font-size:.85rem;">${fmtMoney(subtotalVenta)}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;opacity:.8;margin-bottom:6px;">
-            <span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;">Descuento ${descPct}%</span>
-            <span style="font-family:'DM Mono',monospace;font-size:.85rem;">-${fmtMoney(subtotalVenta-total)}</span>
-          </div>
-          <div style="height:1px;background:rgba(255,255,255,.2);margin-bottom:6px;"></div>`:''}
+        <div style="display:flex;justify-content:space-between;opacity:.75;margin-bottom:5px;font-size:12px;">
+          <span>Subtotal</span>
+          <span style="font-family:'DM Mono',monospace;">${fmtMoney(subtotalVenta)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;opacity:.85;margin-bottom:6px;font-size:12px;color:#ffaaaa;">
+          <span>Descuento ${descPct}%</span>
+          <span style="font-family:'DM Mono',monospace;">-${fmtMoney(descMonto)}</span>
+        </div>
+        <div style="height:1px;background:rgba(255,255,255,.25);margin-bottom:7px;"></div>`:''}
         <div class="rt-lbl">Total</div>
         <div class="rt-val">${fmtMoney(total)}</div>
       </div>
     </div>
 
-    <!-- Footer -->
     <div class="remito-footer">
       <div class="rf-nota">
         Documento de uso interno.<br>
@@ -1731,16 +1731,10 @@ function printRemito(ventaId){
   const area=document.getElementById('remito-print-area');
   area.innerHTML=html;
   area.style.display='block';
-
-  // Small delay to ensure fonts load, then print
   setTimeout(()=>{
     window.print();
-    // After print dialog closes, hide the area
-    setTimeout(()=>{
-      area.style.display='none';
-      area.innerHTML='';
-    },500);
-  },300);
+    setTimeout(()=>{area.style.display='none';area.innerHTML='';},800);
+  },350);
 }
 
 // ── VENTAS ───────────────────────────────────────────────────
@@ -2333,7 +2327,7 @@ function printRemito(ventaId){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260429111927';
+  const BUILD='20260429115842';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
