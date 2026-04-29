@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>KAIZEN — Ajo Negrov3</title>
+<title>KAIZEN — Ajo Negro</title>
 <style id="print-styles">
 @media print {
   body > *:not(#remito-print) { display: none !important; }
@@ -2275,11 +2275,16 @@ function printRemito(ventaId){
         <tr style="background:${i%2===0?'#f8f9fa':'white'};border-bottom:1px solid #e0e4e8;">
           <td style="padding:8px 10px;font-weight:500;">${it.producto_nombre||'—'}</td>
           <td style="padding:8px 10px;text-align:center;font-family:monospace;">${it.cantidad}</td>
-          <td style="padding:8px 10px;text-align:right;font-family:monospace;">${fmtMoney(it.precio)}</td>
-          <td style="padding:8px 10px;text-align:right;font-family:monospace;font-weight:600;">${fmtMoney(it.total)}</td>
+          <td style="padding:8px 10px;text-align:right;font-family:monospace;">${fmtMoney(it.precioOriginal||it.precio)}</td>
+          <td style="padding:8px 10px;text-align:right;font-family:monospace;font-weight:600;">${fmtMoney((it.precioOriginal||it.precio)*it.cantidad)}</td>
         </tr>`).join('')}
       </tbody>
       <tfoot>
+        ${descPct>0?`
+        <tr style="border-top:2px solid #dde0e5;">
+          <td colspan="3" style="padding:7px 10px;text-align:right;font-size:12px;color:#b03030;font-weight:700;">Descuento ${descPct}%</td>
+          <td style="padding:7px 10px;text-align:right;font-family:monospace;font-size:13px;font-weight:700;color:#b03030;">- ${fmtMoney(subtotalVenta*descPct/100)}</td>
+        </tr>`:''}
         <tr style="background:#2a3a48;color:white;">
           <td colspan="3" style="padding:9px 10px;text-align:right;font-size:11px;letter-spacing:1px;text-transform:uppercase;">TOTAL</td>
           <td style="padding:9px 10px;text-align:right;font-family:monospace;font-size:15px;font-weight:bold;">${fmtMoney(total)}</td>
