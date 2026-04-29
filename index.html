@@ -55,7 +55,7 @@
 .rf-line{width:160px;border-top:1px solid #aaa;margin:40px auto 4px;}
 .rf-firma p{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;}
 </style>
-<meta name="build" content="20260429135701">
+<meta name="build" content="20260429141004">
 <meta name="build-version" content="202603161544">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a1a1a">
@@ -1631,124 +1631,98 @@ function stockAjuste(){const pid=document.getElementById('adj-producto').value,c
 function printRemito(ventaId){
   const items=S.ventas.filter(v=>(v.venta_id||v.id)===ventaId);
   if(!items.length){toast('Venta no encontrada');return;}
-  const g=items[0];
 
-  // Calculate discount purely from price difference - doesn't depend on stored field
-  // precioOriginal = original price before discount (saved in new records)
-  // precio = could be original or discounted depending on record version
-  // total = always the final amount paid (with discount applied)
-  // Strategy: compare precio*cantidad vs total to find the discount
-  const primerItem=items[0];
-  const pOrig0=primerItem.precioOriginal!=null?primerItem.precioOriginal:primerItem.precio;
-  const subtotalCheck=items.reduce((a,v)=>{
-    const p=v.precioOriginal!=null?v.precioOriginal:v.precio;
-    return a+p*v.cantidad;
-  },0);
-  const totalCheck=items.reduce((a,v)=>a+v.total,0);
-  const diffCheck=subtotalCheck-totalCheck;
-  // If difference > 0.5% of subtotal, there's a discount
-  const hasDiscount=diffCheck>subtotalCheck*0.005;
-  const descPctCalc=hasDiscount&&subtotalCheck>0?Math.round((diffCheck/subtotalCheck)*100*10)/10:0;
-  // Also try the stored field
-  const descPctStored=Number(primerItem.descuento)||0;
-  // Use whichever is bigger (more reliable)
-  const descPct=Math.max(descPctStored, descPctCalc);
-  const factor=descPct>0?(1-descPct/100):1;
+  // ── Prices ──────────────────────────────────────────────
+  // precio = original price (always), total = amount paid after discount
+  const subtotal=items.reduce((a,v)=>a+v.precio*v.cantidad,0);
+  const pagado  =items.reduce((a,v)=>a+v.total,0);
+  const diff    =Math.round((subtotal-pagado)*100)/100;
+  const descPct =subtotal>0?Math.round((diff/subtotal)*1000)/10:0; // 1 decimal
+  const descMonto=diff>0?diff:0;
+  const totalFinal=pagado;
 
-  // Date
-  const fp=(g.fecha||todayStr()).split('-');
+  // ── Date ────────────────────────────────────────────────
+  const fp=(items[0].fecha||todayStr()).split('-');
   const fechaFmt=fp[2]+'/'+fp[1]+'/'+fp[0].slice(2);
-  const n=new Date();
-  const genFmt=[n.getDate(),n.getMonth()+1,String(n.getFullYear()).slice(2)].map(x=>String(x).padStart(2,'0')).join('/')+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+  const now=new Date();
+  const pad=x=>String(x).padStart(2,'0');
+  const genFmt=pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+String(now.getFullYear()).slice(2)+' '+pad(now.getHours())+':'+pad(now.getMinutes());
+
+  const g=items[0];
   const remitoNum='R-'+ventaId.slice(-6).toUpperCase();
   const logoSrc=(document.querySelector('#app-shell .hdr-left img')||{}).src||'';
 
-  // Build item rows + calculate subtotal from original prices
-  let itemRows='';
-  let subtotal=0;
-  items.forEach(it=>{
-    // Get original price: use stored precioOriginal, or if total < precio*cant, precio is original
-    const pOrig=it.precioOriginal!=null?it.precioOriginal:it.precio;
-    const itemSubtotal=pOrig*it.cantidad;
-    subtotal+=itemSubtotal;
-    itemRows+=
-      '<tr>'+
-        '<td>'+( it.producto_nombre||'—')+'</td>'+
-        '<td style="text-align:right;">'+it.cantidad+'</td>'+
-        '<td style="text-align:right;">'+fmtMoney(pOrig)+'</td>'+
-        '<td style="text-align:right;">'+fmtMoney(itemSubtotal)+'</td>'+
-      '</tr>';
+  // ── HTML ─────────────────────────────────────────────────
+  let html='';
+  html+='<style>@page{margin:0;size:A4;}@media print{body>*{display:none!important;}#remito-print-area{display:block!important;}}</style>';
+  html+='<div class="remito-doc">';
+
+  // Header
+  html+='<div class="remito-header">';
+  html+='<img class="remito-logo" src="'+logoSrc+'" alt="KAIZEN">';
+  html+='<div class="remito-brand"><h1>KAIZEN</h1><p>Ajo Negro &middot; Producción Artesanal</p></div>';
+  html+='<div class="remito-tipo"><h2>REMITO DE<br>MOVIMIENTO INTERNO</h2><div class="r-num">'+remitoNum+'</div></div>';
+  html+='</div>';
+
+  // Meta
+  html+='<div class="remito-meta">';
+  html+='<div><div class="rm-lbl">Fecha</div><div class="rm-val">'+fechaFmt+'</div></div>';
+  html+='<div><div class="rm-lbl">Cliente / Destino</div><div class="rm-val">'+(g.cliente||'—')+'</div></div>';
+  html+='<div><div class="rm-lbl">Estado</div><div class="rm-val">'+g.estado+'</div></div>';
+  html+='<div><div class="rm-lbl">Referencia</div><div class="rm-val">'+remitoNum+'</div></div>';
+  if(g.notas) html+='<div style="grid-column:1/-1"><div class="rm-lbl">Notas</div><div class="rm-val" style="font-weight:400;">'+g.notas+'</div></div>';
+  html+='</div>';
+
+  // Table
+  html+='<table class="remito-table">';
+  html+='<thead><tr>';
+  html+='<th style="width:46%;">Producto</th>';
+  html+='<th style="text-align:right;">Cant.</th>';
+  html+='<th style="text-align:right;">P. Unit.</th>';
+  html+='<th style="text-align:right;">Total</th>';
+  html+='</tr></thead>';
+  html+='<tbody>';
+
+  // LINE 1: items
+  items.forEach(function(it){
+    html+='<tr>';
+    html+='<td>'+(it.producto_nombre||'—')+'</td>';
+    html+='<td style="text-align:right;">'+it.cantidad+'</td>';
+    html+='<td style="text-align:right;">'+fmtMoney(it.precio)+'</td>';
+    html+='<td style="text-align:right;">'+fmtMoney(it.precio*it.cantidad)+'</td>';
+    html+='</tr>';
   });
 
-  const descMonto=descPct>0?Math.round(subtotal*(descPct/100)*100)/100:0;
-  const totalFinal=subtotal-descMonto;
+  // LINE 2: descuento (solo si hay)
+  if(descPct>0){
+    html+='<tr style="border-top:2px solid #dde0e5;">';
+    html+='<td colspan="3" style="padding:.55rem .8rem;font-size:12px;color:#b03030;font-weight:700;">Descuento '+descPct+'%</td>';
+    html+='<td style="text-align:right;padding:.55rem .8rem;font-size:13px;color:#b03030;font-weight:700;">- '+fmtMoney(descMonto)+'</td>';
+    html+='</tr>';
+  }
 
-  // Discount rows
-  const descRows=descPct>0
-    ? '<tr style="border-top:1px solid #dde0e5;">'+
-        '<td colspan="3" style="padding:.5rem .8rem;font-size:12px;color:#b03030;font-weight:600;">Descuento '+descPct+'%</td>'+
-        '<td style="text-align:right;padding:.5rem .8rem;font-size:13px;color:#b03030;font-weight:600;">- '+fmtMoney(descMonto)+'</td>'+
-      '</tr>'
-    : '';
+  // LINE 3: total
+  html+='<tr style="background:#2a3a48;">';
+  html+='<td colspan="3" style="padding:.7rem .8rem;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.7);font-weight:600;">TOTAL</td>';
+  html+='<td style="padding:.7rem .8rem;font-size:1.15rem;font-family:monospace;font-weight:700;text-align:right;color:#fff;">'+fmtMoney(totalFinal)+'</td>';
+  html+='</tr>';
 
-  const html=
-    '<style>'+
-      '@page{margin:0;size:A4;}'+
-      '@media print{body>*{display:none!important;}#remito-print-area{display:block!important;}}'+
-    '</style>'+
-    '<div class="remito-doc">'+
+  html+='</tbody></table>';
 
-      // Header
-      '<div class="remito-header">'+
-        '<img class="remito-logo" src="'+logoSrc+'" alt="KAIZEN">'+
-        '<div class="remito-brand"><h1>KAIZEN</h1><p>Ajo Negro &middot; Producción Artesanal</p></div>'+
-        '<div class="remito-tipo"><h2>REMITO DE<br>MOVIMIENTO INTERNO</h2><div class="r-num">'+remitoNum+'</div></div>'+
-      '</div>'+
+  // Footer
+  html+='<div class="remito-footer">';
+  html+='<div class="rf-nota">Documento de uso interno &middot; KAIZEN Ajo Negro<br>Generado: '+genFmt+'</div>';
+  html+='<div class="rf-firma"><div class="rf-line"></div><p>Firma y aclaración</p></div>';
+  html+='</div>';
 
-      // Meta
-      '<div class="remito-meta">'+
-        '<div><div class="rm-lbl">Fecha</div><div class="rm-val">'+fechaFmt+'</div></div>'+
-        '<div><div class="rm-lbl">Cliente / Destino</div><div class="rm-val">'+(g.cliente||'—')+'</div></div>'+
-        '<div><div class="rm-lbl">Estado</div><div class="rm-val">'+g.estado+'</div></div>'+
-        '<div><div class="rm-lbl">Referencia</div><div class="rm-val">'+remitoNum+'</div></div>'+
-        (g.notas?'<div style="grid-column:1/-1"><div class="rm-lbl">Notas</div><div class="rm-val" style="font-weight:400;">'+g.notas+'</div></div>':'')+
-      '</div>'+
-
-      // Table
-      '<table class="remito-table">'+
-        '<thead><tr>'+
-          '<th style="width:46%;">Producto</th>'+
-          '<th style="text-align:right;">Cant.</th>'+
-          '<th style="text-align:right;">P. Unit.</th>'+
-          '<th style="text-align:right;">Total</th>'+
-        '</tr></thead>'+
-        '<tbody>'+
-          itemRows+
-
-          // Line 2: descuento row (if any)
-          descRows+
-
-          // Line 3: total final
-          '<tr style="background:#2a3a48;">'+
-            '<td colspan="3" style="padding:.7rem .8rem;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.7);font-weight:600;">TOTAL</td>'+
-            '<td style="padding:.7rem .8rem;font-size:1.15rem;font-family:monospace;font-weight:700;text-align:right;color:#fff;">'+fmtMoney(totalFinal)+'</td>'+
-          '</tr>'+
-        '</tbody>'+
-      '</table>'+
-
-      // Footer
-      '<div class="remito-footer">'+
-        '<div class="rf-nota">Documento de uso interno &middot; KAIZEN Ajo Negro<br>Generado: '+genFmt+'</div>'+
-        '<div class="rf-firma"><div class="rf-line"></div><p>Firma y aclaración</p></div>'+
-      '</div>'+
-    '</div>';
+  html+='</div>'; // remito-doc
 
   const area=document.getElementById('remito-print-area');
   area.innerHTML=html;
   area.style.display='block';
-  setTimeout(()=>{
+  setTimeout(function(){
     window.print();
-    setTimeout(()=>{area.style.display='none';area.innerHTML='';},800);
+    setTimeout(function(){area.style.display='none';area.innerHTML='';},800);
   },350);
 }
 // ── VENTAS ───────────────────────────────────────────────────
@@ -2342,7 +2316,7 @@ function printRemito(ventaId){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260429135701';
+  const BUILD='20260429141004';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
