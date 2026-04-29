@@ -15,18 +15,16 @@
 /* ── PRINT / REMITO ──────────────────────────────────────────── */
 #remito-print-area{display:none;}
 @page{
-  margin:1.5cm;
-  /* Suppress browser header/footer (URL, date, page number) */
+  margin:0;
   size:A4;
 }
 @media print{
   body>*{display:none!important;}
   #remito-print-area{display:block!important;position:fixed;inset:0;background:#fff;z-index:99999;padding:0;margin:0;}
   #remito-print-area *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  /* Hide browser-added URL and date */
-  html{-webkit-print-color-adjust:exact;}
+  html,body{margin:0;padding:0;}
 }
-.remito-doc{font-family:'DM Sans',sans-serif;background:#fff;color:#1a1a1a;max-width:680px;margin:0 auto;padding:2.5rem 2rem;font-size:13px;}
+.remito-doc{font-family:'DM Sans',sans-serif;background:#fff;color:#1a1a1a;max-width:680px;margin:0 auto;padding:1.5cm 2cm;font-size:13px;}
 .remito-header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #2a3a48;padding-bottom:1.2rem;margin-bottom:1.5rem;}
 .remito-logo{width:70px;height:70px;object-fit:cover;border-radius:10px;}
 .remito-brand{text-align:center;flex:1;padding:0 1rem;}
@@ -57,7 +55,7 @@
 .rf-line{width:160px;border-top:1px solid #aaa;margin:40px auto 4px;}
 .rf-firma p{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;}
 </style>
-<meta name="build" content="20260429131828">
+<meta name="build" content="20260429133259">
 <meta name="build-version" content="202603161544">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a1a1a">
@@ -1634,13 +1632,19 @@ function printRemito(ventaId){
   const items=S.ventas.filter(v=>(v.venta_id||v.id)===ventaId);
   if(!items.length){toast('Venta no encontrada');return;}
   const g=items[0];
-  // Use precioOriginal if available, otherwise precio (pre-discount fix records)
-  const subtotalVenta=items.reduce((a,v)=>a+((v.precioOriginal||v.precio)*v.cantidad),0);
   const totalReal=items.reduce((a,v)=>a+v.total,0);
-  const descMonto=Math.max(0, subtotalVenta-totalReal);
-  const descPctStored=Number(items[0]?.descuento)||0;
-  const descPctCalc=subtotalVenta>0?Math.round((descMonto/subtotalVenta)*100*10)/10:0;
-  const descPct=descPctStored>0?descPctStored:descPctCalc;
+  const descPct=Number(items[0]?.descuento)||0;
+  // If we have precioOriginal use it, otherwise reverse-calculate from descuento %
+  let subtotalVenta;
+  if(items[0]?.precioOriginal!==undefined){
+    subtotalVenta=items.reduce((a,v)=>a+((v.precioOriginal||v.precio)*v.cantidad),0);
+  } else if(descPct>0){
+    // Reverse: total = subtotal*(1-desc/100) → subtotal = total/(1-desc/100)
+    subtotalVenta=totalReal/(1-descPct/100);
+  } else {
+    subtotalVenta=totalReal;
+  }
+  const descMonto=Math.max(0,subtotalVenta-totalReal);
 
   const total=items.reduce((a,v)=>a+v.total,0);
 
@@ -1701,7 +1705,7 @@ function printRemito(ventaId){
 
   const html=`
   <style>
-    @page{margin:1.5cm;size:A4;}
+    @page{margin:0;size:A4;}
     @media print{body>*{display:none!important;}#remito-print-area{display:block!important;}}
   </style>
   <div class="remito-doc">
@@ -2338,7 +2342,7 @@ function printRemito(ventaId){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260429131828';
+  const BUILD='20260429133259';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
