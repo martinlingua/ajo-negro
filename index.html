@@ -57,7 +57,7 @@
 .rf-line{width:160px;border-top:1px solid #aaa;margin:40px auto 4px;}
 .rf-firma p{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;}
 </style>
-<meta name="build" content="20260429130342">
+<meta name="build" content="20260429131828">
 <meta name="build-version" content="202603161544">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a1a1a">
@@ -1634,14 +1634,14 @@ function printRemito(ventaId){
   const items=S.ventas.filter(v=>(v.venta_id||v.id)===ventaId);
   if(!items.length){toast('Venta no encontrada');return;}
   const g=items[0];
-  const subtotalVenta=items.reduce((a,v)=>a+(v.precio*v.cantidad),0);
+  // Use precioOriginal if available, otherwise precio (pre-discount fix records)
+  const subtotalVenta=items.reduce((a,v)=>a+((v.precioOriginal||v.precio)*v.cantidad),0);
   const totalReal=items.reduce((a,v)=>a+v.total,0);
   const descMonto=Math.max(0, subtotalVenta-totalReal);
   const descPctStored=Number(items[0]?.descuento)||0;
   const descPctCalc=subtotalVenta>0?Math.round((descMonto/subtotalVenta)*100*10)/10:0;
   const descPct=descPctStored>0?descPctStored:descPctCalc;
-  // DEBUG - muestra valores reales en pantalla
-  alert('DEBUG\nsubtotal='+subtotalVenta+'\ntotalReal='+totalReal+'\ndescMonto='+descMonto+'\ndescPct='+descPct+'\ndescPctStored='+descPctStored+'\nitem[0].precio='+items[0]?.precio+'\nitem[0].total='+items[0]?.total+'\nitem[0].descuento='+items[0]?.descuento);
+
   const total=items.reduce((a,v)=>a+v.total,0);
 
   // Format date dd/mm/aa
@@ -1660,11 +1660,12 @@ function printRemito(ventaId){
   // Build items rows
   let itemRows='';
   items.forEach(it=>{
+    const pOrig=it.precioOriginal||it.precio;
     itemRows+=`<tr>
       <td>${it.producto_nombre||'—'}</td>
       <td style="text-align:right;">${it.cantidad}</td>
-      <td style="text-align:right;">${fmtMoney(it.precio)}</td>
-      <td style="text-align:right;">${fmtMoney(it.total)}</td>
+      <td style="text-align:right;">${fmtMoney(pOrig)}</td>
+      <td style="text-align:right;">${fmtMoney(pOrig*it.cantidad)}</td>
     </tr>`;
   });
 
@@ -1884,8 +1885,8 @@ function saveVenta(){
       producto_id:it.producto_id,
       producto_nombre:it.producto_nombre,
       cantidad:it.cantidad,
-      precio:it.precio,
-      precioConDesc:totalConDesc/it.cantidad, // effective price after discount
+      precioOriginal:it.precio,          // always the original price
+      precio:it.precio,                  // kept for compatibility
       total:totalConDesc,
       descuento:descPct,
       estado,notas
@@ -2227,7 +2228,8 @@ function printRemito(ventaId){
   const items=S.ventas.filter(v=>(v.venta_id||v.id)===ventaId);
   if(!items.length){toast('Venta no encontrada');return;}
   const g=items[0];
-  const subtotalVenta=items.reduce((a,v)=>a+(v.precio*v.cantidad),0);
+  // Use precioOriginal if available, otherwise precio (pre-discount fix records)
+  const subtotalVenta=items.reduce((a,v)=>a+((v.precioOriginal||v.precio)*v.cantidad),0);
   const descPct=items[0]?.descuento||0;
   const total=items.reduce((a,v)=>a+v.total,0);
 
@@ -2336,7 +2338,7 @@ function printRemito(ventaId){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260429130342';
+  const BUILD='20260429131828';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
