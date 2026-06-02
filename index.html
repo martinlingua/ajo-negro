@@ -55,7 +55,7 @@
 .rf-line{width:160px;border-top:1px solid #aaa;margin:40px auto 4px;}
 .rf-firma p{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;}
 </style>
-<meta name="build" content="20260429162141">
+<meta name="build" content="20260429141004">
 <meta name="build-version" content="202603161544">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a1a1a">
@@ -1942,7 +1942,9 @@ function saveVentaEdit(){
     it.notas=newNotas;
     it.cantidad=newCant;
     it.precio=newPrecio;       // allow price correction
-    it.total=newCant*newPrecio;
+    it.precioOriginal=newPrecio; // update original price too
+    const descFactor2=1-((it.descuento||0)/100);
+    it.total=newCant*newPrecio*descFactor2; // apply existing discount
   });
 
   saveS();closeModal('modal-venta-edit');ventasRefresh();stockRefresh();
@@ -2047,7 +2049,7 @@ function balanceRefresh(){
 
   // ── KPIs ──
   document.getElementById('balance-kpis').innerHTML=`
-    <div class="stat"><div class="s-lbl">Ingresos</div><div class="s-val c-green">${fmtMoney(ingresos)}</div><div class="s-sub">c/ descuentos incluidos</div></div>
+    <div class="stat"><div class="s-lbl">Ingresos</div><div class="s-val c-green">${fmtMoney(ingresos)}</div><div class="s-sub">ventas cobradas</div></div>
     <div class="stat"><div class="s-lbl">Costo variable</div><div class="s-val c-warn">${fmtMoney(costoVarVendido)}</div><div class="s-sub">de lo vendido</div></div>
     <div class="stat"><div class="s-lbl">Costo fijo</div><div class="s-val c-red">${fmtMoney(costoFijoDeLoVendido)}</div><div class="s-sub">total del mes</div></div>
     <div class="stat"><div class="s-lbl">Margen</div><div class="s-val ${margen>=0?'c-green':'c-red'}">${margen.toFixed(1)}%</div><div class="s-sub">neto</div></div>`;
@@ -2065,7 +2067,7 @@ function balanceRefresh(){
     ingresos>0?`Margen neto: ${margen.toFixed(1)}% · Por cada $100 vendidos, ${fmtMoney(ganancia/ingresos*100)} de ganancia`:'Sin ventas cobradas este mes';
 
   // ── Barras ──
-  const maxV=Math.max(ingresos,costoVarVendido,costoFijoVendido,Math.abs(ganancia),1);
+  const maxV=Math.max(ingresos,costoVarVendido,costoFijoDeLoVendido,Math.abs(ganancia),1);
   document.getElementById('balance-bars').innerHTML=[
     ['Ventas',       ingresos,          'linear-gradient(90deg,#2a7835,#389848)',  'c-green'],
     ['Costo Var.',   costoVarVendido,   'linear-gradient(90deg,#a05010,#c06820)',  'c-warn'],
@@ -2321,7 +2323,7 @@ function printRemito(ventaId){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260429162141';
+  const BUILD='20260602162622';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
@@ -2391,6 +2393,20 @@ if(!checkAuth()) document.getElementById('login-input').focus();
 
 // 1. Boot from localStorage immediately so UI is instant
 try{const d=localStorage.getItem('kaizen_v3');if(d)S=JSON.parse(d);}catch(e){}
+// Fix ventas where total wasn't discounted correctly
+if(S.ventas){
+  S.ventas.forEach(v=>{
+    const desc=Number(v.descuento)||0;
+    if(desc>0){
+      const pOrig=v.precioOriginal||v.precio;
+      const expectedTotal=pOrig*v.cantidad*(1-desc/100);
+      // If stored total equals precio*cantidad (no discount applied), fix it
+      if(Math.abs(v.total - pOrig*v.cantidad) < 1){
+        v.total=Math.round(expectedTotal*100)/100;
+      }
+    }
+  });
+}
 if(!S.activeMes)S.activeMes=todayYM();
 
 // Setup lotes (migration + active lote sync)
