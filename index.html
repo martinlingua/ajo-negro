@@ -54,8 +54,14 @@
 .rf-firma{text-align:center;}
 .rf-line{width:160px;border-top:1px solid #aaa;margin:40px auto 4px;}
 .rf-firma p{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;}
+/* ── CONSIGNACIÓN ── */
+.dias-ok{color:var(--greens);}
+.dias-warn{color:var(--warn);}
+.dias-alert{color:var(--reds);font-weight:700;}
+#page-consignacion .tbl-wrap{max-height:calc(100vh - 280px);}
+
 </style>
-<meta name="build" content="20260614210500">
+<meta name="build" content="20260429141004">
 <meta name="build-version" content="202603161544">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a1a1a">
@@ -249,6 +255,7 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
   <div class="tab" data-tab="stock" onclick="goTab('stock')"><span class="ti">📦</span>Stock</div>
   <div class="tab" data-tab="ventas" onclick="goTab('ventas')"><span class="ti">💰</span>Ventas</div>
   <div class="tab" data-tab="balance" onclick="goTab('balance')"><span class="ti">📊</span>Balance</div>
+  <div class="tab" data-tab="consignacion" onclick="goTab('consignacion')"><span class="ti">🤝</span>Consign.</div>
 </nav>
 
 <div class="pages">
@@ -494,6 +501,95 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
   </div>
 </div>
 
+<div class="page" id="page-consignacion">
+  <div class="section-title">CONSIGNACIÓN</div>
+
+  <!-- Stats -->
+  <div class="stats-row" id="cons-stats"></div>
+
+  <!-- Client filter + new button -->
+  <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.7rem;flex-wrap:wrap;">
+    <select id="cons-cliente-filter" onchange="consRefresh()" style="flex:1;min-width:140px;background:var(--card);border:1px solid var(--border);border-radius:7px;padding:.38rem .7rem;color:var(--cream);font-family:'DM Mono',monospace;font-size:.8rem;outline:none;">
+      <option value="">Todos los clientes</option>
+    </select>
+    <button class="btn btn-gold btn-sm" onclick="openConsModal()">+ Nueva entrega</button>
+  </div>
+
+  <!-- Consignaciones table -->
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>Cliente</th>
+        <th>Producto</th>
+        <th>Entregado</th>
+        <th>Fecha</th>
+        <th>Días</th>
+        <th>Pendiente</th>
+        <th>Acciones</th>
+      </tr></thead>
+      <tbody id="cons-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-cons-nueva">
+  <div class="modal"><h2>NUEVA ENTREGA EN CONSIGNACIÓN</h2>
+    <div class="modal-fields">
+      <div class="grid2">
+        <div class="field"><label>Cliente</label><input type="text" id="cn-cliente" placeholder="Nombre del negocio"></div>
+        <div class="field"><label>Fecha entrega</label><input type="date" id="cn-fecha"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Producto</label>
+          <select id="cn-producto" onchange="cnAutoPrice()">
+            <option value="">Seleccionar...</option>
+          </select>
+        </div>
+        <div class="field"><label>Cantidad</label>
+          <input type="number" id="cn-cantidad" min="1" step="1" oninput="cnCalcTotal()">
+        </div>
+      </div>
+      <div class="field"><label>Precio unitario acordado ($)</label>
+        <input type="number" id="cn-precio" step="0.01" oninput="cnCalcTotal()">
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:.78rem;color:var(--gold2);height:1.2rem;" id="cn-preview"></div>
+      <div class="field"><label>Notas (opcional)</label>
+        <input type="text" id="cn-notas" placeholder="Ej: exhibidor entrada, heladera...">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-gold btn-full" onclick="saveConsignacion()">Registrar entrega</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-cons-nueva')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-cons-liquidar">
+  <div class="modal"><h2 id="cons-liq-title">LIQUIDAR / DEVOLVER</h2>
+    <div class="modal-fields">
+      <div id="cons-liq-info" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.7rem .9rem;font-family:'DM Mono',monospace;font-size:.78rem;margin-bottom:.5rem;"></div>
+      <div class="grid2">
+        <div class="field">
+          <label>Vendidos (van al balance)</label>
+          <input type="number" id="cl-vendidos" min="0" step="1" value="0" oninput="clCalcResumen()">
+        </div>
+        <div class="field">
+          <label>Devueltos (vuelven al stock)</label>
+          <input type="number" id="cl-devueltos" min="0" step="1" value="0" oninput="clCalcResumen()">
+        </div>
+      </div>
+      <div id="cl-resumen" style="background:rgba(74,122,53,.07);border:1px solid var(--gold-dim);border-radius:8px;padding:.7rem .9rem;font-family:'DM Mono',monospace;font-size:.78rem;"></div>
+      <div class="field"><label>Fecha liquidación</label><input type="date" id="cl-fecha"></div>
+      <div class="field"><label>Notas</label><input type="text" id="cl-notas" placeholder="Opcional"></div>
+    </div>
+    <input type="hidden" id="cl-cons-id">
+    <div class="btn-row">
+      <button class="btn btn-gold btn-full" onclick="saveConsLiquidacion()">Confirmar</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-cons-liquidar')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-costo-item">
   <div class="modal"><h2 id="ci-modal-title">AGREGAR INSUMO</h2>
     <div class="modal-fields">
@@ -543,17 +639,13 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
       </div>
       <div class="field"><label>Unidad de venta</label><select id="mp-unidad"><option>unidad</option><option>caja</option><option>bandeja</option><option>kg</option><option>g</option></select></div>
       <div style="height:1px;background:var(--border);margin:.4rem 0;"></div>
-      <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.9rem;">COMPOSICIÓN — COMBO</div>
-      <div style="font-size:.65rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:-.2rem;">Armá un combo combinando otros productos (ej: frascos) y/o insumos sueltos (ej: una lata)</div>
+      <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.9rem;">COMPOSICIÓN — INSUMOS</div>
+      <div style="font-size:.65rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:-.2rem;">Agregá cada insumo y la cantidad que lleva este producto</div>
       <div id="mp-insumos-list" style="display:flex;flex-direction:column;gap:.4rem;"></div>
-      <div style="display:flex;gap:.4rem;">
-        <button type="button" class="btn btn-sm" id="mp-tab-insumo" onclick="mpSwitchCompTipo('insumo')" style="flex:1;background:var(--gold);color:#fff;">Insumo</button>
-        <button type="button" class="btn btn-outline btn-sm" id="mp-tab-producto" onclick="mpSwitchCompTipo('producto')" style="flex:1;">Producto (otro ítem de stock)</button>
-      </div>
       <div style="display:flex;gap:.5rem;align-items:flex-end;">
-        <div class="field" style="flex:2;"><label id="mp-comp-sel-label">Insumo</label><select id="mp-comp-sel" onchange="mpCompSelChange()"><option value="">Seleccionar...</option></select></div>
-        <div class="field" style="flex:1;"><label>Cantidad</label><input type="number" id="mp-comp-cant" step="0.01" placeholder="0" oninput="mpRecalcCosto()"></div>
-        <button class="btn btn-outline btn-sm" style="flex-shrink:0;margin-bottom:.05rem;" onclick="mpAddComponente()">+ Agregar</button>
+        <div class="field" style="flex:2;"><label>Insumo</label><select id="mp-ins-sel" onchange="mpInsSelChange()"><option value="">Seleccionar...</option></select></div>
+        <div class="field" style="flex:1;"><label>Cantidad</label><input type="number" id="mp-ins-cant" step="0.01" placeholder="0" oninput="mpRecalcCosto()"></div>
+        <button class="btn btn-outline btn-sm" style="flex-shrink:0;margin-bottom:.05rem;" onclick="mpAddInsumo()">+ Agregar</button>
       </div>
       <div style="background:rgba(74,122,53,.07);border:1px solid var(--gold-dim);border-radius:8px;padding:.75rem;">
         <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.85rem;margin-bottom:.5rem;">COSTO CALCULADO</div>
@@ -696,7 +788,8 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 <script>
 // ── STATE ────────────────────────────────────────────────────
 let S={activeLoteId:null,lotes:[],lote:{lote:'—',variedad:'—',fecha:'—',peso:'—',resp:'—'},prodRecords:{},prodDay:1,prodChart:'both',costoItems:[],costoFijos:[],kgProducidos:0,productos:[],ventas:[],activeMes:'',
-  fasesConfig:null // null = use defaults; set when user customizes
+  fasesConfig:null, // null = use defaults; set when user customizes
+  consignaciones:[] // [{id, cliente, producto_id, producto_nombre, cantidad, precio, fecha, notas, pendiente, liquidaciones:[{fecha,vendidos,devueltos,notas}]}]
 };
 
 // ── LOTE HELPERS ──────────────────────────────────────────────
@@ -832,6 +925,7 @@ function refreshAll(){
   if(activeTab==='stock')stockRefresh();
   if(activeTab==='ventas')ventasRefresh();
   if(activeTab==='balance')balanceRefresh();
+  if(activeTab==='consignacion')consRefresh();
 }
 function todayYM(){return new Date().toISOString().slice(0,7);}
 function todayStr(){return new Date().toISOString().slice(0,10);}
@@ -847,6 +941,7 @@ function goTab(tab){
   if(tab==='stock')stockRefresh();
   if(tab==='ventas')ventasRefresh();
   if(tab==='balance')balanceRefresh();
+  if(tab==='consignacion')consRefresh();
 }
 function cycleMonth(){
   const[y,m]=S.activeMes.split('-').map(Number);
@@ -1472,14 +1567,7 @@ function deleteCostoFijo(id){
 
 function calcCostoVar(composicion){
   if(!composicion||!composicion.length)return 0;
-  return composicion.reduce((sum,c)=>{
-    if(c.tipo==='producto'){
-      const p=S.productos.find(x=>x.id===c.producto_id);
-      return p?sum+(calcPcosto(p)*c.cantidad):sum;
-    }
-    const ins=S.costoItems.find(i=>i.id===c.insumo_id);
-    return ins?sum+(ins.precio*c.cantidad):sum;
-  },0);
+  return composicion.reduce((sum,c)=>{const ins=S.costoItems.find(i=>i.id===c.insumo_id);return ins?sum+(ins.precio*c.cantidad):sum;},0);
 }
 // Prorrateo: costosFijos / kgProducidosMes * kgProducto
 function calcCostoFijoProd(kgProducto){
@@ -1523,10 +1611,8 @@ function stockRefresh(){
     const bajo=x.stock<=x.stockmin;
     const pcosto=calcPcosto(x);
     const margen=x.pventa>0?((x.pventa-pcosto)/x.pventa*100):0;
-    const esCombo=(x.composicion||[]).some(c=>c.tipo==='producto');
-    const comboTag=esCombo?'<span style="background:#dde8f5;color:#1e5a9a;font-size:.55rem;padding:.05rem .3rem;border-radius:4px;font-family:monospace;margin-right:.3rem;">COMBO</span>':'';
     return `<tr>
-      <td>${comboTag}${x.nombre}<br><span class="td-muted" style="font-size:.62rem;">${x.gramos?x.gramos+'g · ':''}${x.unidad}</span></td>
+      <td>${x.nombre}<br><span class="td-muted" style="font-size:.62rem;">${x.gramos?x.gramos+'g · ':''}${x.unidad}</span></td>
       <td class="${bajo?'td-red':'td-green'}" style="font-weight:600;">${x.stock}</td>
       <td class="td-gold">${fmtMoney(x.pventa)}</td>
       <td class="td-muted">${fmtMoney(pcosto)}</td>
@@ -1546,123 +1632,43 @@ function stockRefresh(){
 }
 
 let _mpComp=[];
-let _mpCompTipo='insumo'; // 'insumo' | 'producto' — which tab is active for adding
-
-// Get the cost of one unit of a composition component, regardless of type
-function mpComponenteCosto(c){
-  if(c.tipo==='producto'){
-    const p=S.productos.find(x=>x.id===c.producto_id);
-    return p?calcPcosto(p):0; // full cost (var+fijo) of that product, since it's a finished item
-  }
-  const ins=S.costoItems.find(i=>i.id===c.insumo_id);
-  return ins?ins.precio:0;
-}
-function mpComponenteNombre(c){
-  if(c.tipo==='producto'){
-    const p=S.productos.find(x=>x.id===c.producto_id);
-    return p?p.nombre:'(producto eliminado)';
-  }
-  const ins=S.costoItems.find(i=>i.id===c.insumo_id);
-  return ins?ins.nombre:'(insumo eliminado)';
-}
-function mpComponenteUnidad(c){
-  if(c.tipo==='producto'){
-    const p=S.productos.find(x=>x.id===c.producto_id);
-    return p?p.unidad:'';
-  }
-  const ins=S.costoItems.find(i=>i.id===c.insumo_id);
-  return ins?ins.unidad:'';
-}
-
-function mpOpenReset(){
-  _mpComp=[];_mpCompTipo='insumo';
-  document.getElementById('mp-edit-id').value=''; // ensure new-product mode
-  document.getElementById('mp-composicion').value='[]';
-  document.getElementById('mp-insumos-list').innerHTML='';
-  document.getElementById('mp-comp-cant').value='';
-  document.getElementById('mp-comp-sel').value='';
-  mpSwitchCompTipo('insumo');
-  mpRecalcCosto();
-}
-
-function mpSwitchCompTipo(tipo){
-  _mpCompTipo=tipo;
-  const tabIns=document.getElementById('mp-tab-insumo'),tabProd=document.getElementById('mp-tab-producto');
-  if(tipo==='insumo'){
-    tabIns.className='btn btn-sm';tabIns.style.background='var(--gold)';tabIns.style.color='#fff';
-    tabProd.className='btn btn-outline btn-sm';tabProd.style.background='';tabProd.style.color='';
-    document.getElementById('mp-comp-sel-label').textContent='Insumo';
-  } else {
-    tabProd.className='btn btn-sm';tabProd.style.background='var(--gold)';tabProd.style.color='#fff';
-    tabIns.className='btn btn-outline btn-sm';tabIns.style.background='';tabIns.style.color='';
-    document.getElementById('mp-comp-sel-label').textContent='Producto';
-  }
-  mpRefreshCompSel();
-}
-
-function mpRefreshCompSel(){
-  const sel=document.getElementById('mp-comp-sel');
-  const cur=sel.value;
-  const editId=document.getElementById('mp-edit-id').value;
-  if(_mpCompTipo==='insumo'){
-    sel.innerHTML='<option value="">Seleccionar insumo...</option>'+
-      S.costoItems.map(i=>`<option value="${i.id}">${i.nombre} (${i.unidad} — ${fmtMoney(i.precio)})</option>`).join('');
-  } else {
-    // Exclude the product itself (avoid self-reference) when editing
-    sel.innerHTML='<option value="">Seleccionar producto...</option>'+
-      S.productos.filter(p=>p.id!==editId).map(p=>`<option value="${p.id}">${p.nombre} (${p.unidad} — ${fmtMoney(calcPcosto(p))})</option>`).join('');
-  }
-  sel.value=cur;
-}
-function mpCompSelChange(){document.getElementById('mp-comp-cant').focus();}
-
-function mpAddComponente(){
-  const selId=document.getElementById('mp-comp-sel').value;
-  const cant=parseFloat(document.getElementById('mp-comp-cant').value);
-  if(!selId||isNaN(cant)||cant<=0){toast('Seleccioná un ítem y la cantidad');return;}
-  if(_mpCompTipo==='producto'){
-    const editId=document.getElementById('mp-edit-id').value;
-    if(selId===editId){toast('Un producto no puede ser combo de sí mismo');return;}
-    const ex=_mpComp.find(c=>c.tipo==='producto'&&c.producto_id===selId);
-    if(ex){ex.cantidad=cant;}else{_mpComp.push({tipo:'producto',producto_id:selId,cantidad:cant});}
-  } else {
-    const ex=_mpComp.find(c=>c.tipo!=='producto'&&c.insumo_id===selId);
-    if(ex){ex.cantidad=cant;}else{_mpComp.push({tipo:'insumo',insumo_id:selId,cantidad:cant});}
-  }
+function mpOpenReset(){_mpComp=[];document.getElementById('mp-composicion').value='[]';document.getElementById('mp-insumos-list').innerHTML='';document.getElementById('mp-ins-cant').value='';document.getElementById('mp-ins-sel').value='';mpRefreshInsSel();mpRecalcCosto();}
+function mpRefreshInsSel(){const sel=document.getElementById('mp-ins-sel');const cur=sel.value;sel.innerHTML='<option value="">Seleccionar insumo...</option>'+S.costoItems.map(i=>`<option value="${i.id}">${i.nombre} (${i.unidad} — ${fmtMoney(i.precio)})</option>`).join('');sel.value=cur;}
+function mpInsSelChange(){document.getElementById('mp-ins-cant').focus();}
+function mpAddInsumo(){
+  const insId=document.getElementById('mp-ins-sel').value;
+  const cant=parseFloat(document.getElementById('mp-ins-cant').value);
+  if(!insId||isNaN(cant)||cant<=0){toast('Seleccioná insumo y cantidad');return;}
+  const ins=S.costoItems.find(i=>i.id===insId);if(!ins)return;
+  const ex=_mpComp.find(c=>c.insumo_id===insId);
+  if(ex){ex.cantidad=cant;}else{_mpComp.push({insumo_id:insId,cantidad:cant});}
   document.getElementById('mp-composicion').value=JSON.stringify(_mpComp);
-  document.getElementById('mp-comp-sel').value='';document.getElementById('mp-comp-cant').value='';
+  document.getElementById('mp-ins-sel').value='';document.getElementById('mp-ins-cant').value='';
   mpRenderComposicion();mpRecalcCosto();
 }
-
-function mpRemoveComponente(idx){
-  _mpComp.splice(idx,1);
+function mpRemoveInsumo(insId){
+  _mpComp=_mpComp.filter(c=>c.insumo_id!==insId);
   document.getElementById('mp-composicion').value=JSON.stringify(_mpComp);
   mpRenderComposicion();mpRecalcCosto();
 }
-
 function mpRenderComposicion(){
   const list=document.getElementById('mp-insumos-list');
   if(!_mpComp.length){list.innerHTML='';return;}
-  list.innerHTML=_mpComp.map((c,i)=>{
-    const nombre=mpComponenteNombre(c);
-    const unidad=mpComponenteUnidad(c);
-    const costoUnit=mpComponenteCosto(c);
-    const subtotal=costoUnit*c.cantidad;
-    const tipoTag=c.tipo==='producto'
-      ?'<span style="background:#dde8f5;color:#1e5a9a;font-size:.58rem;padding:.05rem .3rem;border-radius:4px;font-family:monospace;margin-right:.3rem;">COMBO</span>'
-      :'<span style="background:#e8f0de;color:#4a7a35;font-size:.58rem;padding:.05rem .3rem;border-radius:4px;font-family:monospace;margin-right:.3rem;">INSUMO</span>';
+  list.innerHTML=_mpComp.map(c=>{
+    const ins=S.costoItems.find(i=>i.id===c.insumo_id);if(!ins)return '';
+    const subtotal=ins.precio*c.cantidad;
     return `<div style="display:flex;align-items:center;gap:.5rem;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:.4rem .7rem;">
-      <span style="flex:1;font-family:monospace;font-size:.75rem;">${tipoTag}${nombre}</span>
-      <span style="font-family:monospace;font-size:.7rem;color:var(--muted);">${c.cantidad} ${unidad}</span>
+      <span style="flex:1;font-family:monospace;font-size:.75rem;">${ins.nombre}</span>
+      <span style="font-family:monospace;font-size:.7rem;color:var(--muted);">${c.cantidad} ${ins.unidad}</span>
       <span style="font-family:monospace;font-size:.75rem;color:var(--warn);min-width:55px;text-align:right;">${fmtMoney(subtotal)}</span>
-      <button class="btn btn-danger btn-sm" style="padding:.2rem .45rem;" onclick="mpRemoveComponente(${i})">✕</button>
+      <button class="btn btn-danger btn-sm" style="padding:.2rem .45rem;" onclick="mpRemoveInsumo('${ins.id}')">✕</button>
     </div>`;
   }).join('');
 }
-
 function mpRecalcCosto(){
   const gramos=parseFloat(document.getElementById('mp-gramos').value)||0;
-  const costoVar=_mpComp.reduce((s,c)=>s+(mpComponenteCosto(c)*c.cantidad),0);
+  const editId=document.getElementById('mp-edit-id').value;
+  const costoVar=_mpComp.reduce((s,c)=>{const ins=S.costoItems.find(i=>i.id===c.insumo_id);return ins?s+(ins.precio*c.cantidad):s;},0);
   const totalFijo=S.costoFijos.reduce((a,f)=>a+f.monto,0);
   const kgTotal=S.kgProducidos||0;
   // Prorrateo: fijosTotal / kgProducidosMes * kgEsteProducto
@@ -1684,14 +1690,12 @@ function mpRecalcCosto(){
 function saveProducto(){
   const n=document.getElementById('mp-nombre').value.trim();if(!n){toast('Ingresá el nombre');return;}
   const composicion=JSON.parse(document.getElementById('mp-composicion').value||'[]');
-  const editId=document.getElementById('mp-edit-id').value;
-  // Prevent circular combo reference (A contains B, B contains A)
-  if(editId&&composicion.some(c=>c.tipo==='producto'&&c.producto_id===editId)){
-    toast('Un producto no puede ser combo de sí mismo');return;
-  }
   const gramos=parseFloat(document.getElementById('mp-gramos').value)||0;
-  const costoVar=calcCostoVar(composicion);
-  const costoFijoProd=calcCostoFijoProd(gramos);
+  const editId=document.getElementById('mp-edit-id').value;
+  const costoVar=composicion.reduce((s,c)=>{const ins=S.costoItems.find(i=>i.id===c.insumo_id);return ins?s+(ins.precio*c.cantidad):s;},0);
+  const totalFijo=S.costoFijos.reduce((a,f)=>a+f.monto,0);
+  const kgTotal=S.kgProducidos||0;
+  const costoFijoProd=(totalFijo>0&&kgTotal>0&&gramos>0)?(totalFijo/kgTotal)*gramos:0;
   const pcosto=costoVar+costoFijoProd;
   const obj={id:editId||uid(),nombre:n,pventa:parseFloat(document.getElementById('mp-pventa').value)||0,pcosto,gramos,composicion,stock:parseInt(document.getElementById('mp-stock').value)||0,stockmin:parseInt(document.getElementById('mp-stockmin').value)||0,unidad:document.getElementById('mp-unidad').value};
   const idx=S.productos.findIndex(x=>x.id===obj.id);
@@ -1701,7 +1705,7 @@ function saveProducto(){
   ['mp-nombre','mp-pventa','mp-gramos','mp-stock','mp-stockmin','mp-edit-id'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('mp-composicion').value='[]';
   document.getElementById('modal-prod-title').textContent='NUEVO PRODUCTO';
-  _mpComp=[];_mpCompTipo='insumo';mpRenderComposicion();mpRecalcCosto();
+  _mpComp=[];mpRenderComposicion();mpRecalcCosto();
 }
 function editProducto(id){
   const p=S.productos.find(x=>x.id===id);if(!p)return;
@@ -1713,12 +1717,9 @@ function editProducto(id){
   document.getElementById('mp-stockmin').value=p.stockmin;
   document.getElementById('mp-unidad').value=p.unidad;
   document.getElementById('mp-edit-id').value=id;
-  // Migrate old composicion entries (no tipo field = insumo)
-  _mpComp=JSON.parse(JSON.stringify(p.composicion||[])).map(c=>c.tipo?c:{...c,tipo:'insumo'});
+  _mpComp=JSON.parse(JSON.stringify(p.composicion||[]));
   document.getElementById('mp-composicion').value=JSON.stringify(_mpComp);
-  _mpCompTipo='insumo';
-  mpSwitchCompTipo('insumo');
-  mpRenderComposicion();mpRecalcCosto();
+  mpRefreshInsSel();mpRenderComposicion();mpRecalcCosto();
   openModal('modal-producto');
 }
 function deleteProducto(id){if(!confirm('¿Eliminar este producto?'))return;S.productos=S.productos.filter(p=>p.id!==id);saveS();stockRefresh();toast('Eliminado');}
@@ -1933,22 +1934,12 @@ function saveVenta(){
   const notas=document.getElementById('mv-notas').value||'';
   if(!fecha){toast('Ingresá la fecha');return;}
   if(!_mvItems.length){toast('Agregá al menos un producto');return;}
-  // Check stock for all cobradas (including combo component stock)
+  // Check stock for all cobradas
   if(estado==='Cobrada'){
     for(const it of _mvItems){
       const prod=S.productos.find(x=>x.id===it.producto_id);
       if(prod&&prod.stock<it.cantidad){
         toast(`Stock insuficiente: ${prod.nombre} (disponible: ${prod.stock})`);return;
-      }
-      // Check combo component stock too
-      if(prod){
-        for(const c of (prod.composicion||[]).filter(x=>x.tipo==='producto')){
-          const compProd=S.productos.find(x=>x.id===c.producto_id);
-          const needed=c.cantidad*it.cantidad;
-          if(compProd&&compProd.stock<needed){
-            toast(`Stock insuficiente de ${compProd.nombre} para el combo ${prod.nombre} (disponible: ${compProd.stock}, necesario: ${needed})`);return;
-          }
-        }
       }
     }
   }
@@ -1961,14 +1952,7 @@ function saveVenta(){
 
   _mvItems.forEach(it=>{
     const prod=S.productos.find(x=>x.id===it.producto_id);
-    if(prod&&estado==='Cobrada'){
-      prod.stock=Math.max(0,prod.stock-it.cantidad);
-      // If it's a combo, also descontar el stock de los productos componentes
-      (prod.composicion||[]).filter(c=>c.tipo==='producto').forEach(c=>{
-        const compProd=S.productos.find(x=>x.id===c.producto_id);
-        if(compProd) compProd.stock=Math.max(0,compProd.stock-(c.cantidad*it.cantidad));
-      });
-    }
+    if(prod&&estado==='Cobrada') prod.stock=Math.max(0,prod.stock-it.cantidad);
     // Apply discount proportionally to each item's total
     const totalConDesc=it.subtotal*descFactor;
     S.ventas.push({
@@ -2057,9 +2041,7 @@ function saveVentaEdit(){
     it.notas=newNotas;
     it.cantidad=newCant;
     it.precio=newPrecio;       // allow price correction
-    it.precioOriginal=newPrecio; // update original price too
-    const descFactor2=1-((it.descuento||0)/100);
-    it.total=newCant*newPrecio*descFactor2; // apply existing discount
+    it.total=newCant*newPrecio;
   });
 
   saveS();closeModal('modal-venta-edit');ventasRefresh();stockRefresh();
@@ -2114,14 +2096,7 @@ function deleteVenta(ventaId){
   items.forEach(v=>{
     if(v.estado==='Cobrada'){
       const p=S.productos.find(x=>x.id===v.producto_id);
-      if(p){
-        p.stock+=v.cantidad;
-        // Restore component stock if it's a combo
-        (p.composicion||[]).filter(c=>c.tipo==='producto').forEach(c=>{
-          const compProd=S.productos.find(x=>x.id===c.producto_id);
-          if(compProd) compProd.stock+=(c.cantidad*v.cantidad);
-        });
-      }
+      if(p) p.stock+=v.cantidad;
     }
   });
   S.ventas=S.ventas.filter(v=>(v.venta_id||v.id)!==ventaId);
@@ -2189,7 +2164,7 @@ function balanceRefresh(){
     ingresos>0?`Margen neto: ${margen.toFixed(1)}% · Por cada $100 vendidos, ${fmtMoney(ganancia/ingresos*100)} de ganancia`:'Sin ventas cobradas este mes';
 
   // ── Barras ──
-  const maxV=Math.max(ingresos,costoVarVendido,costoFijoDeLoVendido,Math.abs(ganancia),1);
+  const maxV=Math.max(ingresos,costoVarVendido,costoFijoVendido,Math.abs(ganancia),1);
   document.getElementById('balance-bars').innerHTML=[
     ['Ventas',       ingresos,          'linear-gradient(90deg,#2a7835,#389848)',  'c-green'],
     ['Costo Var.',   costoVarVendido,   'linear-gradient(90deg,#a05010,#c06820)',  'c-warn'],
@@ -2443,9 +2418,245 @@ function printRemito(ventaId){
   },300);
 }
 
+// ── CONSIGNACIÓN ─────────────────────────────────────────────
+
+function openConsModal(){
+  if(!S.productos.length){toast('Primero cargá productos en Stock');return;}
+  document.getElementById('cn-cliente').value='';
+  document.getElementById('cn-fecha').value=todayStr();
+  document.getElementById('cn-cantidad').value='';
+  document.getElementById('cn-precio').value='';
+  document.getElementById('cn-notas').value='';
+  document.getElementById('cn-preview').textContent='';
+  // Populate product select
+  const sel=document.getElementById('cn-producto');
+  sel.innerHTML='<option value="">Seleccionar...</option>'+
+    S.productos.map(p=>`<option value="${p.id}">${p.nombre} (stock: ${p.stock})</option>`).join('');
+  sel.value='';
+  openModal('modal-cons-nueva');
+}
+
+function cnAutoPrice(){
+  const pid=document.getElementById('cn-producto').value;
+  const p=S.productos.find(x=>x.id===pid);
+  if(p) document.getElementById('cn-precio').value=p.pventa;
+  cnCalcTotal();
+}
+
+function cnCalcTotal(){
+  const q=parseFloat(document.getElementById('cn-cantidad').value)||0;
+  const p=parseFloat(document.getElementById('cn-precio').value)||0;
+  const el=document.getElementById('cn-preview');
+  el.textContent=q&&p?`Total acordado: ${fmtMoney(q*p)}  ·  ${q} unidades`:'';
+}
+
+function saveConsignacion(){
+  const cliente=document.getElementById('cn-cliente').value.trim();
+  const fecha=document.getElementById('cn-fecha').value;
+  const pid=document.getElementById('cn-producto').value;
+  const cant=parseInt(document.getElementById('cn-cantidad').value)||0;
+  const precio=parseFloat(document.getElementById('cn-precio').value)||0;
+  if(!cliente){toast('Ingresá el nombre del cliente');return;}
+  if(!fecha){toast('Ingresá la fecha');return;}
+  if(!pid){toast('Seleccioná un producto');return;}
+  if(!cant||cant<=0){toast('Ingresá una cantidad válida');return;}
+  if(!precio){toast('Ingresá el precio acordado');return;}
+  // Check stock
+  const prod=S.productos.find(x=>x.id===pid);
+  if(!prod){toast('Producto no encontrado');return;}
+  if(prod.stock<cant){toast(`Stock insuficiente: ${prod.stock} disponibles`);return;}
+  // Deduct stock
+  prod.stock=Math.max(0,prod.stock-cant);
+  // Save consignacion record
+  if(!S.consignaciones) S.consignaciones=[];
+  S.consignaciones.push({
+    id:uid(),
+    cliente,
+    producto_id:pid,
+    producto_nombre:prod.nombre,
+    cantidad:cant,
+    pendiente:cant, // starts equal to cantidad
+    precio,
+    fecha,
+    notas:document.getElementById('cn-notas').value.trim(),
+    liquidaciones:[]
+  });
+  saveS();closeModal('modal-cons-nueva');stockRefresh();consRefresh();
+  toast(`Entrega registrada · ${cant} × ${prod.nombre} → ${cliente}`);
+}
+
+function openConsLiquidar(consId){
+  const c=S.consignaciones.find(x=>x.id===consId);
+  if(!c)return;
+  document.getElementById('cons-liq-title').textContent=`LIQUIDAR — ${c.cliente}`;
+  document.getElementById('cons-liq-info').innerHTML=
+    `<b>${c.producto_nombre}</b> · Entregado: ${c.cantidad} · Pendiente: <b>${c.pendiente}</b> uds.<br>`+
+    `Precio acordado: ${fmtMoney(c.precio)} · Fecha entrega: ${c.fecha}`;
+  document.getElementById('cl-vendidos').value='0';
+  document.getElementById('cl-devueltos').value='0';
+  document.getElementById('cl-fecha').value=todayStr();
+  document.getElementById('cl-notas').value='';
+  document.getElementById('cl-cons-id').value=consId;
+  clCalcResumen();
+  openModal('modal-cons-liquidar');
+}
+
+function clCalcResumen(){
+  const consId=document.getElementById('cl-cons-id').value;
+  const c=S.consignaciones.find(x=>x.id===consId);
+  if(!c)return;
+  const vendidos=parseInt(document.getElementById('cl-vendidos').value)||0;
+  const devueltos=parseInt(document.getElementById('cl-devueltos').value)||0;
+  const total=vendidos+devueltos;
+  const quedan=c.pendiente-total;
+  const el=document.getElementById('cl-resumen');
+  if(total>c.pendiente){
+    el.innerHTML=`<span style="color:var(--reds);">⚠ Total (${total}) supera el pendiente (${c.pendiente})</span>`;
+    return;
+  }
+  el.innerHTML=
+    `✓ Van al balance: <b>${vendidos}</b> uds. × ${fmtMoney(c.precio)} = <b style="color:var(--greens);">${fmtMoney(vendidos*c.precio)}</b><br>`+
+    `↩ Vuelven al stock: <b>${devueltos}</b> uds.<br>`+
+    `Quedan en consignación: <b>${quedan}</b> uds.`;
+}
+
+function saveConsLiquidacion(){
+  const consId=document.getElementById('cl-cons-id').value;
+  const c=S.consignaciones.find(x=>x.id===consId);
+  if(!c)return;
+  const vendidos=parseInt(document.getElementById('cl-vendidos').value)||0;
+  const devueltos=parseInt(document.getElementById('cl-devueltos').value)||0;
+  const fecha=document.getElementById('cl-fecha').value;
+  const notas=document.getElementById('cl-notas').value.trim();
+  if(!fecha){toast('Ingresá la fecha');return;}
+  if(vendidos+devueltos===0){toast('Ingresá al menos una unidad vendida o devuelta');return;}
+  if(vendidos+devueltos>c.pendiente){toast(`No podés liquidar más del pendiente (${c.pendiente})`);return;}
+  // Register liquidacion
+  c.liquidaciones.push({fecha,vendidos,devueltos,notas});
+  c.pendiente-=(vendidos+devueltos);
+  // Restore devueltos to stock
+  if(devueltos>0){
+    const prod=S.productos.find(x=>x.id===c.producto_id);
+    if(prod) prod.stock+=devueltos;
+  }
+  // Create venta record for vendidos (goes to balance)
+  if(vendidos>0){
+    const ventaId=uid();
+    S.ventas.push({
+      id:uid(),
+      venta_id:ventaId,
+      fecha,
+      cliente:c.cliente,
+      producto_id:c.producto_id,
+      producto_nombre:c.producto_nombre,
+      cantidad:vendidos,
+      precioOriginal:c.precio,
+      precio:c.precio,
+      total:vendidos*c.precio,
+      descuento:0,
+      estado:'Cobrada',
+      notas:notas||`Liquidación consignación · lote entrega ${c.fecha}`
+    });
+  }
+  saveS();closeModal('modal-cons-liquidar');stockRefresh();consRefresh();ventasRefresh();
+  let msg=`Liquidación registrada`;
+  if(vendidos>0) msg+=` · ${vendidos} vendidos → balance`;
+  if(devueltos>0) msg+=` · ${devueltos} devueltos al stock`;
+  toast(msg);
+}
+
+function consRefresh(){
+  if(!S.consignaciones) S.consignaciones=[];
+  const all=S.consignaciones;
+  const activas=all.filter(c=>c.pendiente>0);
+  const totalPendiente=activas.reduce((a,c)=>a+c.pendiente,0);
+  const totalValor=activas.reduce((a,c)=>a+(c.pendiente*c.precio),0);
+  const clientes=new Set(activas.map(c=>c.cliente));
+  // Stats
+  document.getElementById('cons-stats').innerHTML=
+    `<div class="stat"><div class="s-lbl">Entregas activas</div><div class="s-val c-blue">${activas.length}</div></div>`+
+    `<div class="stat"><div class="s-lbl">Clientes</div><div class="s-val c-gold">${clientes.size}</div></div>`+
+    `<div class="stat"><div class="s-lbl">Unidades fuera</div><div class="s-val c-warn">${totalPendiente}</div></div>`+
+    `<div class="stat"><div class="s-lbl">Valor en consign.</div><div class="s-val c-green">${fmtMoney(totalValor)}</div></div>`;
+  // Client filter
+  const filtSel=document.getElementById('cons-cliente-filter');
+  const filtVal=filtSel.value;
+  const todosClientes=[...new Set(all.map(c=>c.cliente))].sort();
+  filtSel.innerHTML='<option value="">Todos los clientes</option>'+
+    todosClientes.map(cl=>`<option value="${cl}"${cl===filtVal?' selected':''}>${cl}</option>`).join('');
+  // Filter
+  const filtered=filtVal?all.filter(c=>c.cliente===filtVal):all;
+  // Sort: pendiente first, then by date desc
+  const sorted=[...filtered].sort((a,b)=>{
+    if(a.pendiente>0&&b.pendiente===0)return -1;
+    if(a.pendiente===0&&b.pendiente>0)return 1;
+    return b.fecha.localeCompare(a.fecha);
+  });
+  const today=todayStr();
+  document.getElementById('cons-tbody').innerHTML=sorted.length?sorted.map(c=>{
+    const dias=Math.floor((new Date(today)-new Date(c.fecha))/(1000*60*60*24));
+    const diasCls=dias<30?'dias-ok':dias<60?'dias-warn':'dias-alert';
+    const cerrada=c.pendiente===0;
+    const liquidado=c.cantidad-c.pendiente;
+    return `<tr style="${cerrada?'opacity:.55;':''}">`+
+      `<td><b>${c.cliente}</b>${c.notas?`<br><span class="td-muted" style="font-size:.62rem;">${c.notas}</span>`:''}</td>`+
+      `<td>${c.producto_nombre}</td>`+
+      `<td class="td-muted">${c.cantidad} uds. · ${fmtMoney(c.precio)}</td>`+
+      `<td class="td-muted">${c.fecha}</td>`+
+      `<td class="${diasCls}">${dias}d</td>`+
+      `<td>${cerrada?'<span class="badge badge-green">Cerrada</span>':`<b class="c-warn">${c.pendiente}</b> / ${c.cantidad}`}</td>`+
+      `<td style="display:flex;gap:.3rem;flex-wrap:wrap;">`+
+        (cerrada?'':`<button class="btn btn-gold btn-sm" onclick="openConsLiquidar('${c.id}')">Liquidar</button>`)+
+        `<button class="btn btn-outline btn-sm" onclick="consVerHistorial('${c.id}')">Ver</button>`+
+        `<button class="btn btn-danger btn-sm" onclick="consEliminar('${c.id}')">✕</button>`+
+      `</td>`+
+      `</tr>`;
+  }).join(''):'<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--muted);">Sin entregas en consignación. Usá "+ Nueva entrega" para registrar.</td></tr>';
+}
+
+function consVerHistorial(consId){
+  const c=S.consignaciones.find(x=>x.id===consId);
+  if(!c)return;
+  const liqs=c.liquidaciones||[];
+  let msg=`${c.cliente} · ${c.producto_nombre}
+`;
+  msg+=`Entregado: ${c.cantidad} · Precio: ${fmtMoney(c.precio)} · Fecha: ${c.fecha}
+`;
+  msg+=`Pendiente actual: ${c.pendiente}
+
+`;
+  if(liqs.length){
+    msg+=`LIQUIDACIONES:
+`;
+    liqs.forEach((l,i)=>{
+      msg+=`${i+1}. ${l.fecha} — Vendidos: ${l.vendidos}, Devueltos: ${l.devueltos}`;
+      if(l.notas) msg+=` (${l.notas})`;
+      msg+='
+';
+    });
+  } else {
+    msg+=`Sin liquidaciones aún.`;
+  }
+  alert(msg);
+}
+
+function consEliminar(consId){
+  const c=S.consignaciones.find(x=>x.id===consId);
+  if(!c)return;
+  if(!confirm(`¿Eliminar esta consignación de ${c.cliente}?
+Si hay pendiente (${c.pendiente} uds.), se restaurará el stock.`))return;
+  // Restore pending stock
+  if(c.pendiente>0){
+    const prod=S.productos.find(x=>x.id===c.producto_id);
+    if(prod) prod.stock+=c.pendiente;
+  }
+  S.consignaciones=S.consignaciones.filter(x=>x.id!==consId);
+  saveS();stockRefresh();consRefresh();toast('Consignación eliminada');
+}
+
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260616154500';
+  const BUILD='20260617120000';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
@@ -2515,20 +2726,6 @@ if(!checkAuth()) document.getElementById('login-input').focus();
 
 // 1. Boot from localStorage immediately so UI is instant
 try{const d=localStorage.getItem('kaizen_v3');if(d)S=JSON.parse(d);}catch(e){}
-// Fix ventas where total wasn't discounted correctly
-if(S.ventas){
-  S.ventas.forEach(v=>{
-    const desc=Number(v.descuento)||0;
-    if(desc>0){
-      const pOrig=v.precioOriginal||v.precio;
-      const expectedTotal=pOrig*v.cantidad*(1-desc/100);
-      // If stored total equals precio*cantidad (no discount applied), fix it
-      if(Math.abs(v.total - pOrig*v.cantidad) < 1){
-        v.total=Math.round(expectedTotal*100)/100;
-      }
-    }
-  });
-}
 if(!S.activeMes)S.activeMes=todayYM();
 
 // Setup lotes (migration + active lote sync)
