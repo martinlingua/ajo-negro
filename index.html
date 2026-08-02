@@ -2618,28 +2618,23 @@ function consVerHistorial(consId){
   const c=S.consignaciones.find(x=>x.id===consId);
   if(!c)return;
   const liqs=c.liquidaciones||[];
-  let msg=`${c.cliente} · ${c.producto_nombre}
-`;
-  msg+=`Entregado: ${c.cantidad} · Precio: ${fmtMoney(c.precio)} · Fecha: ${c.fecha}
-`;
-  msg+=`Pendiente actual: ${c.pendiente}
-
-`;
+  const lines=[];
+  lines.push(c.cliente+' · '+c.producto_nombre);
+  lines.push('Entregado: '+c.cantidad+' · Precio: '+fmtMoney(c.precio)+' · Fecha: '+c.fecha);
+  lines.push('Pendiente actual: '+c.pendiente);
+  lines.push('');
   if(liqs.length){
-    msg+=`LIQUIDACIONES:
-`;
-    liqs.forEach((l,i)=>{
-      msg+=`${i+1}. ${l.fecha} — Vendidos: ${l.vendidos}, Devueltos: ${l.devueltos}`;
-      if(l.notas) msg+=` (${l.notas})`;
-      msg+='
-';
+    lines.push('LIQUIDACIONES:');
+    liqs.forEach(function(l,i){
+      var row=(i+1)+'. '+l.fecha+' — Vendidos: '+l.vendidos+', Devueltos: '+l.devueltos;
+      if(l.notas) row+=' ('+l.notas+')';
+      lines.push(row);
     });
   } else {
-    msg+=`Sin liquidaciones aún.`;
+    lines.push('Sin liquidaciones aun.');
   }
-  alert(msg);
+  alert(lines.join('\n'));
 }
-
 function consEliminar(consId){
   const c=S.consignaciones.find(x=>x.id===consId);
   if(!c)return;
@@ -2656,7 +2651,7 @@ Si hay pendiente (${c.pendiente} uds.), se restaurará el stock.`))return;
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260617121500';
+  const BUILD='20260802234524';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
