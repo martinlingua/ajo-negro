@@ -2656,7 +2656,7 @@ Si hay pendiente (${c.pendiente} uds.), se restaurará el stock.`))return;
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260617120000';
+  const BUILD='20260617121500';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
