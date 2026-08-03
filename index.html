@@ -2212,7 +2212,7 @@ function balanceRefresh(){
     ingresos>0?`Margen neto: ${margen.toFixed(1)}% · Por cada $100 vendidos, ${fmtMoney(ganancia/ingresos*100)} de ganancia`:'Sin ventas cobradas este mes';
 
   // ── Barras ──
-  const maxV=Math.max(ingresos,costoVarVendido,costoFijoVendido,Math.abs(ganancia),1);
+  const maxV=Math.max(ingresos,costoVarVendido,costoFijoDeLoVendido,Math.abs(ganancia),1);
   document.getElementById('balance-bars').innerHTML=[
     ['Ventas',       ingresos,          'linear-gradient(90deg,#2a7835,#389848)',  'c-green'],
     ['Costo Var.',   costoVarVendido,   'linear-gradient(90deg,#a05010,#c06820)',  'c-warn'],
@@ -2699,7 +2699,7 @@ Si hay pendiente (${c.pendiente} uds.), se restaurará el stock.`))return;
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260803002153';
+  const BUILD='20260803114508';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
