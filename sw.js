@@ -1,4 +1,4 @@
-const CACHE='kaizen-v20260802234524';
+const CACHE='kaizen-v20260802235208';
 const STATIC=['./manifest.json','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install', function(e){

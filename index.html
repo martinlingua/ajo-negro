@@ -58,7 +58,6 @@
 .dias-ok{color:var(--greens);}
 .dias-warn{color:var(--warn);}
 .dias-alert{color:var(--reds);font-weight:700;}
-#page-consignacion .tbl-wrap{max-height:calc(100vh - 280px);}
 
 </style>
 <meta name="build" content="20260429141004">
@@ -502,21 +501,20 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 </div>
 
 <div class="page" id="page-consignacion">
-  <div class="section-title">CONSIGNACIÓN</div>
+  <div class="section-title">CONSIGNACIÓN<button class="btn btn-gold btn-sm" onclick="openConsModal()">+ Nueva entrega</button></div>
 
   <!-- Stats -->
-  <div class="stats-row" id="cons-stats"></div>
+  <div class="stats-grid" id="cons-stats"></div>
 
-  <!-- Client filter + new button -->
-  <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.7rem;flex-wrap:wrap;">
-    <select id="cons-cliente-filter" onchange="consRefresh()" style="flex:1;min-width:140px;background:var(--card);border:1px solid var(--border);border-radius:7px;padding:.38rem .7rem;color:var(--cream);font-family:'DM Mono',monospace;font-size:.8rem;outline:none;">
+  <!-- Client filter -->
+  <div style="margin-bottom:.7rem;">
+    <select id="cons-cliente-filter" onchange="consRefresh()" style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:7px;padding:.38rem .7rem;color:var(--cream);font-family:'DM Mono',monospace;font-size:.8rem;outline:none;">
       <option value="">Todos los clientes</option>
     </select>
-    <button class="btn btn-gold btn-sm" onclick="openConsModal()">+ Nueva entrega</button>
   </div>
 
   <!-- Consignaciones table -->
-  <div class="tbl-wrap">
+  <div class="tbl-wrap" style="max-height:none;">
     <table>
       <thead><tr>
         <th>Cliente</th>
@@ -2651,7 +2649,7 @@ Si hay pendiente (${c.pendiente} uds.), se restaurará el stock.`))return;
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260802234524';
+  const BUILD='20260802235208';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
