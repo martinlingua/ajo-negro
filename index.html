@@ -726,7 +726,10 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
         <div class="field"><label>Cliente</label><input type="text" id="mv-cliente" placeholder="Nombre o empresa"></div>
       </div>
       <div class="grid2">
-        <div class="field"><label>Estado</label><select id="mv-estado"><option>Cobrada</option><option>Pendiente</option><option>Cancelada</option></select></div>
+        <div class="field"><label>Estado</label><select id="mv-estado" onchange="mvEstadoChange()"><option>Cobrada</option><option>Pendiente</option><option>Cancelada</option><option>Consignación</option></select></div>
+        <div id="mv-cons-banner" style="display:none;background:rgba(30,90,154,.08);border:1px solid #3478c0;border-radius:8px;padding:.6rem .8rem;font-family:'DM Mono',monospace;font-size:.72rem;color:#1e5a9a;line-height:1.5;">
+          🤝 <b>Modo consignación</b> — el stock se descuenta ahora pero <b>no va al balance</b> hasta que el cliente liquide. La entrega aparecerá en la pestaña Consign.
+        </div>
         <div class="field"><label>Notas generales</label><input type="text" id="mv-notas" placeholder="Opcional"></div>
       </div>
 
@@ -1843,6 +1846,8 @@ function ventaOpenReset(){
   document.getElementById('mv-cantidad').value='';
   document.getElementById('mv-precio').value='';
   document.getElementById('mv-descuento').value='0';
+  document.getElementById('mv-estado').value='Cobrada';
+  const b=document.getElementById('mv-cons-banner');if(b)b.style.display='none';
   document.getElementById('mv-item-preview').textContent='';
   // populate product select
   const sel=document.getElementById('mv-producto');
@@ -1926,6 +1931,12 @@ function mvUpdateTotal(){
   document.getElementById('mv-total-display').textContent=fmtMoney(total);
 }
 
+function mvEstadoChange(){
+  const estado=document.getElementById('mv-estado').value;
+  const banner=document.getElementById('mv-cons-banner');
+  if(banner) banner.style.display=estado==='Consignación'?'block':'none';
+}
+
 function saveVenta(){
   const fecha=document.getElementById('mv-fecha').value;
   const cliente=document.getElementById('mv-cliente').value||'—';
@@ -1933,47 +1944,85 @@ function saveVenta(){
   const notas=document.getElementById('mv-notas').value||'';
   if(!fecha){toast('Ingresá la fecha');return;}
   if(!_mvItems.length){toast('Agregá al menos un producto');return;}
-  // Check stock for all cobradas
+
+  // ── CONSIGNACIÓN ──
+  if(estado==='Consignación'){
+    if(cliente==='—'||!cliente.trim()||cliente===''){toast('Ingresá el nombre del cliente para consignación');return;}
+    // Check + deduct stock, create one consignacion record per item
+    for(const it of _mvItems){
+      const prod=S.productos.find(x=>x.id===it.producto_id);
+      if(prod&&prod.stock<it.cantidad){
+        toast('Stock insuficiente: '+prod.nombre+' (disponible: '+prod.stock+')');return;
+      }
+    }
+    if(!S.consignaciones) S.consignaciones=[];
+    _mvItems.forEach(it=>{
+      const prod=S.productos.find(x=>x.id===it.producto_id);
+      if(prod) prod.stock=Math.max(0,prod.stock-it.cantidad);
+      S.consignaciones.push({
+        id:uid(),
+        cliente:cliente,
+        producto_id:it.producto_id,
+        producto_nombre:it.producto_nombre,
+        cantidad:it.cantidad,
+        pendiente:it.cantidad,
+        precio:it.precio,
+        fecha:fecha,
+        notas:notas,
+        liquidaciones:[]
+      });
+    });
+    saveS();closeModal('modal-venta');stockRefresh();consRefresh();
+    toast('Consignación registrada · '+_mvItems.length+' ítem(s) → '+cliente);
+    _mvItems=[];
+    return;
+  }
+
+  // ── VENTA NORMAL ──
   if(estado==='Cobrada'){
     for(const it of _mvItems){
       const prod=S.productos.find(x=>x.id===it.producto_id);
       if(prod&&prod.stock<it.cantidad){
-        toast(`Stock insuficiente: ${prod.nombre} (disponible: ${prod.stock})`);return;
+        toast('Stock insuficiente: '+prod.nombre+' (disponible: '+prod.stock+')');return;
+      }
+      if(prod){
+        for(const c of (prod.composicion||[]).filter(x=>x.tipo==='producto')){
+          const compProd=S.productos.find(x=>x.id===c.producto_id);
+          const needed=c.cantidad*it.cantidad;
+          if(compProd&&compProd.stock<needed){
+            toast('Stock insuficiente de '+compProd.nombre+' para el combo '+prod.nombre+' (disponible: '+compProd.stock+', necesario: '+needed+')');return;
+          }
+        }
       }
     }
   }
-  // Apply discount proportionally across items
   const ventaId=uid();
   const subtotalVenta=_mvItems.reduce((a,i)=>a+i.subtotal,0);
   const descPct=Math.min(Math.max(parseFloat(document.getElementById('mv-descuento')?.value)||0,0),100);
   const descFactor=1-(descPct/100);
   const totalVenta=subtotalVenta*descFactor;
-
   _mvItems.forEach(it=>{
     const prod=S.productos.find(x=>x.id===it.producto_id);
-    if(prod&&estado==='Cobrada') prod.stock=Math.max(0,prod.stock-it.cantidad);
-    // Apply discount proportionally to each item's total
+    if(prod&&estado==='Cobrada'){
+      prod.stock=Math.max(0,prod.stock-it.cantidad);
+      (prod.composicion||[]).filter(c=>c.tipo==='producto').forEach(c=>{
+        const compProd=S.productos.find(x=>x.id===c.producto_id);
+        if(compProd) compProd.stock=Math.max(0,compProd.stock-(c.cantidad*it.cantidad));
+      });
+    }
     const totalConDesc=it.subtotal*descFactor;
     S.ventas.push({
-      id:uid(),
-      venta_id:ventaId,
-      fecha,cliente,
-      producto_id:it.producto_id,
-      producto_nombre:it.producto_nombre,
-      cantidad:it.cantidad,
-      precioOriginal:it.precio,          // always the original price
-      precio:it.precio,                  // kept for compatibility
-      total:totalConDesc,
-      descuento:descPct,
-      estado,notas
+      id:uid(),venta_id:ventaId,fecha,cliente,
+      producto_id:it.producto_id,producto_nombre:it.producto_nombre,
+      cantidad:it.cantidad,precioOriginal:it.precio,precio:it.precio,
+      total:totalConDesc,descuento:descPct,estado,notas
     });
   });
   saveS();closeModal('modal-venta');ventasRefresh();stockRefresh();
-  const descTxt=descPct>0?` · Desc. ${descPct}%`:'';
-  toast(`Venta registrada · ${_mvItems.length} ítem${_mvItems.length>1?'s':''}${descTxt} · ${fmtMoney(totalVenta)}`);
+  const descTxt=descPct>0?' · Desc. '+descPct+'%':'';
+  toast('Venta registrada · '+_mvItems.length+' ítem(s)'+descTxt+' · '+fmtMoney(totalVenta));
   _mvItems=[];
 }
-
 function openVentaEdit(ventaId){
   const items=S.ventas.filter(v=>(v.venta_id||v.id)===ventaId);
   if(!items.length)return;
@@ -2650,7 +2699,7 @@ Si hay pendiente (${c.pendiente} uds.), se restaurará el stock.`))return;
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260803001616';
+  const BUILD='20260803002153';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
