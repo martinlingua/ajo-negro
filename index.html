@@ -1849,13 +1849,18 @@ function printRemito(ventaId){
 
   html+='</div>'; // remito-doc
 
-  const area=document.getElementById('remito-print-area');
-  area.innerHTML=html;
-  area.style.display='block';
-  setTimeout(function(){
-    window.print();
-    setTimeout(function(){area.style.display='none';area.innerHTML='';},800);
-  },350);
+  // Open in new window for reliable cross-browser printing
+  const win=window.open('','_blank','width=800,height=900');
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+    '<link rel="preconnect" href="https://fonts.googleapis.com">'+
+    '<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">'+
+    '<style>'+
+      'body{margin:0;padding:0;background:#fff;}'+
+      document.querySelector('style').textContent+
+    '</style></head><body>'+html+'</body></html>');
+  win.document.close();
+  win.focus();
+  setTimeout(function(){win.print();},600);
 }
 // ── VENTAS ───────────────────────────────────────────────────
 
@@ -2860,18 +2865,23 @@ function printConsRemito(){
   html+='<div class="rf-firma"><div class="rf-line"></div><p>Firma y aclaración</p></div>';
   html+='</div>';
   html+='</div>';
-  const area=document.getElementById('remito-print-area');
-  area.innerHTML=html;
-  area.style.display='block';
-  setTimeout(function(){
-    window.print();
-    setTimeout(function(){area.style.display='none';area.innerHTML='';},800);
-  },350);
+  // Open in new window for reliable cross-browser printing
+  const win=window.open('','_blank','width=800,height=900');
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+    '<link rel="preconnect" href="https://fonts.googleapis.com">'+
+    '<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">'+
+    '<style>'+
+      'body{margin:0;padding:0;background:#fff;}'+
+      document.querySelector('style').textContent+
+    '</style></head><body>'+html+'</body></html>');
+  win.document.close();
+  win.focus();
+  setTimeout(function(){win.print();},600);
 }
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260814105740';
+  const BUILD='20260814111248';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
