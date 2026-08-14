@@ -69,6 +69,8 @@
 <meta name="apple-mobile-web-app-title" content="KAIZEN">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 :root {
@@ -1849,7 +1851,7 @@ function printRemito(ventaId){
 
   html+='</div>'; // remito-doc
 
-  openPrintWindow(html);
+  openPrintWindow(html, 'kaizen-remito-'+remitoNum+'.pdf');
 }
 // ── VENTAS ───────────────────────────────────────────────────
 
@@ -2734,10 +2736,12 @@ Si hay pendiente (${c.pendiente} uds.), se restaurará el stock.`))return;
 }
 
 // ── PRINT HELPER ─────────────────────────────────────────────
-function openPrintWindow(bodyHtml){
+function openPrintWindow(bodyHtml, filename){
+  filename = filename || 'kaizen-remito.pdf';
+
+  // Build a full HTML document string with all styles
   var css=[
-    '@page{margin:1.5cm;size:A4;}',
-    'body{margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;background:#fff;}',
+    'body{margin:1.5cm 2cm;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;background:#fff;}',
     '.remito-header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #2a3a48;padding-bottom:1rem;margin-bottom:1.2rem;}',
     '.remito-logo{width:65px;height:65px;object-fit:cover;border-radius:8px;}',
     '.remito-brand{text-align:center;flex:1;padding:0 1rem;}',
@@ -2758,42 +2762,65 @@ function openPrintWindow(bodyHtml){
     '.tr{text-align:right;}',
     '.total-table{width:auto;margin-left:auto;min-width:260px;border-collapse:collapse;}',
     '.total-table td{padding:.35rem .8rem;font-size:12px;border-bottom:1px solid #eee;}',
-    '.total-dark{background:#2a3a48 !important;}',
-    '.total-dark td{padding:.6rem .8rem;color:#fff !important;font-size:1rem;font-weight:700;border:none !important;}',
-    '.green{color:#2a7835 !important;}',
+    '.total-dark{background:#2a3a48;}',
+    '.total-dark td{padding:.6rem .8rem;color:#fff;font-size:1rem;font-weight:700;border:none;}',
+    '.green{color:#2a7835;}',
     '.remito-footer{border-top:1px solid #e0e4e8;padding-top:.8rem;display:flex;justify-content:space-between;align-items:flex-end;margin-top:1rem;}',
     '.rf-nota{font-size:10px;color:#888;line-height:1.5;}',
     '.rf-line{width:140px;border-top:1px solid #aaa;margin:30px auto 3px;}',
     '.rf-firma{text-align:center;font-size:10px;color:#888;text-transform:uppercase;}'
   ].join('');
 
-  var fullHtml='<!DOCTYPE html><html><head><meta charset="UTF-8"><style>'+css+'</style></head><body>'+bodyHtml+'</body></html>';
+  // Create a hidden div in the current document to render the HTML
+  var container = document.createElement('div');
+  container.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;font-family:Arial,sans-serif;';
+  
+  // Apply styles inline via a style tag
+  var styleEl = document.createElement('style');
+  styleEl.textContent = css;
+  container.appendChild(styleEl);
+  
+  var wrapper = document.createElement('div');
+  wrapper.innerHTML = bodyHtml;
+  container.appendChild(wrapper);
+  document.body.appendChild(container);
 
-  // Use a hidden iframe — works in Chrome, Edge, and Safari without popup blocker issues
-  var frameId='__kaizen_print_frame__';
-  var existing=document.getElementById(frameId);
-  if(existing) existing.parentNode.removeChild(existing);
-
-  var iframe=document.createElement('iframe');
-  iframe.id=frameId;
-  iframe.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:none;';
-  document.body.appendChild(iframe);
-
-  var doc=iframe.contentWindow.document;
-  doc.open();
-  doc.write(fullHtml);
-  doc.close();
+  toast('Generando PDF...');
 
   setTimeout(function(){
-    try{
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-    }catch(e){
-      // Fallback: open in new tab if iframe fails
-      var w=window.open('','_blank');
-      if(w){w.document.write(fullHtml);w.document.close();w.print();}
-    }
-  },400);
+    html2canvas(wrapper, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      width: 794,
+      windowWidth: 794
+    }).then(function(canvas){
+      document.body.removeChild(container);
+      var imgData = canvas.toDataURL('image/png');
+      var pdf = new window.jspdf.jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      var pageW = pdf.internal.pageSize.getWidth();
+      var pageH = pdf.internal.pageSize.getHeight();
+      var imgW = pageW;
+      var imgH = (canvas.height * pageW) / canvas.width;
+      // If content is taller than one page, scale to fit
+      if(imgH > pageH){
+        imgW = (canvas.width * pageH) / canvas.height;
+        imgH = pageH;
+      }
+      var x = (pageW - imgW) / 2;
+      pdf.addImage(imgData, 'PNG', x, 0, imgW, imgH);
+      pdf.save(filename);
+      toast('PDF descargado ✓');
+    }).catch(function(err){
+      document.body.removeChild(container);
+      console.error('PDF error:', err);
+      toast('Error al generar PDF. Intentá de nuevo.');
+    });
+  }, 200);
 }
 
 // ── CONSIGNACIÓN PAGO / REMITO ───────────────────────────────
@@ -2940,12 +2967,12 @@ function printConsRemito(){
   html+='<div class="rf-firma"><div class="rf-line"></div><p>Firma y aclaración</p></div>';
   html+='</div>';
   html+='</div>';
-  openPrintWindow(html);
+  openPrintWindow(html, 'kaizen-consignacion-'+cliente.replace(/\s+/g,'-')+'.pdf');
 }
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260814121539';
+  const BUILD='20260814123650';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
