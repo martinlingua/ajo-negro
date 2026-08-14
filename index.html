@@ -1837,8 +1837,8 @@ function printRemito(ventaId){
 
   // LINE 4: total final
   html+='<tr style="background:#2a3a48;">';
-  html+='<td colspan="3" style="padding:.7rem .8rem;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.7);font-weight:600;">TOTAL</td>';
-  html+='<td style="padding:.7rem .8rem;font-size:1.15rem;font-family:monospace;font-weight:700;text-align:right;color:#fff;">'+fmtMoney(totalFinal)+'</td>';
+  html+='<td colspan="3" style="padding:.7rem .8rem;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#ffffff;font-weight:700;">TOTAL</td>';
+  html+='<td style="padding:.7rem .8rem;font-size:1.15rem;font-family:monospace;font-weight:700;text-align:right;color:#ffffff;">'+fmtMoney(totalFinal)+'</td>';
   html+='</tr>';
 
   html+='</tbody></table>';
@@ -2988,7 +2988,8 @@ function printConsRemito(){
     html+='<tr style="border-bottom:2px solid #2a3a48;"><td colspan="2" style="padding:0;height:2px;"></td></tr>';
   }
   // Saldo final
-  html+='<tr class="total-dark"><td>'+(totalPagado>0?'SALDO A COBRAR':'TOTAL A COBRAR')+'</td><td class="tr">'+fmtMoney(saldoPendiente)+'</td></tr>';
+  html+='<tr><td colspan="2" style="padding:0;height:2px;background:#2a3a48;"></td></tr>';
+  html+='<tr style="background:#2a3a48;"><td style="padding:.65rem .9rem;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#ffffff;font-weight:700;">'+(totalPagado>0?'SALDO A COBRAR':'TOTAL A COBRAR')+'</td><td style="padding:.65rem .9rem;font-size:1.1rem;font-family:monospace;font-weight:700;text-align:right;color:#ffffff;">'+fmtMoney(saldoPendiente)+'</td></tr>';
   html+='</table></div>';
   // Footer
   html+='<div class="remito-footer">';
@@ -3001,7 +3002,7 @@ function printConsRemito(){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260814132237';
+  const BUILD='20260814134615';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
