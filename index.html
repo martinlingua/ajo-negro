@@ -1804,10 +1804,10 @@ function printRemito(ventaId){
   // Table
   html+='<table class="remito-table">';
   html+='<thead><tr>';
-  html+='<th style="width:46%;">Producto</th>';
-  html+='<th style="text-align:right;">Cant.</th>';
-  html+='<th style="text-align:right;">P. Unit.</th>';
-  html+='<th style="text-align:right;">Total</th>';
+  html+='<th style="padding:.5rem .7rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;" style="width:46%;padding:.5rem .7rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;">Producto</th>';
+  html+='<th style="padding:.5rem .7rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">Cant.</th>';
+  html+='<th style="padding:.5rem .7rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">P. Unit.</th>';
+  html+='<th style="padding:.5rem .7rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">Total</th>';
   html+='</tr></thead>';
   html+='<tbody>';
 
@@ -2929,13 +2929,13 @@ function printConsRemito(){
   // Table
   html+='<table class="remito-table">';
   html+='<thead><tr>';
-  html+='<th>Producto</th>';
-  html+='<th class="tr">F. Entrega</th>';
-  html+='<th class="tr">Días</th>';
-  html+='<th class="tr">Cant.</th>';
-  html+='<th class="tr">P. Lista</th>';
-  html+='<th class="tr">P. Acordado</th>';
-  html+='<th class="tr">Total</th>';
+  html+='<th style="padding:.45rem .6rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;">Producto</th>';
+  html+='<th style="padding:.45rem .6rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">F. Entrega</th>';
+  html+='<th style="padding:.45rem .6rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">Días</th>';
+  html+='<th style="padding:.45rem .6rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">Cant.</th>';
+  html+='<th style="padding:.45rem .6rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">P. Lista</th>';
+  html+='<th style="padding:.45rem .6rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">P. Acordado</th>';
+  html+='<th style="padding:.45rem .6rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">Total</th>';
   html+='</tr></thead>';
   html+='<tbody>';
   const today=todayStr();
@@ -3002,7 +3002,7 @@ function printConsRemito(){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260814134615';
+  const BUILD='20260814135120';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
