@@ -1981,9 +1981,12 @@ function saveVenta(){
       }
     }
     if(!S.consignaciones) S.consignaciones=[];
+    const descPctCons=Math.min(Math.max(parseFloat(document.getElementById('mv-descuento')?.value)||0,0),100);
+    const descFactorCons=1-(descPctCons/100);
     _mvItems.forEach(it=>{
       const prod=S.productos.find(x=>x.id===it.producto_id);
       if(prod) prod.stock=Math.max(0,prod.stock-it.cantidad);
+      const precioAcordado=Math.round(it.precio*descFactorCons*100)/100;
       S.consignaciones.push({
         id:uid(),
         cliente:cliente,
@@ -1991,14 +1994,17 @@ function saveVenta(){
         producto_nombre:it.producto_nombre,
         cantidad:it.cantidad,
         pendiente:it.cantidad,
-        precio:it.precio,
+        precio:precioAcordado,      // precio con descuento aplicado
+        precioLista:it.precio,      // precio original de catálogo
+        descuento:descPctCons,
         fecha:fecha,
         notas:notas,
         liquidaciones:[]
       });
     });
+    const descTxtCons=descPctCons>0?' · Desc. '+descPctCons+'%':'';
     saveS();closeModal('modal-venta');stockRefresh();consRefresh();
-    toast('Consignación registrada · '+_mvItems.length+' ítem(s) → '+cliente);
+    toast('Consignación registrada · '+_mvItems.length+' ítem(s)'+descTxtCons+' → '+cliente);
     _mvItems=[];
     return;
   }
@@ -2730,43 +2736,64 @@ Si hay pendiente (${c.pendiente} uds.), se restaurará el stock.`))return;
 // ── PRINT HELPER ─────────────────────────────────────────────
 function openPrintWindow(bodyHtml){
   var css=[
-    'body{margin:1.5cm 2cm;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;background:#fff;}',
-    '.remito-header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #2a3a48;padding-bottom:1.2rem;margin-bottom:1.5rem;}',
-    '.remito-logo{width:70px;height:70px;object-fit:cover;border-radius:10px;}',
+    '@page{margin:1.5cm;size:A4;}',
+    'body{margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;background:#fff;}',
+    '.remito-header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #2a3a48;padding-bottom:1rem;margin-bottom:1.2rem;}',
+    '.remito-logo{width:65px;height:65px;object-fit:cover;border-radius:8px;}',
     '.remito-brand{text-align:center;flex:1;padding:0 1rem;}',
-    '.remito-brand h1{font-size:1.8rem;letter-spacing:4px;color:#2a3a48;line-height:1;margin:0;font-weight:900;}',
+    '.remito-brand h1{font-size:1.7rem;letter-spacing:4px;color:#2a3a48;line-height:1;margin:0;font-weight:900;}',
     '.remito-brand p{font-size:11px;color:#5a6a78;letter-spacing:2px;text-transform:uppercase;margin:3px 0 0;}',
     '.remito-tipo{text-align:right;}',
-    '.remito-tipo h2{font-size:.95rem;letter-spacing:2px;color:#4a7a35;line-height:1.4;margin:0;}',
-    '.remito-tipo .r-num{font-size:.75rem;color:#888;margin-top:4px;}',
-    '.remito-meta{display:grid;grid-template-columns:1fr 1fr;gap:.4rem 2rem;margin-bottom:1.2rem;padding:.8rem 1rem;background:#f5f7fa;border:1px solid #e8eaed;}',
-    '.rm-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;margin-bottom:1px;}',
-    '.rm-val{font-size:13px;font-weight:600;color:#1a1a1a;}',
+    '.remito-tipo h2{font-size:.9rem;letter-spacing:1px;color:#4a7a35;line-height:1.4;margin:0;}',
+    '.remito-tipo .r-num{font-size:.72rem;color:#888;margin-top:3px;}',
+    '.remito-meta{display:grid;grid-template-columns:1fr 1fr;gap:.3rem 1.5rem;margin-bottom:1rem;padding:.7rem .9rem;background:#f5f7fa;border:1px solid #e0e4e8;}',
+    '.rm-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:1px;}',
+    '.rm-val{font-size:12px;font-weight:600;color:#1a1a1a;}',
     'table{width:100%;border-collapse:collapse;margin-bottom:1rem;}',
     'thead tr{background:#2a3a48;}',
-    'thead th{padding:.5rem .7rem;text-align:left;font-size:11px;text-transform:uppercase;font-weight:600;color:#fff;}',
+    'thead th{padding:.45rem .6rem;text-align:left;font-size:10px;text-transform:uppercase;font-weight:700;color:#fff;}',
     'tbody tr{border-bottom:1px solid #e8eaed;}',
     'tbody tr:nth-child(even){background:#f8f9fb;}',
-    'tbody td{padding:.45rem .7rem;font-size:12px;color:#2a2a2a;}',
+    'tbody td{padding:.4rem .6rem;font-size:12px;color:#2a2a2a;}',
     '.tr{text-align:right;}',
-    '.total-table{width:auto;margin-left:auto;border-collapse:collapse;min-width:280px;}',
-    '.total-table td{padding:.4rem .8rem;font-size:12px;border-bottom:1px solid #eee;}',
-    '.total-dark td{padding:.65rem .8rem;background:#2a3a48;color:#fff;font-size:1rem;font-weight:700;border-bottom:none;}',
-    '.green{color:#2a7835;}',
-    '.remito-footer{border-top:1px solid #e8eaed;padding-top:.8rem;display:flex;justify-content:space-between;align-items:flex-end;margin-top:.5rem;}',
-    '.rf-nota{font-size:10px;color:#888;line-height:1.6;}',
-    '.rf-line{width:160px;border-top:1px solid #aaa;margin:35px auto 4px;}',
-    '.rf-firma{text-align:center;font-size:10px;color:#888;text-transform:uppercase;}',
-    '@media print{@page{margin:1.5cm;size:A4;}body{margin:0;}}'
+    '.total-table{width:auto;margin-left:auto;min-width:260px;border-collapse:collapse;}',
+    '.total-table td{padding:.35rem .8rem;font-size:12px;border-bottom:1px solid #eee;}',
+    '.total-dark{background:#2a3a48 !important;}',
+    '.total-dark td{padding:.6rem .8rem;color:#fff !important;font-size:1rem;font-weight:700;border:none !important;}',
+    '.green{color:#2a7835 !important;}',
+    '.remito-footer{border-top:1px solid #e0e4e8;padding-top:.8rem;display:flex;justify-content:space-between;align-items:flex-end;margin-top:1rem;}',
+    '.rf-nota{font-size:10px;color:#888;line-height:1.5;}',
+    '.rf-line{width:140px;border-top:1px solid #aaa;margin:30px auto 3px;}',
+    '.rf-firma{text-align:center;font-size:10px;color:#888;text-transform:uppercase;}'
   ].join('');
+
   var fullHtml='<!DOCTYPE html><html><head><meta charset="UTF-8"><style>'+css+'</style></head><body>'+bodyHtml+'</body></html>';
-  var win=window.open('','_blank','width=820,height=1000');
-  if(!win){toast('Habilitá los popups para este sitio e intentá de nuevo');return;}
-  win.document.open();
-  win.document.write(fullHtml);
-  win.document.close();
-  win.onload=function(){win.focus();win.print();};
-  setTimeout(function(){if(win&&!win.closed){win.focus();win.print();}},800);
+
+  // Use a hidden iframe — works in Chrome, Edge, and Safari without popup blocker issues
+  var frameId='__kaizen_print_frame__';
+  var existing=document.getElementById(frameId);
+  if(existing) existing.parentNode.removeChild(existing);
+
+  var iframe=document.createElement('iframe');
+  iframe.id=frameId;
+  iframe.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:none;';
+  document.body.appendChild(iframe);
+
+  var doc=iframe.contentWindow.document;
+  doc.open();
+  doc.write(fullHtml);
+  doc.close();
+
+  setTimeout(function(){
+    try{
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    }catch(e){
+      // Fallback: open in new tab if iframe fails
+      var w=window.open('','_blank');
+      if(w){w.document.write(fullHtml);w.document.close();w.print();}
+    }
+  },400);
 }
 
 // ── CONSIGNACIÓN PAGO / REMITO ───────────────────────────────
@@ -2875,7 +2902,7 @@ function printConsRemito(){
     const dias=Math.floor((new Date(today)-new Date(c.fecha))/(1000*60*60*24));
     const diasColor=dias<30?'#2a7835':dias<60?'#a05010':'#b03030';
     const prod=S.productos.find(function(p){return p.id===c.producto_id;});
-    const precioLista=prod?prod.pventa:null;
+    const precioLista=c.precioLista||(prod?prod.pventa:null);
     html+='<tr>';
     html+='<td>'+c.producto_nombre+'</td>';
     html+='<td class="tr" style="font-size:11px;color:#5a6a78;">'+c.fecha+'</td>';
@@ -2918,7 +2945,7 @@ function printConsRemito(){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260814120051';
+  const BUILD='20260814121539';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
