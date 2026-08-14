@@ -2729,19 +2729,44 @@ Si hay pendiente (${c.pendiente} uds.), se restaurará el stock.`))return;
 
 // ── PRINT HELPER ─────────────────────────────────────────────
 function openPrintWindow(bodyHtml){
-  var css='\n  body{margin:0;padding:1.5cm 2cm;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;background:#fff;}\n  .remito-header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #2a3a48;padding-bottom:1.2rem;margin-bottom:1.5rem;}\n  .remito-logo{width:70px;height:70px;object-fit:cover;border-radius:10px;}\n  .remito-brand{text-align:center;flex:1;padding:0 1rem;}\n  .remito-brand h1{font-size:2rem;letter-spacing:4px;color:#2a3a48;line-height:1;margin:0;font-family:Arial,sans-serif;font-weight:900;}\n  .remito-brand p{font-size:11px;color:#5a6a78;letter-spacing:2px;text-transform:uppercase;margin:3px 0 0;}\n  .remito-tipo{text-align:right;}\n  .remito-tipo h2{font-size:1rem;letter-spacing:2px;color:#4a7a35;line-height:1.3;margin:0;font-family:Arial,sans-serif;}\n  .remito-tipo .r-num{font-size:.75rem;color:#888;margin-top:4px;font-family:monospace;}\n  .remito-meta{display:grid;grid-template-columns:1fr 1fr;gap:.4rem 2rem;margin-bottom:1.5rem;padding:.9rem 1rem;background:#f5f7fa;border-radius:8px;border:1px solid #e8eaed;}\n  .rm-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;margin-bottom:1px;}\n  .rm-val{font-size:13px;font-weight:600;color:#1a1a1a;}\n  table{width:100%;border-collapse:collapse;margin-bottom:1.2rem;}\n  thead tr{background:#2a3a48;}\n  thead th{padding:.55rem .8rem;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;color:#fff;}\n  tbody tr{border-bottom:1px solid #e8eaed;}\n  tbody tr:nth-child(even){background:#f8f9fb;}\n  tbody td{padding:.5rem .8rem;font-size:13px;color:#2a2a2a;}\n  .total-table{width:auto;margin-left:auto;border-collapse:collapse;min-width:280px;}\n  .total-table td{padding:.45rem .8rem;}\n  .total-dark{background:#2a3a48;color:#fff;}\n  .total-dark td{padding:.7rem .8rem;color:#fff;}\n  .remito-footer{border-top:1px solid #e8eaed;padding-top:1rem;display:flex;justify-content:space-between;align-items:flex-end;margin-top:1rem;}\n  .rf-nota{font-size:11px;color:#888;line-height:1.6;}\n  .rf-line{width:160px;border-top:1px solid #aaa;margin:40px auto 4px;}\n  .rf-firma{text-align:center;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;}\n  @media print{body{margin:0;padding:1cm 1.5cm;}@page{margin:0;size:A4;}}\n';
-  var fullHtml='<!DOCTYPE html><html><head><meta charset="UTF-8">'+
-    '<style>'+css+'</style>'+
-    '</head><body>'+bodyHtml+'</body></html>';
+  var css=[
+    'body{margin:1.5cm 2cm;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;background:#fff;}',
+    '.remito-header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #2a3a48;padding-bottom:1.2rem;margin-bottom:1.5rem;}',
+    '.remito-logo{width:70px;height:70px;object-fit:cover;border-radius:10px;}',
+    '.remito-brand{text-align:center;flex:1;padding:0 1rem;}',
+    '.remito-brand h1{font-size:1.8rem;letter-spacing:4px;color:#2a3a48;line-height:1;margin:0;font-weight:900;}',
+    '.remito-brand p{font-size:11px;color:#5a6a78;letter-spacing:2px;text-transform:uppercase;margin:3px 0 0;}',
+    '.remito-tipo{text-align:right;}',
+    '.remito-tipo h2{font-size:.95rem;letter-spacing:2px;color:#4a7a35;line-height:1.4;margin:0;}',
+    '.remito-tipo .r-num{font-size:.75rem;color:#888;margin-top:4px;}',
+    '.remito-meta{display:grid;grid-template-columns:1fr 1fr;gap:.4rem 2rem;margin-bottom:1.2rem;padding:.8rem 1rem;background:#f5f7fa;border:1px solid #e8eaed;}',
+    '.rm-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;margin-bottom:1px;}',
+    '.rm-val{font-size:13px;font-weight:600;color:#1a1a1a;}',
+    'table{width:100%;border-collapse:collapse;margin-bottom:1rem;}',
+    'thead tr{background:#2a3a48;}',
+    'thead th{padding:.5rem .7rem;text-align:left;font-size:11px;text-transform:uppercase;font-weight:600;color:#fff;}',
+    'tbody tr{border-bottom:1px solid #e8eaed;}',
+    'tbody tr:nth-child(even){background:#f8f9fb;}',
+    'tbody td{padding:.45rem .7rem;font-size:12px;color:#2a2a2a;}',
+    '.tr{text-align:right;}',
+    '.total-table{width:auto;margin-left:auto;border-collapse:collapse;min-width:280px;}',
+    '.total-table td{padding:.4rem .8rem;font-size:12px;border-bottom:1px solid #eee;}',
+    '.total-dark td{padding:.65rem .8rem;background:#2a3a48;color:#fff;font-size:1rem;font-weight:700;border-bottom:none;}',
+    '.green{color:#2a7835;}',
+    '.remito-footer{border-top:1px solid #e8eaed;padding-top:.8rem;display:flex;justify-content:space-between;align-items:flex-end;margin-top:.5rem;}',
+    '.rf-nota{font-size:10px;color:#888;line-height:1.6;}',
+    '.rf-line{width:160px;border-top:1px solid #aaa;margin:35px auto 4px;}',
+    '.rf-firma{text-align:center;font-size:10px;color:#888;text-transform:uppercase;}',
+    '@media print{@page{margin:1.5cm;size:A4;}body{margin:0;}}'
+  ].join('');
+  var fullHtml='<!DOCTYPE html><html><head><meta charset="UTF-8"><style>'+css+'</style></head><body>'+bodyHtml+'</body></html>';
   var win=window.open('','_blank','width=820,height=1000');
   if(!win){toast('Habilitá los popups para este sitio e intentá de nuevo');return;}
   win.document.open();
   win.document.write(fullHtml);
   win.document.close();
-  // Wait for images to load then print
   win.onload=function(){win.focus();win.print();};
-  // Fallback if onload doesn't fire
-  setTimeout(function(){if(win&&!win.closed){win.focus();win.print();}},1200);
+  setTimeout(function(){if(win&&!win.closed){win.focus();win.print();}},800);
 }
 
 // ── CONSIGNACIÓN PAGO / REMITO ───────────────────────────────
@@ -2837,24 +2862,28 @@ function printConsRemito(){
   html+='<table class="remito-table">';
   html+='<thead><tr>';
   html+='<th>Producto</th>';
-  html+='<th style="text-align:right;">F. Entrega</th>';
-  html+='<th style="text-align:right;">Días</th>';
-  html+='<th style="text-align:right;">Cant.</th>';
-  html+='<th style="text-align:right;">P. Unit.</th>';
-  html+='<th style="text-align:right;">Total</th>';
+  html+='<th class="tr">F. Entrega</th>';
+  html+='<th class="tr">Días</th>';
+  html+='<th class="tr">Cant.</th>';
+  html+='<th class="tr">P. Lista</th>';
+  html+='<th class="tr">P. Acordado</th>';
+  html+='<th class="tr">Total</th>';
   html+='</tr></thead>';
   html+='<tbody>';
   const today=todayStr();
   cons.forEach(function(c){
     const dias=Math.floor((new Date(today)-new Date(c.fecha))/(1000*60*60*24));
     const diasColor=dias<30?'#2a7835':dias<60?'#a05010':'#b03030';
+    const prod=S.productos.find(function(p){return p.id===c.producto_id;});
+    const precioLista=prod?prod.pventa:null;
     html+='<tr>';
     html+='<td>'+c.producto_nombre+'</td>';
-    html+='<td style="text-align:right;font-size:11px;color:#5a6a78;">'+c.fecha+'</td>';
-    html+='<td style="text-align:right;color:'+diasColor+';font-weight:600;">'+dias+'d</td>';
-    html+='<td style="text-align:right;">'+c.pendiente+'</td>';
-    html+='<td style="text-align:right;">'+fmtMoney(c.precio)+'</td>';
-    html+='<td style="text-align:right;font-weight:600;">'+fmtMoney(c.pendiente*c.precio)+'</td>';
+    html+='<td class="tr" style="font-size:11px;color:#5a6a78;">'+c.fecha+'</td>';
+    html+='<td class="tr" style="color:'+diasColor+';font-weight:600;">'+dias+'d</td>';
+    html+='<td class="tr">'+c.pendiente+'</td>';
+    html+='<td class="tr" style="color:#888;">'+(precioLista?fmtMoney(precioLista):'—')+'</td>';
+    html+='<td class="tr" style="color:#2a3a48;font-weight:600;">'+fmtMoney(c.precio)+'</td>';
+    html+='<td class="tr" style="font-weight:700;">'+fmtMoney(c.pendiente*c.precio)+'</td>';
     html+='</tr>';
   });
   html+='</tbody></table>';
@@ -2864,28 +2893,20 @@ function printConsRemito(){
   const saldoPendiente=totalDeuda-totalPagado;
 
   // Total section
-  html+='<div class="remito-total-row">';
-  html+='<table style="margin-left:auto;border-collapse:collapse;min-width:300px;">';
+  html+='<div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">';
+  html+='<table class="total-table">';
   // Mercadería
-  html+='<tr style="border-bottom:1px solid #dde0e5;">';
-  html+='<td style="padding:.45rem .8rem;font-size:12px;color:#5a6a78;">Mercadería en consignación</td>';
-  html+='<td style="padding:.45rem .8rem;font-size:13px;font-family:monospace;text-align:right;color:#1a1a1a;">'+fmtMoney(totalDeuda)+'</td>';
-  html+='</tr>';
+  html+='<tr><td>Mercadería en consignación</td><td class="tr">'+fmtMoney(totalDeuda)+'</td></tr>';
   // Pagos a cuenta (si hay)
   if(totalPagado>0){
     pagosCliente.forEach(function(p){
-      html+='<tr style="border-bottom:1px solid #eee;">';
-      html+='<td style="padding:.4rem .8rem;font-size:11px;color:#2a7835;">Pago a cuenta '+p.fecha+(p.notas?' · '+p.notas:'')+'</td>';
-      html+='<td style="padding:.4rem .8rem;font-size:12px;font-family:monospace;text-align:right;color:#2a7835;">- '+fmtMoney(p.monto)+'</td>';
-      html+='</tr>';
+      html+='<tr><td class="green">Pago a cuenta '+p.fecha+(p.notas?' · '+p.notas:'')+'</td><td class="tr green">- '+fmtMoney(p.monto)+'</td></tr>';
     });
-    html+='<tr style="border-bottom:2px solid #2a3a48;"><td colspan="2" style="padding:0;"></td></tr>';
+    html+='<tr style="border-bottom:2px solid #2a3a48;"><td colspan="2" style="padding:0;height:2px;"></td></tr>';
   }
   // Saldo final
-  html+='<tr style="background:#2a3a48;">';
-  html+='<td style="padding:.7rem .8rem;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.7);font-weight:600;">'+(totalPagado>0?'SALDO A COBRAR':'TOTAL A COBRAR')+'</td>';
-  html+='<td style="padding:.7rem .8rem;font-size:1.15rem;font-family:monospace;font-weight:700;text-align:right;color:#fff;">'+fmtMoney(saldoPendiente)+'</td>';
-  html+='</tr></table></div>';
+  html+='<tr class="total-dark"><td>'+(totalPagado>0?'SALDO A COBRAR':'TOTAL A COBRAR')+'</td><td class="tr">'+fmtMoney(saldoPendiente)+'</td></tr>';
+  html+='</table></div>';
   // Footer
   html+='<div class="remito-footer">';
   html+='<div class="rf-nota">Documento de consignación · KAIZEN Ajo Negro<br>Los días en rojo (&gt;60d) requieren atención prioritaria.</div>';
@@ -2897,7 +2918,7 @@ function printConsRemito(){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260814113205';
+  const BUILD='20260814120051';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
