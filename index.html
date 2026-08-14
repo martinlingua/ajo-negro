@@ -2777,7 +2777,7 @@ function openPrintWindow(bodyHtml, filename){
     '.total-table{width:auto;margin-left:auto;min-width:260px;border-collapse:collapse;}',
     '.total-table td{padding:.35rem .8rem;font-size:12px;border-bottom:1px solid #eee;}',
     '.total-dark{background:#2a3a48;}',
-    '.total-dark td{padding:.6rem .8rem;color:#fff;font-size:1rem;font-weight:700;border:none;}',
+    '.total-dark td{padding:.6rem .8rem;color:#ffffff !important;font-size:1rem;font-weight:700;border:none !important;}',
     '.green{color:#2a7835;}',
     '.remito-footer{border-top:1px solid #e0e4e8;padding-top:.8rem;display:flex;justify-content:space-between;align-items:flex-end;margin-top:1rem;}',
     '.rf-nota{font-size:10px;color:#888;line-height:1.5;}',
@@ -3001,7 +3001,7 @@ function printConsRemito(){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260814125230';
+  const BUILD='20260814132237';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
