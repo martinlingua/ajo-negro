@@ -2693,11 +2693,25 @@ function consRefresh(){
       `<td>${cerrada?'<span class="badge badge-green">Cerrada</span>':`<b class="c-warn">${c.pendiente}</b> / ${c.cantidad}`}</td>`+
       `<td style="display:flex;gap:.3rem;flex-wrap:wrap;">`+
         (cerrada?'':`<button class="btn btn-gold btn-sm" onclick="openConsLiquidar('${c.id}')">Liquidar</button>`)+
+        (cerrada?'':`<button class="btn btn-outline btn-sm" onclick="consEditPrecio('${c.id}')">✎ Precio</button>`)+
         `<button class="btn btn-outline btn-sm" onclick="consVerHistorial('${c.id}')">Ver</button>`+
         `<button class="btn btn-danger btn-sm" onclick="consEliminar('${c.id}')">✕</button>`+
       `</td>`+
       `</tr>`;
   }).join(''):'<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--muted);">Sin entregas en consignación. Usá "+ Nueva entrega" para registrar.</td></tr>';
+}
+
+function consEditPrecio(consId){
+  const c=S.consignaciones.find(x=>x.id===consId);
+  if(!c)return;
+  const nuevo=parseFloat(prompt('Precio acordado actual: '+fmtMoney(c.precio)+'\nIngresá el nuevo precio acordado ($):',c.precio));
+  if(isNaN(nuevo)||nuevo<=0){toast('Precio inválido');return;}
+  const pLista=c.precioLista||(S.productos.find(p=>p.id===c.producto_id)?.pventa)||nuevo;
+  c.precioLista=pLista;
+  c.precio=nuevo;
+  c.descuento=pLista>0?Math.round((1-nuevo/pLista)*100*10)/10:0;
+  saveS();consRefresh();
+  toast('Precio actualizado a '+fmtMoney(nuevo));
 }
 
 function consVerHistorial(consId){
@@ -2929,15 +2943,30 @@ function printConsRemito(){
     const dias=Math.floor((new Date(today)-new Date(c.fecha))/(1000*60*60*24));
     const diasColor=dias<30?'#2a7835':dias<60?'#a05010':'#b03030';
     const prod=S.productos.find(function(p){return p.id===c.producto_id;});
-    const precioLista=c.precioLista||(prod?prod.pventa:null);
+    // precioLista = precio de catálogo (pventa del producto)
+    // precioAcordado = precio con descuento aplicado
+    var precioLista, precioAcordado;
+    if(c.precioLista){
+      // New records: both fields saved explicitly
+      precioLista=c.precioLista;
+      precioAcordado=c.precio;
+    } else if(c.descuento&&c.descuento>0){
+      // Old record with descuento but no precioLista — recalculate
+      precioLista=prod?prod.pventa:c.precio;
+      precioAcordado=Math.round(precioLista*(1-c.descuento/100)*100)/100;
+    } else {
+      // Old record no discount — precio is the acordado, show catalog as lista
+      precioLista=prod?prod.pventa:null;
+      precioAcordado=c.precio;
+    }
     html+='<tr>';
     html+='<td>'+c.producto_nombre+'</td>';
     html+='<td class="tr" style="font-size:11px;color:#5a6a78;">'+c.fecha+'</td>';
     html+='<td class="tr" style="color:'+diasColor+';font-weight:600;">'+dias+'d</td>';
     html+='<td class="tr">'+c.pendiente+'</td>';
     html+='<td class="tr" style="color:#888;">'+(precioLista?fmtMoney(precioLista):'—')+'</td>';
-    html+='<td class="tr" style="color:#2a3a48;font-weight:600;">'+fmtMoney(c.precio)+'</td>';
-    html+='<td class="tr" style="font-weight:700;">'+fmtMoney(c.pendiente*c.precio)+'</td>';
+    html+='<td class="tr" style="color:#2a3a48;font-weight:600;">'+fmtMoney(precioAcordado)+'</td>';
+    html+='<td class="tr" style="font-weight:700;">'+fmtMoney(c.pendiente*precioAcordado)+'</td>';
     html+='</tr>';
   });
   html+='</tbody></table>';
@@ -2972,7 +3001,7 @@ function printConsRemito(){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260814123650';
+  const BUILD='20260814125230';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
