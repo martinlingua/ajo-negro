@@ -488,11 +488,13 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
   <!-- Stats -->
   <div class="stats-grid" id="cons-stats"></div>
 
-  <!-- Client filter -->
-  <div style="margin-bottom:.7rem;">
-    <select id="cons-cliente-filter" onchange="consRefresh()" style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:7px;padding:.38rem .7rem;color:var(--cream);font-family:'DM Mono',monospace;font-size:.8rem;outline:none;">
+  <!-- Client filter + actions -->
+  <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem;flex-wrap:wrap;">
+    <select id="cons-cliente-filter" onchange="consRefresh()" style="flex:1;min-width:140px;background:var(--card);border:1px solid var(--border);border-radius:7px;padding:.38rem .7rem;color:var(--cream);font-family:'DM Mono',monospace;font-size:.8rem;outline:none;">
       <option value="">Todos los clientes</option>
     </select>
+    <button class="btn btn-outline btn-sm" id="btn-cons-pago" style="display:none;" onclick="openConsPago()">💰 Acreditar pago</button>
+    <button class="btn btn-outline btn-sm" id="btn-cons-remito" style="display:none;" onclick="printConsRemito()">🖨 Remito cliente</button>
   </div>
 
   <!-- Consignaciones table -->
@@ -559,6 +561,29 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
     <div class="btn-row">
       <button class="btn btn-gold btn-full" onclick="saveConsignacion()">Registrar entrega</button>
       <button class="btn btn-outline" onclick="closeModal('modal-cons-nueva')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-cons-pago">
+  <div class="modal"><h2>ACREDITAR PAGO</h2>
+    <div class="modal-fields">
+      <div id="cons-pago-resumen" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.7rem .9rem;font-family:'DM Mono',monospace;font-size:.75rem;margin-bottom:.5rem;line-height:1.6;"></div>
+      <div class="field"><label>Monto abonado ($)</label>
+        <input type="number" id="cp-monto" step="0.01" placeholder="0.00" oninput="cpCalcResumen()">
+      </div>
+      <div class="field"><label>Fecha del pago</label>
+        <input type="date" id="cp-fecha">
+      </div>
+      <div class="field"><label>Notas</label>
+        <input type="text" id="cp-notas" placeholder="Ej: transferencia, efectivo...">
+      </div>
+      <div id="cp-resumen" style="background:rgba(74,122,53,.07);border:1px solid var(--gold-dim);border-radius:8px;padding:.7rem .9rem;font-family:'DM Mono',monospace;font-size:.78rem;min-height:2rem;"></div>
+    </div>
+    <input type="hidden" id="cp-cliente">
+    <div class="btn-row">
+      <button class="btn btn-gold btn-full" onclick="saveConsPago()">Registrar pago</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-cons-pago')">Cancelar</button>
     </div>
   </div>
 </div>
@@ -1794,15 +1819,21 @@ function printRemito(ventaId){
     html+='</tr>';
   });
 
-  // LINE 2: descuento (solo si hay)
+  // LINE 2: subtotal (siempre visible)
+  html+='<tr style="border-top:1px solid #dde0e5;">';
+  html+='<td colspan="3" style="padding:.45rem .8rem;font-size:12px;color:#5a6a78;">Subtotal</td>';
+  html+='<td style="text-align:right;padding:.45rem .8rem;font-size:13px;font-family:monospace;color:#1a1a1a;">'+fmtMoney(subtotal)+'</td>';
+  html+='</tr>';
+
+  // LINE 3: descuento (solo si hay)
   if(descPct>0){
-    html+='<tr style="border-top:2px solid #dde0e5;">';
-    html+='<td colspan="3" style="padding:.55rem .8rem;font-size:12px;color:#b03030;font-weight:700;">Descuento '+descPct+'%</td>';
-    html+='<td style="text-align:right;padding:.55rem .8rem;font-size:13px;color:#b03030;font-weight:700;">- '+fmtMoney(descMonto)+'</td>';
+    html+='<tr style="border-bottom:2px solid #2a3a48;">';
+    html+='<td colspan="3" style="padding:.45rem .8rem;font-size:12px;color:#b03030;font-weight:700;">Descuento '+descPct+'%</td>';
+    html+='<td style="text-align:right;padding:.45rem .8rem;font-size:13px;color:#b03030;font-weight:700;">- '+fmtMoney(descMonto)+'</td>';
     html+='</tr>';
   }
 
-  // LINE 3: total
+  // LINE 4: total final
   html+='<tr style="background:#2a3a48;">';
   html+='<td colspan="3" style="padding:.7rem .8rem;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.7);font-weight:600;">TOTAL</td>';
   html+='<td style="padding:.7rem .8rem;font-size:1.15rem;font-family:monospace;font-weight:700;text-align:right;color:#fff;">'+fmtMoney(totalFinal)+'</td>';
@@ -2632,6 +2663,11 @@ function consRefresh(){
   const todosClientes=[...new Set(all.map(c=>c.cliente))].sort();
   filtSel.innerHTML='<option value="">Todos los clientes</option>'+
     todosClientes.map(cl=>`<option value="${cl}"${cl===filtVal?' selected':''}>${cl}</option>`).join('');
+  // Show/hide client action buttons
+  const btnPago=document.getElementById('btn-cons-pago');
+  const btnRemito=document.getElementById('btn-cons-remito');
+  if(btnPago) btnPago.style.display=filtVal?'':'none';
+  if(btnRemito) btnRemito.style.display=filtVal?'':'none';
   // Filter
   const filtered=filtVal?all.filter(c=>c.cliente===filtVal):all;
   // Sort: pendiente first, then by date desc
@@ -2697,9 +2733,145 @@ Si hay pendiente (${c.pendiente} uds.), se restaurará el stock.`))return;
   saveS();stockRefresh();consRefresh();toast('Consignación eliminada');
 }
 
+// ── CONSIGNACIÓN PAGO / REMITO ───────────────────────────────
+
+function openConsPago(){
+  const cliente=document.getElementById('cons-cliente-filter').value;
+  if(!cliente){toast('Seleccioná un cliente primero');return;}
+  // Calculate total debt for this client
+  const cons=S.consignaciones.filter(c=>c.cliente===cliente&&c.pendiente>0);
+  const totalDeuda=cons.reduce((a,c)=>a+(c.pendiente*c.precio),0);
+  document.getElementById('cp-cliente').value=cliente;
+  document.getElementById('cp-monto').value='';
+  document.getElementById('cp-fecha').value=todayStr();
+  document.getElementById('cp-notas').value='';
+  document.getElementById('cp-resumen').textContent='';
+  document.getElementById('cons-pago-resumen').innerHTML=
+    '<b>'+cliente+'</b><br>'+
+    cons.map(c=>c.producto_nombre+' × '+c.pendiente+' uds. = '+fmtMoney(c.pendiente*c.precio)).join('<br>')+
+    '<br><b>Total deuda: '+fmtMoney(totalDeuda)+'</b>';
+  openModal('modal-cons-pago');
+}
+
+function cpCalcResumen(){
+  const cliente=document.getElementById('cp-cliente').value;
+  const monto=parseFloat(document.getElementById('cp-monto').value)||0;
+  const cons=S.consignaciones.filter(c=>c.cliente===cliente&&c.pendiente>0);
+  const totalDeuda=cons.reduce((a,c)=>a+(c.pendiente*c.precio),0);
+  const saldo=totalDeuda-monto;
+  const el=document.getElementById('cp-resumen');
+  if(!monto){el.textContent='';return;}
+  el.innerHTML=
+    'Deuda total: '+fmtMoney(totalDeuda)+'<br>'+
+    'Abono: <b style="color:var(--greens);">'+fmtMoney(monto)+'</b><br>'+
+    'Saldo pendiente: <b style="color:'+(saldo>0?'var(--warn)':'var(--greens)')+';">'+fmtMoney(Math.max(0,saldo))+'</b>';
+}
+
+function saveConsPago(){
+  const cliente=document.getElementById('cp-cliente').value;
+  const monto=parseFloat(document.getElementById('cp-monto').value)||0;
+  const fecha=document.getElementById('cp-fecha').value;
+  const notas=document.getElementById('cp-notas').value.trim();
+  if(!monto||monto<=0){toast('Ingresá un monto válido');return;}
+  if(!fecha){toast('Ingresá la fecha');return;}
+  // Register as a venta record (goes to balance) with producto_nombre = "Pago consignación"
+  const ventaId=uid();
+  S.ventas.push({
+    id:uid(),venta_id:ventaId,
+    fecha,
+    cliente,
+    producto_id:'__cons_pago__',
+    producto_nombre:'Pago consignación',
+    cantidad:1,
+    precioOriginal:monto,
+    precio:monto,
+    total:monto,
+    descuento:0,
+    estado:'Cobrada',
+    notas:notas||'Abono cuenta consignación'
+  });
+  // Track pago in consignaciones state (for history)
+  if(!S.pagosCons) S.pagosCons=[];
+  S.pagosCons.push({id:uid(),cliente,monto,fecha,notas});
+  saveS();closeModal('modal-cons-pago');ventasRefresh();
+  toast('Pago de '+fmtMoney(monto)+' acreditado → balance de '+fecha.slice(0,7));
+}
+
+function printConsRemito(){
+  const cliente=document.getElementById('cons-cliente-filter').value;
+  if(!cliente){toast('Seleccioná un cliente primero');return;}
+  const cons=S.consignaciones.filter(c=>c.cliente===cliente&&c.pendiente>0);
+  if(!cons.length){toast('Este cliente no tiene entregas pendientes');return;}
+  const totalDeuda=cons.reduce((a,c)=>a+(c.pendiente*c.precio),0);
+  const logoSrc=(document.querySelector('#app-shell .hdr-left img')||{}).src||'';
+  const now=new Date();
+  const pad=x=>String(x).padStart(2,'0');
+  const fechaHoy=pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+String(now.getFullYear()).slice(2);
+  let html='';
+  html+='<style>@page{margin:0;size:A4;}@media print{body>*{display:none!important;}#remito-print-area{display:block!important;}}</style>';
+  html+='<div class="remito-doc">';
+  // Header
+  html+='<div class="remito-header">';
+  html+='<img class="remito-logo" src="'+logoSrc+'" alt="KAIZEN">';
+  html+='<div class="remito-brand"><h1>KAIZEN</h1><p>Ajo Negro &middot; Producción Artesanal</p></div>';
+  html+='<div class="remito-tipo"><h2>CUENTA CORRIENTE<br>CONSIGNACIÓN</h2><div class="r-num">'+fechaHoy+'</div></div>';
+  html+='</div>';
+  // Client
+  html+='<div class="remito-meta">';
+  html+='<div><div class="rm-lbl">Cliente</div><div class="rm-val">'+cliente+'</div></div>';
+  html+='<div><div class="rm-lbl">Fecha</div><div class="rm-val">'+fechaHoy+'</div></div>';
+  html+='<div style="grid-column:1/-1;"><div class="rm-lbl">Estado</div><div class="rm-val" style="color:#b85a10;">Mercadería en consignación pendiente de liquidar</div></div>';
+  html+='</div>';
+  // Table
+  html+='<table class="remito-table">';
+  html+='<thead><tr>';
+  html+='<th>Producto</th>';
+  html+='<th style="text-align:right;">F. Entrega</th>';
+  html+='<th style="text-align:right;">Días</th>';
+  html+='<th style="text-align:right;">Cant.</th>';
+  html+='<th style="text-align:right;">P. Unit.</th>';
+  html+='<th style="text-align:right;">Total</th>';
+  html+='</tr></thead>';
+  html+='<tbody>';
+  const today=todayStr();
+  cons.forEach(function(c){
+    const dias=Math.floor((new Date(today)-new Date(c.fecha))/(1000*60*60*24));
+    const diasColor=dias<30?'#2a7835':dias<60?'#a05010':'#b03030';
+    html+='<tr>';
+    html+='<td>'+c.producto_nombre+'</td>';
+    html+='<td style="text-align:right;font-size:11px;color:#5a6a78;">'+c.fecha+'</td>';
+    html+='<td style="text-align:right;color:'+diasColor+';font-weight:600;">'+dias+'d</td>';
+    html+='<td style="text-align:right;">'+c.pendiente+'</td>';
+    html+='<td style="text-align:right;">'+fmtMoney(c.precio)+'</td>';
+    html+='<td style="text-align:right;font-weight:600;">'+fmtMoney(c.pendiente*c.precio)+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  // Total
+  html+='<div class="remito-total-row">';
+  html+='<table style="margin-left:auto;border-collapse:collapse;min-width:280px;">';
+  html+='<tr style="background:#2a3a48;">';
+  html+='<td style="padding:.7rem .8rem;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.7);font-weight:600;">TOTAL A COBRAR</td>';
+  html+='<td style="padding:.7rem .8rem;font-size:1.15rem;font-family:monospace;font-weight:700;text-align:right;color:#fff;">'+fmtMoney(totalDeuda)+'</td>';
+  html+='</tr></table></div>';
+  // Footer
+  html+='<div class="remito-footer">';
+  html+='<div class="rf-nota">Documento de consignación · KAIZEN Ajo Negro<br>Los días en rojo (&gt;60d) requieren atención prioritaria.</div>';
+  html+='<div class="rf-firma"><div class="rf-line"></div><p>Firma y aclaración</p></div>';
+  html+='</div>';
+  html+='</div>';
+  const area=document.getElementById('remito-print-area');
+  area.innerHTML=html;
+  area.style.display='block';
+  setTimeout(function(){
+    window.print();
+    setTimeout(function(){area.style.display='none';area.innerHTML='';},800);
+  },350);
+}
+
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260803114508';
+  const BUILD='20260814105740';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
