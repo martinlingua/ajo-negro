@@ -2508,51 +2508,55 @@ function diagRefresh(){
     html+='<div class="diag-empty">No hay firmas para esta etapa.</div>';
   } else {
     visibles.forEach(function(fm){
-      const done=diagReg.some(function(r){return r.firma_id===fm.id;});
-      const open=_diagAbiertas.has(fm.id);
-      var fixHTML='';
-      if(!fm.fix){
-        fixHTML='<div style="color:var(--greens);font-family:DM Mono,monospace;font-size:12px;">✓ Perfil correcto — no corregir ninguna variable.</div>'
-          +'<button class="btn btn-outline btn-sm" style="margin-top:10px;" onclick="diagRegistrar(''+fm.id+'')">Registrar observación</button>';
-      } else if(!fm.fix.campo){
-        fixHTML='<div class="desc">'+fm.fix.desc+'</div>'
-          +(fm.fix.nota?'<div class="firma-fix nota">'+fm.fix.nota+'</div>':'')
-          +'<button class="btn btn-gold btn-sm" style="margin-top:10px;" onclick="diagRegistrar(''+fm.id+'')">Registrar diagnóstico</button>';
-      } else {
-        var actual=fase[fm.fix.campo];
-        var sug=actual!=null?actual+fm.fix.delta:'?';
-        var unid=fm.fix.campo.startsWith('t')?'°C':'%';
-        fixHTML='<div class="desc">'+fm.fix.desc+'</div>'
-          +'<div class="adjust-row">'
-          +'<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);">'+(CAMPO_LBL[fm.fix.campo]||fm.fix.campo)+'</span>'
-          +'<span class="from">'+(actual!=null?actual+unid:'—')+'</span>'
-          +'<span style="font-family:DM Mono,monospace;color:var(--gold2);">→</span>'
-          +'<div style="display:flex;flex-direction:column;gap:3px;">'
-          +'<span style="font-family:DM Mono,monospace;font-size:9px;text-transform:uppercase;color:var(--muted2);">Destino (editable)</span>'
-          +'<input type="number" step="1" value="'+sug+'" id="diag-to-'+fm.id+'" style="width:80px;background:var(--bg3);border:1px solid var(--gold);color:var(--cream);font-family:DM Mono,monospace;font-size:14px;padding:5px 8px;border-radius:6px;">'
-          +'</div></div>'
-          +(fm.fix.nota?'<div class="firma-fix nota">↳ '+fm.fix.nota+'</div>':'')
-          +'<button class="btn btn-gold btn-sm" style="margin-top:10px;" onclick="diagRegistrar(''+fm.id+'')">Registrar corrección</button>';
-      }
-      html+='<div class="firma-card t-'+fm.tipo+(done?' done':'')+(open?' open':'')+'"><button class="firma-top-btn" onclick="diagToggle(''+fm.id+'')">'
-        +'<span class="firma-chk">'+(done?'✓':'')+'</span>'
-        +'<span style="flex:1;"><span class="firma-nm">'+fm.nm+'</span>'
-        +'<span class="firma-meta"> · '+( CONF_LBL[fm.conf]||fm.conf)+'</span></span>'
-        +'<span style="font-family:DM Mono,monospace;color:var(--muted);transform:'+(open?'rotate(90deg)':'none')+';display:inline-block;">▸</span>'
-        +'</button>'
-        +'<div class="firma-body">'
-        +'<div class="firma-readout">'
-        +'<div class="cell"><div class="k">Aroma</div><div class="v">'+fm.aroma+'</div></div>'
-        +'<div class="cell"><div class="k">Textura</div><div class="v">'+fm.textura+'</div></div>'
-        +'<div class="cell"><div class="k">Color</div><div class="v">'+fm.color+'</div></div>'
-        +'<div class="cell"><div class="k">Confianza</div><div class="v '+(CONF_CLR[fm.conf]||'')+'">'+(CONF_LBL[fm.conf]||fm.conf)+'</div></div>'
-        +'</div>'
-        +'<div class="firma-cause">'+fm.cause+'</div>'
-        +'<div class="firma-fix t-'+fm.tipo+'"><div class="lever">Corrección sugerida</div>'+fixHTML+'</div>'
-        +'</div></div>';
-    });
-  }
+      var fid = fm.id;
+      var done = diagReg.some(function(r){return r.firma_id===fid;});
+      var open = _diagAbiertas.has(fid);
 
+      // Build fix block using data-reg attribute (no inline onclick with quotes)
+      var fixHTML = '';
+      if(!fm.fix){
+        fixHTML = '<div style="color:var(--greens);font-family:DM Mono,monospace;font-size:12px;">' +
+          '&#10003; Perfil correcto &#8212; no corregir ninguna variable.</div>' +
+          '<button class="btn btn-outline btn-sm" style="margin-top:10px;" data-reg="' + fid + '">Registrar observaci&#243;n</button>';
+      } else if(!fm.fix.campo){
+        fixHTML = '<div class="desc">' + fm.fix.desc + '</div>' +
+          (fm.fix.nota ? '<div class="firma-fix nota">' + fm.fix.nota + '</div>' : '') +
+          '<button class="btn btn-gold btn-sm" style="margin-top:10px;" data-reg="' + fid + '">Registrar diagn&#243;stico</button>';
+      } else {
+        var actual = fase[fm.fix.campo];
+        var sug = actual != null ? actual + fm.fix.delta : '';
+        var unid = fm.fix.campo.startsWith('t') ? '&#176;C' : '%';
+        fixHTML = '<div class="desc">' + fm.fix.desc + '</div>' +
+          '<div class="adjust-row">' +
+          '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);">' + (CAMPO_LBL[fm.fix.campo]||fm.fix.campo) + '</span>' +
+          '<span class="from">' + (actual != null ? actual + unid : '&#8212;') + '</span>' +
+          '<span style="font-family:DM Mono,monospace;color:var(--gold2);">&#8594;</span>' +
+          '<div style="display:flex;flex-direction:column;gap:3px;">' +
+          '<span style="font-family:DM Mono,monospace;font-size:9px;text-transform:uppercase;color:var(--muted2);">Destino (editable)</span>' +
+          '<input type="number" step="1" value="' + sug + '" id="diag-to-' + fid + '" style="width:80px;background:var(--bg3);border:1px solid var(--gold);color:var(--cream);font-family:DM Mono,monospace;font-size:14px;padding:5px 8px;border-radius:6px;">' +
+          '</div></div>' +
+          (fm.fix.nota ? '<div class="firma-fix nota">&#8618; ' + fm.fix.nota + '</div>' : '') +
+          '<button class="btn btn-gold btn-sm" style="margin-top:10px;" data-reg="' + fid + '">Registrar correcci&#243;n</button>';
+      }
+
+      html += '<div class="firma-card t-' + fm.tipo + (done?' done':'') + (open?' open':'') + '" id="fc-' + fid + '">' +
+        '<button class="firma-top-btn" data-toggle="' + fid + '">' +
+        '<span class="firma-chk">' + (done?'&#10003;':'') + '</span>' +
+        '<span style="flex:1;"><span class="firma-nm">' + fm.nm + '</span>' +
+        '<span class="firma-meta"> &middot; ' + (CONF_LBL[fm.conf]||fm.conf) + '</span></span>' +
+        '<span style="font-family:DM Mono,monospace;color:var(--muted);display:inline-block;">' + (open?'&#9660;':'&#9654;') + '</span>' +
+        '</button>' +
+        '<div class="firma-body">' +
+        '<div class="firma-readout">' +
+        '<div class="cell"><div class="k">Aroma</div><div class="v">' + fm.aroma + '</div></div>' +
+        '<div class="cell"><div class="k">Textura</div><div class="v">' + fm.textura + '</div></div>' +
+        '<div class="cell"><div class="k">Color</div><div class="v">' + fm.color + '</div></div>' +
+        '<div class="cell"><div class="k">Confianza</div><div class="v ' + (CONF_CLR[fm.conf]||'') + '">' + (CONF_LBL[fm.conf]||fm.conf) + '</div></div>' +
+        '</div>' +
+        '<div class="firma-cause">' + fm.cause + '</div>' +
+        '<div class="firma-fix t-' + fm.tipo + '"><div class="lever">Correcci&#243;n sugerida</div>' + fixHTML + '</div>' +
+        '</div></div>';
+  });
   // Registro panel
   html+='</div><div><div class="diag-reg-panel">';
   html+='<div class="section-title" style="margin-bottom:.5rem;">Registro del lote</div>';
@@ -2565,7 +2569,7 @@ function diagRefresh(){
       var d=new Date(r.ts);
       var f=d.toLocaleDateString('es-AR')+' '+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
       html+='<div class="diag-reg-item">'
-        +'<button class="rx" onclick="diagBorrar(''+r.id+'')">×</button>'
+        +'<button class="rx" data-del="'+r.id+'">&#215;</button>'
         +'<div class="rt">'+f+' · '+r.fase+'</div>'
         +'<div class="rn">'+r.firma+'</div>'
         +(r.campo?'<div class="rf">'+(CAMPO_LBL[r.campo]||r.campo)+': '+r.de+' → '+r.a+'</div>':'<div class="rf">'+(r.accion||'observación')+'</div>')
@@ -2575,6 +2579,15 @@ function diagRefresh(){
   html+='</div></div></div></div>';
 
   root.innerHTML=html;
+  root.querySelectorAll('[data-toggle]').forEach(function(btn){
+    btn.addEventListener('click',function(){diagToggle(btn.dataset.toggle);});
+  });
+  root.querySelectorAll('[data-reg]').forEach(function(btn){
+    btn.addEventListener('click',function(){diagRegistrar(btn.dataset.reg);});
+  });
+  root.querySelectorAll('[data-del]').forEach(function(btn){
+    btn.addEventListener('click',function(){diagBorrar(btn.dataset.del);});
+  });
 }
 
 function diagToggle(id){
@@ -2612,7 +2625,7 @@ function diagBorrar(id){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260818133331';
+  const BUILD='20260818134638';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
