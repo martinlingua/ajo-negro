@@ -54,10 +54,52 @@
 .rf-firma{text-align:center;}
 .rf-line{width:160px;border-top:1px solid #aaa;margin:40px auto 4px;}
 .rf-firma p{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;}
-/* ── CONSIGNACIÓN ── */
-.dias-ok{color:var(--greens);}
-.dias-warn{color:var(--warn);}
-.dias-alert{color:var(--reds);font-weight:700;}
+/* ── DIAGNÓSTICO SENSORIAL ── */
+#page-diagnostico{color:var(--cream);}
+.diag-ctx{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end;margin-bottom:1rem;}
+.diag-seg{display:inline-flex;background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.diag-seg button{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);background:transparent;border:none;padding:7px 13px;cursor:pointer;border-right:1px solid var(--border);}
+.diag-seg button:last-child{border-right:none;}
+.diag-seg button.active{background:var(--gold);color:#fff;font-weight:700;}
+.diag-snapshot{display:flex;flex-wrap:wrap;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:.5rem;}
+.diag-sp{background:var(--bg3);padding:8px 13px;flex:1 1 80px;}
+.diag-sp .k{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);}
+.diag-sp .v{font-family:'DM Mono',monospace;font-size:14px;color:var(--cream);font-weight:600;margin-top:2px;}
+.diag-layout{display:grid;grid-template-columns:1fr;gap:18px;}
+@media(min-width:700px){.diag-layout{grid-template-columns:1.5fr 1fr;}}
+.firma-card{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--border);border-radius:9px;margin-bottom:9px;overflow:hidden;}
+.firma-card.t-extender{border-left-color:#e8b84b;}
+.firma-card.t-reducir{border-left-color:#cc4040;}
+.firma-card.t-humedad{border-left-color:#2870b8;}
+.firma-card.t-normal{border-left-color:#389848;}
+.firma-card.done{opacity:.6;}
+.firma-top-btn{width:100%;text-align:left;background:none;border:none;color:inherit;cursor:pointer;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;}
+.firma-chk{flex:0 0 auto;width:17px;height:17px;border:1.5px solid var(--muted);border-radius:4px;margin-top:2px;display:grid;place-items:center;font-size:11px;}
+.firma-card.done .firma-chk{background:var(--greens);border-color:var(--greens);color:#fff;}
+.firma-nm{font-weight:700;font-size:14px;color:var(--cream);}
+.firma-meta{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;}
+.firma-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border);}
+.firma-card.open .firma-body{display:block;}
+.firma-readout{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:7px;overflow:hidden;margin:10px 0;}
+.firma-readout .cell{background:var(--bg3);padding:7px 9px;}
+.firma-readout .cell .k{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-family:'DM Mono',monospace;}
+.firma-readout .cell .v{font-size:12px;color:var(--cream);margin-top:2px;}
+.firma-cause{font-size:12px;color:var(--muted);margin-bottom:10px;}
+.firma-fix{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px;}
+.firma-fix .lever{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--gold2);font-weight:700;margin-bottom:7px;}
+.firma-fix .desc{font-size:13px;color:var(--cream);margin-bottom:10px;}
+.firma-fix .nota{font-size:11px;color:var(--blues);font-family:'DM Mono',monospace;margin-top:8px;}
+.adjust-row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-bottom:8px;}
+.adjust-row .from{font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);}
+.adjust-row input{width:80px;background:var(--bg3);border:1px solid var(--gold);color:var(--cream);font-family:'DM Mono',monospace;font-size:14px;padding:5px 8px;border-radius:6px;}
+.diag-reg-panel{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px;}
+.diag-reg-list{margin-top:10px;display:flex;flex-direction:column;gap:8px;max-height:55vh;overflow:auto;}
+.diag-reg-item{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:9px 10px;position:relative;}
+.diag-reg-item .rt{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);}
+.diag-reg-item .rn{font-size:13px;font-weight:600;margin:2px 0;color:var(--cream);}
+.diag-reg-item .rf{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold2);}
+.diag-reg-item .rx{position:absolute;top:7px;right:8px;color:var(--muted);background:none;border:none;cursor:pointer;font-size:14px;}
+.diag-empty{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted2);padding:16px 2px;text-align:center;}
 
 </style>
 <meta name="build" content="20260429141004">
@@ -69,8 +111,6 @@
 <meta name="apple-mobile-web-app-title" content="KAIZEN">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 :root {
@@ -177,7 +217,7 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 .modal{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.1);padding:1.4rem;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;}
 .modal h2{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:3px;color:var(--gold2);margin-bottom:1rem;}
 .modal-fields{display:flex;flex-direction:column;gap:.7rem;}
-#toast{position:fixed;top:1rem;left:50%;transform:translateX(-50%) translateY(-200%);background:#2a3a48;border:1px solid #4a7a9a;box-shadow:0 4px 16px rgba(0,0,0,.2);border-radius:8px;padding:.55rem 1.3rem;font-family:'DM Mono',monospace;font-size:.8rem;color:var(--gold2);z-index:9999;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;pointer-events:none;}
+#toast{position:fixed;bottom:4.5rem;left:50%;transform:translateX(-50%) translateY(120%);background:#2a3a48;border:1px solid #4a7a9a;box-shadow:0 4px 16px rgba(0,0,0,.2);border-radius:8px;padding:.55rem 1.3rem;font-family:'DM Mono',monospace;font-size:.8rem;color:var(--gold2);z-index:9999;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;pointer-events:none;}
 #toast.show{transform:translateX(-50%) translateY(0);color:#c8e4f8;}
 
 /* PRODUCTION */
@@ -256,7 +296,7 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
   <div class="tab" data-tab="stock" onclick="goTab('stock')"><span class="ti">📦</span>Stock</div>
   <div class="tab" data-tab="ventas" onclick="goTab('ventas')"><span class="ti">💰</span>Ventas</div>
   <div class="tab" data-tab="balance" onclick="goTab('balance')"><span class="ti">📊</span>Balance</div>
-  <div class="tab" data-tab="consignacion" onclick="goTab('consignacion')"><span class="ti">🤝</span>Consign.</div>
+  <div class="tab" data-tab="diagnostico" onclick="goTab('diagnostico')"><span class="ti">🔬</span>Diagnós.</div>
 </nav>
 
 <div class="pages">
@@ -484,38 +524,10 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 </div>
 
 
-<div class="page" id="page-consignacion">
-  <div class="section-title">CONSIGNACIÓN<button class="btn btn-gold btn-sm" onclick="openConsModal()">+ Nueva entrega</button></div>
-
-  <!-- Stats -->
-  <div class="stats-grid" id="cons-stats"></div>
-
-  <!-- Client filter + actions -->
-  <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem;flex-wrap:wrap;">
-    <select id="cons-cliente-filter" onchange="consRefresh()" style="flex:1;min-width:140px;background:var(--card);border:1px solid var(--border);border-radius:7px;padding:.38rem .7rem;color:var(--cream);font-family:'DM Mono',monospace;font-size:.8rem;outline:none;">
-      <option value="">Todos los clientes</option>
-    </select>
-    <button class="btn btn-outline btn-sm" id="btn-cons-pago" style="display:none;" onclick="openConsPago()">💰 Acreditar pago</button>
-    <button class="btn btn-outline btn-sm" id="btn-cons-remito" style="display:none;" onclick="printConsRemito()">🖨 Remito cliente</button>
-  </div>
-
-  <!-- Consignaciones table -->
-  <div class="tbl-wrap" style="max-height:none;">
-    <table>
-      <thead><tr>
-        <th>Cliente</th>
-        <th>Producto</th>
-        <th>Entregado</th>
-        <th>Fecha</th>
-        <th>Días</th>
-        <th>Pendiente</th>
-        <th>Acciones</th>
-      </tr></thead>
-      <tbody id="cons-tbody"></tbody>
-    </table>
-  </div>
+<div class="page" id="page-diagnostico">
+  <div class="section-title">DIAGNÓSTICO SENSORIAL</div>
+  <div id="diag-root"></div>
 </div>
-
 </div><!-- /pages -->
 
 <!-- ══ MODALS ══ -->
@@ -532,87 +544,6 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
     </div>
     <input type="hidden" id="ml-edit-id">
     <div class="btn-row"><button class="btn btn-gold btn-full" onclick="saveLote()">Guardar</button><button class="btn btn-outline" onclick="closeModal('modal-lote')">Cancelar</button></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-cons-nueva">
-  <div class="modal"><h2>NUEVA ENTREGA EN CONSIGNACIÓN</h2>
-    <div class="modal-fields">
-      <div class="grid2">
-        <div class="field"><label>Cliente</label><input type="text" id="cn-cliente" placeholder="Nombre del negocio"></div>
-        <div class="field"><label>Fecha entrega</label><input type="date" id="cn-fecha"></div>
-      </div>
-      <div class="grid2">
-        <div class="field"><label>Producto</label>
-          <select id="cn-producto" onchange="cnAutoPrice()">
-            <option value="">Seleccionar...</option>
-          </select>
-        </div>
-        <div class="field"><label>Cantidad</label>
-          <input type="number" id="cn-cantidad" min="1" step="1" oninput="cnCalcTotal()">
-        </div>
-      </div>
-      <div class="field"><label>Precio unitario acordado ($)</label>
-        <input type="number" id="cn-precio" step="0.01" oninput="cnCalcTotal()">
-      </div>
-      <div style="font-family:'DM Mono',monospace;font-size:.78rem;color:var(--gold2);height:1.2rem;" id="cn-preview"></div>
-      <div class="field"><label>Notas (opcional)</label>
-        <input type="text" id="cn-notas" placeholder="Ej: exhibidor entrada, heladera...">
-      </div>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-gold btn-full" onclick="saveConsignacion()">Registrar entrega</button>
-      <button class="btn btn-outline" onclick="closeModal('modal-cons-nueva')">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-cons-pago">
-  <div class="modal"><h2>ACREDITAR PAGO</h2>
-    <div class="modal-fields">
-      <div id="cons-pago-resumen" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.7rem .9rem;font-family:'DM Mono',monospace;font-size:.75rem;margin-bottom:.5rem;line-height:1.6;"></div>
-      <div class="field"><label>Monto abonado ($)</label>
-        <input type="number" id="cp-monto" step="0.01" placeholder="0.00" oninput="cpCalcResumen()">
-      </div>
-      <div class="field"><label>Fecha del pago</label>
-        <input type="date" id="cp-fecha">
-      </div>
-      <div class="field"><label>Notas</label>
-        <input type="text" id="cp-notas" placeholder="Ej: transferencia, efectivo...">
-      </div>
-      <div id="cp-resumen" style="background:rgba(74,122,53,.07);border:1px solid var(--gold-dim);border-radius:8px;padding:.7rem .9rem;font-family:'DM Mono',monospace;font-size:.78rem;min-height:2rem;"></div>
-    </div>
-    <input type="hidden" id="cp-cliente">
-    <div class="btn-row">
-      <button class="btn btn-gold btn-full" onclick="saveConsPago()">Registrar pago</button>
-      <button class="btn btn-outline" onclick="closeModal('modal-cons-pago')">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-cons-liquidar">
-  <div class="modal"><h2 id="cons-liq-title">LIQUIDAR / DEVOLVER</h2>
-    <div class="modal-fields">
-      <div id="cons-liq-info" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.7rem .9rem;font-family:'DM Mono',monospace;font-size:.78rem;margin-bottom:.5rem;"></div>
-      <div class="grid2">
-        <div class="field">
-          <label>Vendidos (van al balance)</label>
-          <input type="number" id="cl-vendidos" min="0" step="1" value="0" oninput="clCalcResumen()">
-        </div>
-        <div class="field">
-          <label>Devueltos (vuelven al stock)</label>
-          <input type="number" id="cl-devueltos" min="0" step="1" value="0" oninput="clCalcResumen()">
-        </div>
-      </div>
-      <div id="cl-resumen" style="background:rgba(74,122,53,.07);border:1px solid var(--gold-dim);border-radius:8px;padding:.7rem .9rem;font-family:'DM Mono',monospace;font-size:.78rem;"></div>
-      <div class="field"><label>Fecha liquidación</label><input type="date" id="cl-fecha"></div>
-      <div class="field"><label>Notas</label><input type="text" id="cl-notas" placeholder="Opcional"></div>
-    </div>
-    <input type="hidden" id="cl-cons-id">
-    <div class="btn-row">
-      <button class="btn btn-gold btn-full" onclick="saveConsLiquidacion()">Confirmar</button>
-      <button class="btn btn-outline" onclick="closeModal('modal-cons-liquidar')">Cancelar</button>
-    </div>
   </div>
 </div>
 
@@ -753,10 +684,7 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
         <div class="field"><label>Cliente</label><input type="text" id="mv-cliente" placeholder="Nombre o empresa"></div>
       </div>
       <div class="grid2">
-        <div class="field"><label>Estado</label><select id="mv-estado" onchange="mvEstadoChange()"><option>Cobrada</option><option>Pendiente</option><option>Cancelada</option><option>Consignación</option></select></div>
-        <div id="mv-cons-banner" style="display:none;background:rgba(30,90,154,.08);border:1px solid #3478c0;border-radius:8px;padding:.6rem .8rem;font-family:'DM Mono',monospace;font-size:.72rem;color:#1e5a9a;line-height:1.5;">
-          🤝 <b>Modo consignación</b> — el stock se descuenta ahora pero <b>no va al balance</b> hasta que el cliente liquide. La entrega aparecerá en la pestaña Consign.
-        </div>
+        <div class="field"><label>Estado</label><select id="mv-estado"><option>Cobrada</option><option>Pendiente</option><option>Cancelada</option></select></div>
         <div class="field"><label>Notas generales</label><input type="text" id="mv-notas" placeholder="Opcional"></div>
       </div>
 
@@ -817,8 +745,7 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 <script>
 // ── STATE ────────────────────────────────────────────────────
 let S={activeLoteId:null,lotes:[],lote:{lote:'—',variedad:'—',fecha:'—',peso:'—',resp:'—'},prodRecords:{},prodDay:1,prodChart:'both',costoItems:[],costoFijos:[],kgProducidos:0,productos:[],ventas:[],activeMes:'',
-  fasesConfig:null, // null = use defaults; set when user customizes
-  consignaciones:[] // [{id, cliente, producto_id, producto_nombre, cantidad, precio, fecha, notas, pendiente, liquidaciones:[{fecha,vendidos,devueltos,notas}]}]
+  fasesConfig:null // null = use defaults; set when user customizes
 };
 
 // ── LOTE HELPERS ──────────────────────────────────────────────
@@ -954,7 +881,7 @@ function refreshAll(){
   if(activeTab==='stock')stockRefresh();
   if(activeTab==='ventas')ventasRefresh();
   if(activeTab==='balance')balanceRefresh();
-  if(activeTab==='consignacion')consRefresh();
+  if(activeTab==='diagnostico')diagRefresh();
 }
 function todayYM(){return new Date().toISOString().slice(0,7);}
 function todayStr(){return new Date().toISOString().slice(0,10);}
@@ -970,7 +897,7 @@ function goTab(tab){
   if(tab==='stock')stockRefresh();
   if(tab==='ventas')ventasRefresh();
   if(tab==='balance')balanceRefresh();
-  if(tab==='consignacion')consRefresh();
+  if(tab==='diagnostico')diagRefresh();
 }
 function cycleMonth(){
   const[y,m]=S.activeMes.split('-').map(Number);
@@ -1804,10 +1731,10 @@ function printRemito(ventaId){
   // Table
   html+='<table class="remito-table">';
   html+='<thead><tr>';
-  html+='<th style="padding:.5rem .7rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;" style="width:46%;padding:.5rem .7rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;">Producto</th>';
-  html+='<th style="padding:.5rem .7rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">Cant.</th>';
-  html+='<th style="padding:.5rem .7rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">P. Unit.</th>';
-  html+='<th style="padding:.5rem .7rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">Total</th>';
+  html+='<th style="width:46%;">Producto</th>';
+  html+='<th style="text-align:right;">Cant.</th>';
+  html+='<th style="text-align:right;">P. Unit.</th>';
+  html+='<th style="text-align:right;">Total</th>';
   html+='</tr></thead>';
   html+='<tbody>';
 
@@ -1821,24 +1748,18 @@ function printRemito(ventaId){
     html+='</tr>';
   });
 
-  // LINE 2: subtotal (siempre visible)
-  html+='<tr style="border-top:1px solid #dde0e5;">';
-  html+='<td colspan="3" style="padding:.45rem .8rem;font-size:12px;color:#5a6a78;">Subtotal</td>';
-  html+='<td style="text-align:right;padding:.45rem .8rem;font-size:13px;font-family:monospace;color:#1a1a1a;">'+fmtMoney(subtotal)+'</td>';
-  html+='</tr>';
-
-  // LINE 3: descuento (solo si hay)
+  // LINE 2: descuento (solo si hay)
   if(descPct>0){
-    html+='<tr style="border-bottom:2px solid #2a3a48;">';
-    html+='<td colspan="3" style="padding:.45rem .8rem;font-size:12px;color:#b03030;font-weight:700;">Descuento '+descPct+'%</td>';
-    html+='<td style="text-align:right;padding:.45rem .8rem;font-size:13px;color:#b03030;font-weight:700;">- '+fmtMoney(descMonto)+'</td>';
+    html+='<tr style="border-top:2px solid #dde0e5;">';
+    html+='<td colspan="3" style="padding:.55rem .8rem;font-size:12px;color:#b03030;font-weight:700;">Descuento '+descPct+'%</td>';
+    html+='<td style="text-align:right;padding:.55rem .8rem;font-size:13px;color:#b03030;font-weight:700;">- '+fmtMoney(descMonto)+'</td>';
     html+='</tr>';
   }
 
-  // LINE 4: total final
+  // LINE 3: total
   html+='<tr style="background:#2a3a48;">';
-  html+='<td colspan="3" style="padding:.7rem .8rem;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#ffffff;font-weight:700;">TOTAL</td>';
-  html+='<td style="padding:.7rem .8rem;font-size:1.15rem;font-family:monospace;font-weight:700;text-align:right;color:#ffffff;">'+fmtMoney(totalFinal)+'</td>';
+  html+='<td colspan="3" style="padding:.7rem .8rem;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.7);font-weight:600;">TOTAL</td>';
+  html+='<td style="padding:.7rem .8rem;font-size:1.15rem;font-family:monospace;font-weight:700;text-align:right;color:#fff;">'+fmtMoney(totalFinal)+'</td>';
   html+='</tr>';
 
   html+='</tbody></table>';
@@ -1851,7 +1772,13 @@ function printRemito(ventaId){
 
   html+='</div>'; // remito-doc
 
-  openPrintWindow(html, 'kaizen-remito-'+remitoNum+'.pdf');
+  const area=document.getElementById('remito-print-area');
+  area.innerHTML=html;
+  area.style.display='block';
+  setTimeout(function(){
+    window.print();
+    setTimeout(function(){area.style.display='none';area.innerHTML='';},800);
+  },350);
 }
 // ── VENTAS ───────────────────────────────────────────────────
 
@@ -1873,8 +1800,6 @@ function ventaOpenReset(){
   document.getElementById('mv-cantidad').value='';
   document.getElementById('mv-precio').value='';
   document.getElementById('mv-descuento').value='0';
-  document.getElementById('mv-estado').value='Cobrada';
-  const b=document.getElementById('mv-cons-banner');if(b)b.style.display='none';
   document.getElementById('mv-item-preview').textContent='';
   // populate product select
   const sel=document.getElementById('mv-producto');
@@ -1958,12 +1883,6 @@ function mvUpdateTotal(){
   document.getElementById('mv-total-display').textContent=fmtMoney(total);
 }
 
-function mvEstadoChange(){
-  const estado=document.getElementById('mv-estado').value;
-  const banner=document.getElementById('mv-cons-banner');
-  if(banner) banner.style.display=estado==='Consignación'?'block':'none';
-}
-
 function saveVenta(){
   const fecha=document.getElementById('mv-fecha').value;
   const cliente=document.getElementById('mv-cliente').value||'—';
@@ -1971,91 +1890,47 @@ function saveVenta(){
   const notas=document.getElementById('mv-notas').value||'';
   if(!fecha){toast('Ingresá la fecha');return;}
   if(!_mvItems.length){toast('Agregá al menos un producto');return;}
-
-  // ── CONSIGNACIÓN ──
-  if(estado==='Consignación'){
-    if(cliente==='—'||!cliente.trim()||cliente===''){toast('Ingresá el nombre del cliente para consignación');return;}
-    // Check + deduct stock, create one consignacion record per item
-    for(const it of _mvItems){
-      const prod=S.productos.find(x=>x.id===it.producto_id);
-      if(prod&&prod.stock<it.cantidad){
-        toast('Stock insuficiente: '+prod.nombre+' (disponible: '+prod.stock+')');return;
-      }
-    }
-    if(!S.consignaciones) S.consignaciones=[];
-    const descPctCons=Math.min(Math.max(parseFloat(document.getElementById('mv-descuento')?.value)||0,0),100);
-    const descFactorCons=1-(descPctCons/100);
-    _mvItems.forEach(it=>{
-      const prod=S.productos.find(x=>x.id===it.producto_id);
-      if(prod) prod.stock=Math.max(0,prod.stock-it.cantidad);
-      const precioAcordado=Math.round(it.precio*descFactorCons*100)/100;
-      S.consignaciones.push({
-        id:uid(),
-        cliente:cliente,
-        producto_id:it.producto_id,
-        producto_nombre:it.producto_nombre,
-        cantidad:it.cantidad,
-        pendiente:it.cantidad,
-        precio:precioAcordado,      // precio con descuento aplicado
-        precioLista:it.precio,      // precio original de catálogo
-        descuento:descPctCons,
-        fecha:fecha,
-        notas:notas,
-        liquidaciones:[]
-      });
-    });
-    const descTxtCons=descPctCons>0?' · Desc. '+descPctCons+'%':'';
-    saveS();closeModal('modal-venta');stockRefresh();consRefresh();
-    toast('Consignación registrada · '+_mvItems.length+' ítem(s)'+descTxtCons+' → '+cliente);
-    _mvItems=[];
-    return;
-  }
-
-  // ── VENTA NORMAL ──
+  // Check stock for all cobradas
   if(estado==='Cobrada'){
     for(const it of _mvItems){
       const prod=S.productos.find(x=>x.id===it.producto_id);
       if(prod&&prod.stock<it.cantidad){
-        toast('Stock insuficiente: '+prod.nombre+' (disponible: '+prod.stock+')');return;
-      }
-      if(prod){
-        for(const c of (prod.composicion||[]).filter(x=>x.tipo==='producto')){
-          const compProd=S.productos.find(x=>x.id===c.producto_id);
-          const needed=c.cantidad*it.cantidad;
-          if(compProd&&compProd.stock<needed){
-            toast('Stock insuficiente de '+compProd.nombre+' para el combo '+prod.nombre+' (disponible: '+compProd.stock+', necesario: '+needed+')');return;
-          }
-        }
+        toast(`Stock insuficiente: ${prod.nombre} (disponible: ${prod.stock})`);return;
       }
     }
   }
+  // Apply discount proportionally across items
   const ventaId=uid();
   const subtotalVenta=_mvItems.reduce((a,i)=>a+i.subtotal,0);
   const descPct=Math.min(Math.max(parseFloat(document.getElementById('mv-descuento')?.value)||0,0),100);
   const descFactor=1-(descPct/100);
   const totalVenta=subtotalVenta*descFactor;
+
   _mvItems.forEach(it=>{
     const prod=S.productos.find(x=>x.id===it.producto_id);
-    if(prod&&estado==='Cobrada'){
-      prod.stock=Math.max(0,prod.stock-it.cantidad);
-      (prod.composicion||[]).filter(c=>c.tipo==='producto').forEach(c=>{
-        const compProd=S.productos.find(x=>x.id===c.producto_id);
-        if(compProd) compProd.stock=Math.max(0,compProd.stock-(c.cantidad*it.cantidad));
-      });
-    }
+    if(prod&&estado==='Cobrada') prod.stock=Math.max(0,prod.stock-it.cantidad);
+    // Apply discount proportionally to each item's total
     const totalConDesc=it.subtotal*descFactor;
     S.ventas.push({
-      id:uid(),venta_id:ventaId,fecha,cliente,
-      producto_id:it.producto_id,producto_nombre:it.producto_nombre,
-      cantidad:it.cantidad,precioOriginal:it.precio,precio:it.precio,
-      total:totalConDesc,descuento:descPct,estado,notas
+      id:uid(),
+      venta_id:ventaId,
+      fecha,cliente,
+      producto_id:it.producto_id,
+      producto_nombre:it.producto_nombre,
+      cantidad:it.cantidad,
+      precioOriginal:it.precio,          // always the original price
+      precio:it.precio,                  // kept for compatibility
+      total:totalConDesc,
+      descuento:descPct,
+      estado,notas
     });
   });
   saveS();closeModal('modal-venta');ventasRefresh();stockRefresh();
-  const descTxt=descPct>0?' · Desc. '+descPct+'%':'';
-  toast('Venta registrada · '+_mvItems.length+' ítem(s)'+descTxt+' · '+fmtMoney(totalVenta));
+  const descTxt=descPct>0?` · Desc. ${descPct}%`:'';
+  toast(`Venta registrada · ${_mvItems.length} ítem${_mvItems.length>1?'s':''}${descTxt} · ${fmtMoney(totalVenta)}`);
   _mvItems=[];
 }
+
 function openVentaEdit(ventaId){
   const items=S.ventas.filter(v=>(v.venta_id||v.id)===ventaId);
   if(!items.length)return;
@@ -2245,7 +2120,7 @@ function balanceRefresh(){
     ingresos>0?`Margen neto: ${margen.toFixed(1)}% · Por cada $100 vendidos, ${fmtMoney(ganancia/ingresos*100)} de ganancia`:'Sin ventas cobradas este mes';
 
   // ── Barras ──
-  const maxV=Math.max(ingresos,costoVarVendido,costoFijoDeLoVendido,Math.abs(ganancia),1);
+  const maxV=Math.max(ingresos,costoVarVendido,costoFijoVendido,Math.abs(ganancia),1);
   document.getElementById('balance-bars').innerHTML=[
     ['Ventas',       ingresos,          'linear-gradient(90deg,#2a7835,#389848)',  'c-green'],
     ['Costo Var.',   costoVarVendido,   'linear-gradient(90deg,#a05010,#c06820)',  'c-warn'],
@@ -2499,510 +2374,245 @@ function printRemito(ventaId){
   },300);
 }
 
-// ── CONSIGNACIÓN ─────────────────────────────────────────────
 
-function openConsModal(){
-  if(!S.productos.length){toast('Primero cargá productos en Stock');return;}
-  document.getElementById('cn-cliente').value='';
-  document.getElementById('cn-fecha').value=todayStr();
-  document.getElementById('cn-cantidad').value='';
-  document.getElementById('cn-precio').value='';
-  document.getElementById('cn-notas').value='';
-  document.getElementById('cn-preview').textContent='';
-  // Populate product select
-  const sel=document.getElementById('cn-producto');
-  sel.innerHTML='<option value="">Seleccionar...</option>'+
-    S.productos.map(p=>`<option value="${p.id}">${p.nombre} (stock: ${p.stock})</option>`).join('');
-  sel.value='';
-  openModal('modal-cons-nueva');
+// ── DIAGNÓSTICO SENSORIAL ─────────────────────────────────────
+
+const DIAG_FIRMAS = [
+  { id:"dulce-ausente", nm:"Dulce / melaza ausente — plano", conf:"probable", tipo:"extender",
+    fase:["media"], aroma:"Neutro, poco caramelo", textura:"Correcta o firme", color:"Marrón, no negro",
+    cause:"Fructanos sin hidrolizar del todo. Falta reacción, no calor.",
+    fix:{ desc:"Extender la fase media. No subas Tª para apurar: quema antes de endulzar.", campo:"diasHasta", delta:3 } },
+  { id:"acido-balsamico", nm:"Ácido balsámico redondo (tamarindo)", conf:"seguro", tipo:"normal",
+    fase:["final"], aroma:"Dulce-ácido, frutal", textura:"Blanda, jugosa", color:"Negro profundo",
+    cause:"Caída natural de pH. Es el objetivo, no un defecto.", fix:null },
+  { id:"acido-punzante", nm:"Ácido punzante / avinagrado (pica en nariz)", conf:"probable", tipo:"humedad",
+    fase:["temprana","media"], aroma:"Agrio penetrante, tipo vinagre", textura:"Húmeda, pegajosa", color:"Variable, con manchas",
+    cause:"Humedad libre / condensación → microbiano. Problema de humedad, no de tiempo.",
+    fix:{ desc:"Bajá humedad y mejorá circulación.", campo:"hMax", delta:-7, nota:"Reforzá ventilación y revisá condensación en la tapa." } },
+  { id:"amargo-blando", nm:"Amargo — textura blanda, negro intenso", conf:"probable", tipo:"reducir",
+    fase:["media","final"], aroma:"Tostado fuerte, café quemado", textura:"Blanda, húmeda", color:"Negro tinta, bordes carbón",
+    cause:"Maillard sobrepasado. Demasiado calor o demasiado largo.",
+    fix:{ desc:"Bajá Tª de la fase. Si el amargo viene con textura FIRME → es crudo, no esto.", campo:"tMax", delta:-2 } },
+  { id:"amargo-firme", nm:"Amargo — textura firme, olor alliáceo", conf:"probable", tipo:"extender",
+    fase:["temprana","media"], aroma:"A ajo crudo, punzante", textura:"Firme, resistente", color:"Marrón medio",
+    cause:"Azufrados sin transformar: el amargo es picor crudo mal leído.",
+    fix:{ desc:"Más tiempo. Acá subir Tª NO quema, falta conversión.", campo:"diasHasta", delta:3 } },
+  { id:"metalico", nm:"Metálico / picante crudo / alliáceo", conf:"probable", tipo:"extender",
+    fase:["temprana"], aroma:"Ajo fresco, sulfuroso", textura:"Firme, cruda", color:"Marrón claro",
+    cause:"Compuestos azufrados sin convertir. Lote subdesarrollado.",
+    fix:{ desc:"Extendé la fase temprana; el lote va atrasado en su curva.", campo:"diasHasta", delta:2 } },
+  { id:"amoniacal", nm:"Amoniacal / nitrogenado punzante", conf:"probable", tipo:"reducir",
+    fase:["final"], aroma:"Amoníaco, punzante", textura:"Blanda-seca, pastosa", color:"Negro",
+    cause:"Degradación proteica excesiva por calor/tiempo de más.",
+    fix:{ desc:"Bajá Tª de la fase final; el perfil se está pasando de punto.", campo:"tMax", delta:-2 } },
+  { id:"ahumado", nm:"Ahumado / quemado localizado", conf:"probable", tipo:"reducir",
+    fase:["temprana","media","final"], aroma:"Humo, chamuscado", textura:"Bordes secos/duros", color:"Desigual entre bandejas",
+    cause:"Puntos calientes, superficie seca, distribución despareja.",
+    fix:{ desc:"Revisá uniformidad del horno. Rotá bandejas, contrastá sensor vs zona real.", nota:"Cubrí la superficie si se seca en bordes." } },
+  { id:"alcoholico", nm:"Alcohólico / solvente / levadura", conf:"suposicion", tipo:"humedad",
+    fase:["temprana"], aroma:"Alcohol, solvente, pan", textura:"Húmeda, pegajosa", color:"Variable",
+    cause:"Levaduras por exceso de humedad o rampa inicial lenta.",
+    fix:{ desc:"Bajá humedad y acelerá la rampa inicial.", campo:"hMax", delta:-7, nota:"Revisá higiene de bandejas y materia prima." } },
+  { id:"astringente", nm:"Astringente / seca la boca", conf:"suposicion", tipo:"reducir",
+    fase:["final"], aroma:"Normal a tostado", textura:"Seca, correosa", color:"Negro mate",
+    cause:"Sobre-secado: aw demasiado baja.",
+    fix:{ desc:"Suavizá el secado final: acortá esa fase.", campo:"diasHasta", delta:-1 } },
+  { id:"gomosa", nm:"Sabor OK, textura gomosa / húmeda", conf:"probable", tipo:"extender",
+    fase:["final"], aroma:"Correcto", textura:"Gomosa, húmeda", color:"Negro correcto",
+    cause:"Falta secado final: aw todavía alta. Riesgo de conservación.",
+    fix:{ desc:"Extendé el secado final y verificá aw ANTES de envasar.", campo:"diasHasta", delta:2, nota:"No envases sin chequear aw." } },
+  { id:"correosa", nm:"Sabor OK, textura correosa / desmenuzable", conf:"probable", tipo:"reducir",
+    fase:["final"], aroma:"Correcto o apagado", textura:"Dura, quebradiza", color:"Negro mate opaco",
+    cause:"Pasado de secado: aw bajo el objetivo.",
+    fix:{ desc:"Acortá el secado final en próximos lotes.", campo:"diasHasta", delta:-1, nota:"Si ya pasó, destiná el lote a molido o pasta." } }
+];
+
+const CAMPO_LBL = { tMin:"Temp mín", tMax:"Temp máx", hMin:"HR mín", hMax:"HR máx", diasHasta:"Duración (días)" };
+const CONF_LBL  = { seguro:"Seguro", probable:"Probable", suposicion:"Suposición" };
+const CONF_CLR  = { seguro:"c-green", probable:"c-warn", suposicion:"td-muted" };
+
+let _diagFaseIdx=0, _diagAbiertas=new Set();
+
+function diagGetFaseMatch(fm,fases,idx){
+  const n=fases.length, tags=fm.fase;
+  if(tags.includes("temprana")&&idx===0) return true;
+  if(tags.includes("final")&&idx===n-1) return true;
+  if(tags.includes("media")&&idx>0&&idx<n-1) return true;
+  const nb=(fases[idx]?.nombre||"").toLowerCase();
+  for(const t of tags){if(nb.includes(t)) return true;}
+  return false;
 }
 
-function cnAutoPrice(){
-  const pid=document.getElementById('cn-producto').value;
-  const p=S.productos.find(x=>x.id===pid);
-  if(p) document.getElementById('cn-precio').value=p.pventa;
-  cnCalcTotal();
+function diagGetPromedios(faseIdx){
+  const al=getActiveLote(); const fases=getFases(al);
+  const f=fases[faseIdx]; if(!f) return null;
+  const recs=S.prodRecords||{};
+  const dias=Object.keys(recs).map(Number).filter(d=>d>=f.diasDesde&&d<=f.diasHasta);
+  if(!dias.length) return null;
+  const tArr=dias.map(d=>recs[d]?.tAvg).filter(v=>v!=null);
+  const hArr=dias.map(d=>recs[d]?.hAvg).filter(v=>v!=null);
+  return{
+    tProm:tArr.length?Math.round(tArr.reduce((a,b)=>a+b,0)/tArr.length*10)/10:null,
+    hProm:hArr.length?Math.round(hArr.reduce((a,b)=>a+b,0)/hArr.length*10)/10:null,
+    diasReg:dias.length
+  };
 }
 
-function cnCalcTotal(){
-  const q=parseFloat(document.getElementById('cn-cantidad').value)||0;
-  const p=parseFloat(document.getElementById('cn-precio').value)||0;
-  const el=document.getElementById('cn-preview');
-  el.textContent=q&&p?`Total acordado: ${fmtMoney(q*p)}  ·  ${q} unidades`:'';
-}
-
-function saveConsignacion(){
-  const cliente=document.getElementById('cn-cliente').value.trim();
-  const fecha=document.getElementById('cn-fecha').value;
-  const pid=document.getElementById('cn-producto').value;
-  const cant=parseInt(document.getElementById('cn-cantidad').value)||0;
-  const precio=parseFloat(document.getElementById('cn-precio').value)||0;
-  if(!cliente){toast('Ingresá el nombre del cliente');return;}
-  if(!fecha){toast('Ingresá la fecha');return;}
-  if(!pid){toast('Seleccioná un producto');return;}
-  if(!cant||cant<=0){toast('Ingresá una cantidad válida');return;}
-  if(!precio){toast('Ingresá el precio acordado');return;}
-  // Check stock
-  const prod=S.productos.find(x=>x.id===pid);
-  if(!prod){toast('Producto no encontrado');return;}
-  if(prod.stock<cant){toast(`Stock insuficiente: ${prod.stock} disponibles`);return;}
-  // Deduct stock
-  prod.stock=Math.max(0,prod.stock-cant);
-  // Save consignacion record
-  if(!S.consignaciones) S.consignaciones=[];
-  S.consignaciones.push({
-    id:uid(),
-    cliente,
-    producto_id:pid,
-    producto_nombre:prod.nombre,
-    cantidad:cant,
-    pendiente:cant, // starts equal to cantidad
-    precio,
-    fecha,
-    notas:document.getElementById('cn-notas').value.trim(),
-    liquidaciones:[]
-  });
-  saveS();closeModal('modal-cons-nueva');stockRefresh();consRefresh();
-  toast(`Entrega registrada · ${cant} × ${prod.nombre} → ${cliente}`);
-}
-
-function openConsLiquidar(consId){
-  const c=S.consignaciones.find(x=>x.id===consId);
-  if(!c)return;
-  document.getElementById('cons-liq-title').textContent=`LIQUIDAR — ${c.cliente}`;
-  document.getElementById('cons-liq-info').innerHTML=
-    `<b>${c.producto_nombre}</b> · Entregado: ${c.cantidad} · Pendiente: <b>${c.pendiente}</b> uds.<br>`+
-    `Precio acordado: ${fmtMoney(c.precio)} · Fecha entrega: ${c.fecha}`;
-  document.getElementById('cl-vendidos').value='0';
-  document.getElementById('cl-devueltos').value='0';
-  document.getElementById('cl-fecha').value=todayStr();
-  document.getElementById('cl-notas').value='';
-  document.getElementById('cl-cons-id').value=consId;
-  clCalcResumen();
-  openModal('modal-cons-liquidar');
-}
-
-function clCalcResumen(){
-  const consId=document.getElementById('cl-cons-id').value;
-  const c=S.consignaciones.find(x=>x.id===consId);
-  if(!c)return;
-  const vendidos=parseInt(document.getElementById('cl-vendidos').value)||0;
-  const devueltos=parseInt(document.getElementById('cl-devueltos').value)||0;
-  const total=vendidos+devueltos;
-  const quedan=c.pendiente-total;
-  const el=document.getElementById('cl-resumen');
-  if(total>c.pendiente){
-    el.innerHTML=`<span style="color:var(--reds);">⚠ Total (${total}) supera el pendiente (${c.pendiente})</span>`;
+function diagRefresh(){
+  const root=document.getElementById('diag-root');
+  if(!root) return;
+  const al=getActiveLote();
+  const fases=getFases(al);
+  if(!fases||!fases.length){
+    root.innerHTML='<div style="color:var(--muted);font-family:DM Mono,monospace;padding:1rem;">No hay lote activo. Configurá un lote en la pestaña Producción.</div>';
     return;
   }
-  el.innerHTML=
-    `✓ Van al balance: <b>${vendidos}</b> uds. × ${fmtMoney(c.precio)} = <b style="color:var(--greens);">${fmtMoney(vendidos*c.precio)}</b><br>`+
-    `↩ Vuelven al stock: <b>${devueltos}</b> uds.<br>`+
-    `Quedan en consignación: <b>${quedan}</b> uds.`;
-}
+  if(_diagFaseIdx>=fases.length) _diagFaseIdx=0;
+  const fase=fases[_diagFaseIdx];
+  const prom=diagGetPromedios(_diagFaseIdx);
+  const diagReg=(S.diagnosticos||[]).filter(d=>d.lote_id===al?.id);
 
-function saveConsLiquidacion(){
-  const consId=document.getElementById('cl-cons-id').value;
-  const c=S.consignaciones.find(x=>x.id===consId);
-  if(!c)return;
-  const vendidos=parseInt(document.getElementById('cl-vendidos').value)||0;
-  const devueltos=parseInt(document.getElementById('cl-devueltos').value)||0;
-  const fecha=document.getElementById('cl-fecha').value;
-  const notas=document.getElementById('cl-notas').value.trim();
-  if(!fecha){toast('Ingresá la fecha');return;}
-  if(vendidos+devueltos===0){toast('Ingresá al menos una unidad vendida o devuelta');return;}
-  if(vendidos+devueltos>c.pendiente){toast(`No podés liquidar más del pendiente (${c.pendiente})`);return;}
-  // Register liquidacion
-  c.liquidaciones.push({fecha,vendidos,devueltos,notas});
-  c.pendiente-=(vendidos+devueltos);
-  // Restore devueltos to stock
-  if(devueltos>0){
-    const prod=S.productos.find(x=>x.id===c.producto_id);
-    if(prod) prod.stock+=devueltos;
-  }
-  // Create venta record for vendidos (goes to balance)
-  if(vendidos>0){
-    const ventaId=uid();
-    S.ventas.push({
-      id:uid(),
-      venta_id:ventaId,
-      fecha,
-      cliente:c.cliente,
-      producto_id:c.producto_id,
-      producto_nombre:c.producto_nombre,
-      cantidad:vendidos,
-      precioOriginal:c.precio,
-      precio:c.precio,
-      total:vendidos*c.precio,
-      descuento:0,
-      estado:'Cobrada',
-      notas:notas||`Liquidación consignación · lote entrega ${c.fecha}`
-    });
-  }
-  saveS();closeModal('modal-cons-liquidar');stockRefresh();consRefresh();ventasRefresh();
-  let msg=`Liquidación registrada`;
-  if(vendidos>0) msg+=` · ${vendidos} vendidos → balance`;
-  if(devueltos>0) msg+=` · ${devueltos} devueltos al stock`;
-  toast(msg);
-}
-
-function consRefresh(){
-  if(!S.consignaciones) S.consignaciones=[];
-  const all=S.consignaciones;
-  const activas=all.filter(c=>c.pendiente>0);
-  const totalPendiente=activas.reduce((a,c)=>a+c.pendiente,0);
-  const totalValor=activas.reduce((a,c)=>a+(c.pendiente*c.precio),0);
-  const clientes=new Set(activas.map(c=>c.cliente));
-  // Stats
-  document.getElementById('cons-stats').innerHTML=
-    `<div class="stat"><div class="s-lbl">Entregas activas</div><div class="s-val c-blue">${activas.length}</div></div>`+
-    `<div class="stat"><div class="s-lbl">Clientes</div><div class="s-val c-gold">${clientes.size}</div></div>`+
-    `<div class="stat"><div class="s-lbl">Unidades fuera</div><div class="s-val c-warn">${totalPendiente}</div></div>`+
-    `<div class="stat"><div class="s-lbl">Valor en consign.</div><div class="s-val c-green">${fmtMoney(totalValor)}</div></div>`;
-  // Client filter
-  const filtSel=document.getElementById('cons-cliente-filter');
-  const filtVal=filtSel.value;
-  const todosClientes=[...new Set(all.map(c=>c.cliente))].sort();
-  filtSel.innerHTML='<option value="">Todos los clientes</option>'+
-    todosClientes.map(cl=>`<option value="${cl}"${cl===filtVal?' selected':''}>${cl}</option>`).join('');
-  // Show/hide client action buttons
-  const btnPago=document.getElementById('btn-cons-pago');
-  const btnRemito=document.getElementById('btn-cons-remito');
-  if(btnPago) btnPago.style.display=filtVal?'':'none';
-  if(btnRemito) btnRemito.style.display=filtVal?'':'none';
-  // Filter
-  const filtered=filtVal?all.filter(c=>c.cliente===filtVal):all;
-  // Sort: pendiente first, then by date desc
-  const sorted=[...filtered].sort((a,b)=>{
-    if(a.pendiente>0&&b.pendiente===0)return -1;
-    if(a.pendiente===0&&b.pendiente>0)return 1;
-    return b.fecha.localeCompare(a.fecha);
-  });
-  const today=todayStr();
-  document.getElementById('cons-tbody').innerHTML=sorted.length?sorted.map(c=>{
-    const dias=Math.floor((new Date(today)-new Date(c.fecha))/(1000*60*60*24));
-    const diasCls=dias<30?'dias-ok':dias<60?'dias-warn':'dias-alert';
-    const cerrada=c.pendiente===0;
-    const liquidado=c.cantidad-c.pendiente;
-    return `<tr style="${cerrada?'opacity:.55;':''}">`+
-      `<td><b>${c.cliente}</b>${c.notas?`<br><span class="td-muted" style="font-size:.62rem;">${c.notas}</span>`:''}</td>`+
-      `<td>${c.producto_nombre}</td>`+
-      `<td class="td-muted">${c.cantidad} uds. · ${fmtMoney(c.precio)}</td>`+
-      `<td class="td-muted">${c.fecha}</td>`+
-      `<td class="${diasCls}">${dias}d</td>`+
-      `<td>${cerrada?'<span class="badge badge-green">Cerrada</span>':`<b class="c-warn">${c.pendiente}</b> / ${c.cantidad}`}</td>`+
-      `<td style="display:flex;gap:.3rem;flex-wrap:wrap;">`+
-        (cerrada?'':`<button class="btn btn-gold btn-sm" onclick="openConsLiquidar('${c.id}')">Liquidar</button>`)+
-        (cerrada?'':`<button class="btn btn-outline btn-sm" onclick="consEditPrecio('${c.id}')">✎ Precio</button>`)+
-        `<button class="btn btn-outline btn-sm" onclick="consVerHistorial('${c.id}')">Ver</button>`+
-        `<button class="btn btn-danger btn-sm" onclick="consEliminar('${c.id}')">✕</button>`+
-      `</td>`+
-      `</tr>`;
-  }).join(''):'<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--muted);">Sin entregas en consignación. Usá "+ Nueva entrega" para registrar.</td></tr>';
-}
-
-function consEditPrecio(consId){
-  const c=S.consignaciones.find(x=>x.id===consId);
-  if(!c)return;
-  const nuevo=parseFloat(prompt('Precio acordado actual: '+fmtMoney(c.precio)+'\nIngresá el nuevo precio acordado ($):',c.precio));
-  if(isNaN(nuevo)||nuevo<=0){toast('Precio inválido');return;}
-  const pLista=c.precioLista||(S.productos.find(p=>p.id===c.producto_id)?.pventa)||nuevo;
-  c.precioLista=pLista;
-  c.precio=nuevo;
-  c.descuento=pLista>0?Math.round((1-nuevo/pLista)*100*10)/10:0;
-  saveS();consRefresh();
-  toast('Precio actualizado a '+fmtMoney(nuevo));
-}
-
-function consVerHistorial(consId){
-  const c=S.consignaciones.find(x=>x.id===consId);
-  if(!c)return;
-  const liqs=c.liquidaciones||[];
-  const lines=[];
-  lines.push(c.cliente+' · '+c.producto_nombre);
-  lines.push('Entregado: '+c.cantidad+' · Precio: '+fmtMoney(c.precio)+' · Fecha: '+c.fecha);
-  lines.push('Pendiente actual: '+c.pendiente);
-  lines.push('');
-  if(liqs.length){
-    lines.push('LIQUIDACIONES:');
-    liqs.forEach(function(l,i){
-      var row=(i+1)+'. '+l.fecha+' — Vendidos: '+l.vendidos+', Devueltos: '+l.devueltos;
-      if(l.notas) row+=' ('+l.notas+')';
-      lines.push(row);
-    });
-  } else {
-    lines.push('Sin liquidaciones aun.');
-  }
-  alert(lines.join('\n'));
-}
-function consEliminar(consId){
-  const c=S.consignaciones.find(x=>x.id===consId);
-  if(!c)return;
-  if(!confirm(`¿Eliminar esta consignación de ${c.cliente}?
-Si hay pendiente (${c.pendiente} uds.), se restaurará el stock.`))return;
-  // Restore pending stock
-  if(c.pendiente>0){
-    const prod=S.productos.find(x=>x.id===c.producto_id);
-    if(prod) prod.stock+=c.pendiente;
-  }
-  S.consignaciones=S.consignaciones.filter(x=>x.id!==consId);
-  saveS();stockRefresh();consRefresh();toast('Consignación eliminada');
-}
-
-// ── PRINT HELPER ─────────────────────────────────────────────
-function openPrintWindow(bodyHtml, filename){
-  filename = filename || 'kaizen-remito.pdf';
-
-  // Build a full HTML document string with all styles
-  var css=[
-    'body{margin:1.5cm 2cm;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;background:#fff;}',
-    '.remito-header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #2a3a48;padding-bottom:1rem;margin-bottom:1.2rem;}',
-    '.remito-logo{width:65px;height:65px;object-fit:cover;border-radius:8px;}',
-    '.remito-brand{text-align:center;flex:1;padding:0 1rem;}',
-    '.remito-brand h1{font-size:1.7rem;letter-spacing:4px;color:#2a3a48;line-height:1;margin:0;font-weight:900;}',
-    '.remito-brand p{font-size:11px;color:#5a6a78;letter-spacing:2px;text-transform:uppercase;margin:3px 0 0;}',
-    '.remito-tipo{text-align:right;}',
-    '.remito-tipo h2{font-size:.9rem;letter-spacing:1px;color:#4a7a35;line-height:1.4;margin:0;}',
-    '.remito-tipo .r-num{font-size:.72rem;color:#888;margin-top:3px;}',
-    '.remito-meta{display:grid;grid-template-columns:1fr 1fr;gap:.3rem 1.5rem;margin-bottom:1rem;padding:.7rem .9rem;background:#f5f7fa;border:1px solid #e0e4e8;}',
-    '.rm-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:1px;}',
-    '.rm-val{font-size:12px;font-weight:600;color:#1a1a1a;}',
-    'table{width:100%;border-collapse:collapse;margin-bottom:1rem;}',
-    'thead tr{background:#2a3a48;}',
-    'thead th{padding:.45rem .6rem;text-align:left;font-size:10px;text-transform:uppercase;font-weight:700;color:#fff;}',
-    'tbody tr{border-bottom:1px solid #e8eaed;}',
-    'tbody tr:nth-child(even){background:#f8f9fb;}',
-    'tbody td{padding:.4rem .6rem;font-size:12px;color:#2a2a2a;}',
-    '.tr{text-align:right;}',
-    '.total-table{width:auto;margin-left:auto;min-width:260px;border-collapse:collapse;}',
-    '.total-table td{padding:.35rem .8rem;font-size:12px;border-bottom:1px solid #eee;}',
-    '.total-dark{background:#2a3a48;}',
-    '.total-dark td{padding:.6rem .8rem;color:#ffffff !important;font-size:1rem;font-weight:700;border:none !important;}',
-    '.green{color:#2a7835;}',
-    '.remito-footer{border-top:1px solid #e0e4e8;padding-top:.8rem;display:flex;justify-content:space-between;align-items:flex-end;margin-top:1rem;}',
-    '.rf-nota{font-size:10px;color:#888;line-height:1.5;}',
-    '.rf-line{width:140px;border-top:1px solid #aaa;margin:30px auto 3px;}',
-    '.rf-firma{text-align:center;font-size:10px;color:#888;text-transform:uppercase;}'
-  ].join('');
-
-  // Create a hidden div in the current document to render the HTML
-  var container = document.createElement('div');
-  container.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;font-family:Arial,sans-serif;';
-  
-  // Apply styles inline via a style tag
-  var styleEl = document.createElement('style');
-  styleEl.textContent = css;
-  container.appendChild(styleEl);
-  
-  var wrapper = document.createElement('div');
-  wrapper.innerHTML = bodyHtml;
-  container.appendChild(wrapper);
-  document.body.appendChild(container);
-
-  toast('Generando PDF...');
-
-  setTimeout(function(){
-    html2canvas(wrapper, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      width: 794,
-      windowWidth: 794
-    }).then(function(canvas){
-      document.body.removeChild(container);
-      var imgData = canvas.toDataURL('image/png');
-      var pdf = new window.jspdf.jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-      var pageW = pdf.internal.pageSize.getWidth();
-      var pageH = pdf.internal.pageSize.getHeight();
-      var imgW = pageW;
-      var imgH = (canvas.height * pageW) / canvas.width;
-      // If content is taller than one page, scale to fit
-      if(imgH > pageH){
-        imgW = (canvas.width * pageH) / canvas.height;
-        imgH = pageH;
-      }
-      var x = (pageW - imgW) / 2;
-      pdf.addImage(imgData, 'PNG', x, 0, imgW, imgH);
-      pdf.save(filename);
-      toast('PDF descargado ✓');
-    }).catch(function(err){
-      document.body.removeChild(container);
-      console.error('PDF error:', err);
-      toast('Error al generar PDF. Intentá de nuevo.');
-    });
-  }, 200);
-}
-
-// ── CONSIGNACIÓN PAGO / REMITO ───────────────────────────────
-
-function openConsPago(){
-  const cliente=document.getElementById('cons-cliente-filter').value;
-  if(!cliente){toast('Seleccioná un cliente primero');return;}
-  // Calculate total debt for this client
-  const cons=S.consignaciones.filter(c=>c.cliente===cliente&&c.pendiente>0);
-  const totalDeuda=cons.reduce((a,c)=>a+(c.pendiente*c.precio),0);
-  document.getElementById('cp-cliente').value=cliente;
-  document.getElementById('cp-monto').value='';
-  document.getElementById('cp-fecha').value=todayStr();
-  document.getElementById('cp-notas').value='';
-  document.getElementById('cp-resumen').textContent='';
-  document.getElementById('cons-pago-resumen').innerHTML=
-    '<b>'+cliente+'</b><br>'+
-    cons.map(c=>c.producto_nombre+' × '+c.pendiente+' uds. = '+fmtMoney(c.pendiente*c.precio)).join('<br>')+
-    '<br><b>Total deuda: '+fmtMoney(totalDeuda)+'</b>';
-  openModal('modal-cons-pago');
-}
-
-function cpCalcResumen(){
-  const cliente=document.getElementById('cp-cliente').value;
-  const monto=parseFloat(document.getElementById('cp-monto').value)||0;
-  const cons=S.consignaciones.filter(c=>c.cliente===cliente&&c.pendiente>0);
-  const totalDeuda=cons.reduce((a,c)=>a+(c.pendiente*c.precio),0);
-  const saldo=totalDeuda-monto;
-  const el=document.getElementById('cp-resumen');
-  if(!monto){el.textContent='';return;}
-  el.innerHTML=
-    'Deuda total: '+fmtMoney(totalDeuda)+'<br>'+
-    'Abono: <b style="color:var(--greens);">'+fmtMoney(monto)+'</b><br>'+
-    'Saldo pendiente: <b style="color:'+(saldo>0?'var(--warn)':'var(--greens)')+';">'+fmtMoney(Math.max(0,saldo))+'</b>';
-}
-
-function saveConsPago(){
-  const cliente=document.getElementById('cp-cliente').value;
-  const monto=parseFloat(document.getElementById('cp-monto').value)||0;
-  const fecha=document.getElementById('cp-fecha').value;
-  const notas=document.getElementById('cp-notas').value.trim();
-  if(!monto||monto<=0){toast('Ingresá un monto válido');return;}
-  if(!fecha){toast('Ingresá la fecha');return;}
-  // Register as a venta record (goes to balance) with producto_nombre = "Pago consignación"
-  const ventaId=uid();
-  S.ventas.push({
-    id:uid(),venta_id:ventaId,
-    fecha,
-    cliente,
-    producto_id:'__cons_pago__',
-    producto_nombre:'Pago consignación',
-    cantidad:1,
-    precioOriginal:monto,
-    precio:monto,
-    total:monto,
-    descuento:0,
-    estado:'Cobrada',
-    notas:notas||'Abono cuenta consignación'
-  });
-  // Track pago in consignaciones state (for history)
-  if(!S.pagosCons) S.pagosCons=[];
-  S.pagosCons.push({id:uid(),cliente,monto,fecha,notas});
-  saveS();closeModal('modal-cons-pago');ventasRefresh();
-  toast('Pago de '+fmtMoney(monto)+' acreditado → balance de '+fecha.slice(0,7));
-}
-
-function printConsRemito(){
-  const cliente=document.getElementById('cons-cliente-filter').value;
-  if(!cliente){toast('Seleccioná un cliente primero');return;}
-  const cons=S.consignaciones.filter(c=>c.cliente===cliente&&c.pendiente>0);
-  if(!cons.length){toast('Este cliente no tiene entregas pendientes');return;}
-  const totalDeuda=cons.reduce((a,c)=>a+(c.pendiente*c.precio),0);
-  const logoSrc=(document.querySelector('#app-shell .hdr-left img')||{}).src||'';
-  const now=new Date();
-  const pad=x=>String(x).padStart(2,'0');
-  const fechaHoy=pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+String(now.getFullYear()).slice(2);
   let html='';
-  html+='<style>@page{margin:0;size:A4;}@media print{body>*{display:none!important;}#remito-print-area{display:block!important;}}</style>';
-  html+='<div class="remito-doc">';
-  // Header
-  html+='<div class="remito-header">';
-  html+='<img class="remito-logo" src="'+logoSrc+'" alt="KAIZEN">';
-  html+='<div class="remito-brand"><h1>KAIZEN</h1><p>Ajo Negro &middot; Producción Artesanal</p></div>';
-  html+='<div class="remito-tipo"><h2>CUENTA CORRIENTE<br>CONSIGNACIÓN</h2><div class="r-num">'+fechaHoy+'</div></div>';
-  html+='</div>';
-  // Client
-  html+='<div class="remito-meta">';
-  html+='<div><div class="rm-lbl">Cliente</div><div class="rm-val">'+cliente+'</div></div>';
-  html+='<div><div class="rm-lbl">Fecha</div><div class="rm-val">'+fechaHoy+'</div></div>';
-  html+='<div style="grid-column:1/-1;"><div class="rm-lbl">Estado</div><div class="rm-val" style="color:#b85a10;">Mercadería en consignación pendiente de liquidar</div></div>';
-  html+='</div>';
-  // Table
-  html+='<table class="remito-table">';
-  html+='<thead><tr>';
-  html+='<th style="padding:.45rem .6rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;">Producto</th>';
-  html+='<th style="padding:.45rem .6rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">F. Entrega</th>';
-  html+='<th style="padding:.45rem .6rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">Días</th>';
-  html+='<th style="padding:.45rem .6rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">Cant.</th>';
-  html+='<th style="padding:.45rem .6rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">P. Lista</th>';
-  html+='<th style="padding:.45rem .6rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">P. Acordado</th>';
-  html+='<th style="padding:.45rem .6rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">Total</th>';
-  html+='</tr></thead>';
-  html+='<tbody>';
-  const today=todayStr();
-  cons.forEach(function(c){
-    const dias=Math.floor((new Date(today)-new Date(c.fecha))/(1000*60*60*24));
-    const diasColor=dias<30?'#2a7835':dias<60?'#a05010':'#b03030';
-    const prod=S.productos.find(function(p){return p.id===c.producto_id;});
-    // precioLista = precio de catálogo (pventa del producto)
-    // precioAcordado = precio con descuento aplicado
-    var precioLista, precioAcordado;
-    if(c.precioLista){
-      // New records: both fields saved explicitly
-      precioLista=c.precioLista;
-      precioAcordado=c.precio;
-    } else if(c.descuento&&c.descuento>0){
-      // Old record with descuento but no precioLista — recalculate
-      precioLista=prod?prod.pventa:c.precio;
-      precioAcordado=Math.round(precioLista*(1-c.descuento/100)*100)/100;
-    } else {
-      // Old record no discount — precio is the acordado, show catalog as lista
-      precioLista=prod?prod.pventa:null;
-      precioAcordado=c.precio;
-    }
-    html+='<tr>';
-    html+='<td>'+c.producto_nombre+'</td>';
-    html+='<td class="tr" style="font-size:11px;color:#5a6a78;">'+c.fecha+'</td>';
-    html+='<td class="tr" style="color:'+diasColor+';font-weight:600;">'+dias+'d</td>';
-    html+='<td class="tr">'+c.pendiente+'</td>';
-    html+='<td class="tr" style="color:#888;">'+(precioLista?fmtMoney(precioLista):'—')+'</td>';
-    html+='<td class="tr" style="color:#2a3a48;font-weight:600;">'+fmtMoney(precioAcordado)+'</td>';
-    html+='<td class="tr" style="font-weight:700;">'+fmtMoney(c.pendiente*precioAcordado)+'</td>';
-    html+='</tr>';
-  });
-  html+='</tbody></table>';
-  // Pagos a cuenta del cliente
-  const pagosCliente=(S.pagosCons||[]).filter(function(p){return p.cliente===cliente;});
-  const totalPagado=pagosCliente.reduce(function(a,p){return a+p.monto;},0);
-  const saldoPendiente=totalDeuda-totalPagado;
 
-  // Total section
-  html+='<div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">';
-  html+='<table class="total-table">';
-  // Mercadería
-  html+='<tr><td>Mercadería en consignación</td><td class="tr">'+fmtMoney(totalDeuda)+'</td></tr>';
-  // Pagos a cuenta (si hay)
-  if(totalPagado>0){
-    pagosCliente.forEach(function(p){
-      html+='<tr><td class="green">Pago a cuenta '+p.fecha+(p.notas?' · '+p.notas:'')+'</td><td class="tr green">- '+fmtMoney(p.monto)+'</td></tr>';
-    });
-    html+='<tr style="border-bottom:2px solid #2a3a48;"><td colspan="2" style="padding:0;height:2px;"></td></tr>';
+  // Selector fases
+  html+='<div class="diag-ctx"><div>';
+  html+='<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:6px;">ETAPA DEL LOTE ACTIVO</div>';
+  html+='<div class="diag-seg">';
+  fases.forEach(function(f,i){
+    html+='<button class="'+(i===_diagFaseIdx?'active':'')+'" onclick="_diagFaseIdx='+i+';_diagAbiertas=new Set();diagRefresh();">'+f.nombre+'</button>';
+  });
+  html+='</div></div></div>';
+
+  // Snapshot setpoints + reales
+  html+='<div class="diag-snapshot">';
+  html+='<div class="diag-sp"><div class="k">Días</div><div class="v">'+fase.diasDesde+'–'+fase.diasHasta+'</div></div>';
+  html+='<div class="diag-sp"><div class="k">Temp objetivo</div><div class="v">'+fase.tMin+'–'+fase.tMax+'°C</div></div>';
+  html+='<div class="diag-sp"><div class="k">HR objetivo</div><div class="v">'+fase.hMin+'–'+fase.hMax+'%</div></div>';
+  if(prom){
+    var tColor=prom.tProm!=null?(prom.tProm<fase.tMin||prom.tProm>fase.tMax?'var(--reds)':'var(--greens)'):'';
+    var hColor=prom.hProm!=null?(prom.hProm<fase.hMin||prom.hProm>fase.hMax?'var(--reds)':'var(--greens)'):'';
+    if(prom.tProm!=null) html+='<div class="diag-sp"><div class="k">Temp real prom.</div><div class="v" style="color:'+tColor+';">'+prom.tProm+'°C</div></div>';
+    if(prom.hProm!=null) html+='<div class="diag-sp"><div class="k">HR real prom.</div><div class="v" style="color:'+hColor+';">'+prom.hProm+'%</div></div>';
+    html+='<div class="diag-sp"><div class="k">Días registrados</div><div class="v">'+prom.diasReg+'</div></div>';
+  } else {
+    html+='<div class="diag-sp"><div class="k">Datos reales</div><div class="v" style="color:var(--muted);">Sin registros en esta etapa</div></div>';
   }
-  // Saldo final
-  html+='<tr><td colspan="2" style="padding:0;height:2px;background:#2a3a48;"></td></tr>';
-  html+='<tr style="background:#2a3a48;"><td style="padding:.65rem .9rem;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#ffffff;font-weight:700;">'+(totalPagado>0?'SALDO A COBRAR':'TOTAL A COBRAR')+'</td><td style="padding:.65rem .9rem;font-size:1.1rem;font-family:monospace;font-weight:700;text-align:right;color:#ffffff;">'+fmtMoney(saldoPendiente)+'</td></tr>';
-  html+='</table></div>';
-  // Footer
-  html+='<div class="remito-footer">';
-  html+='<div class="rf-nota">Documento de consignación · KAIZEN Ajo Negro<br>Los días en rojo (&gt;60d) requieren atención prioritaria.</div>';
-  html+='<div class="rf-firma"><div class="rf-line"></div><p>Firma y aclaración</p></div>';
   html+='</div>';
-  html+='</div>';
-  openPrintWindow(html, 'kaizen-consignacion-'+cliente.replace(/\s+/g,'-')+'.pdf');
+
+  // Layout 2 cols
+  html+='<div class="diag-layout"><div>';
+  html+='<div class="section-title" style="margin-bottom:.7rem;">Firmas — marcá lo que detectás catando</div>';
+
+  const visibles=DIAG_FIRMAS.filter(function(fm){return diagGetFaseMatch(fm,fases,_diagFaseIdx);});
+  if(!visibles.length){
+    html+='<div class="diag-empty">No hay firmas para esta etapa.</div>';
+  } else {
+    visibles.forEach(function(fm){
+      const done=diagReg.some(function(r){return r.firma_id===fm.id;});
+      const open=_diagAbiertas.has(fm.id);
+      var fixHTML='';
+      if(!fm.fix){
+        fixHTML='<div style="color:var(--greens);font-family:DM Mono,monospace;font-size:12px;">✓ Perfil correcto — no corregir ninguna variable.</div>'
+          +'<button class="btn btn-outline btn-sm" style="margin-top:10px;" onclick="diagRegistrar(''+fm.id+'')">Registrar observación</button>';
+      } else if(!fm.fix.campo){
+        fixHTML='<div class="desc">'+fm.fix.desc+'</div>'
+          +(fm.fix.nota?'<div class="firma-fix nota">'+fm.fix.nota+'</div>':'')
+          +'<button class="btn btn-gold btn-sm" style="margin-top:10px;" onclick="diagRegistrar(''+fm.id+'')">Registrar diagnóstico</button>';
+      } else {
+        var actual=fase[fm.fix.campo];
+        var sug=actual!=null?actual+fm.fix.delta:'?';
+        var unid=fm.fix.campo.startsWith('t')?'°C':'%';
+        fixHTML='<div class="desc">'+fm.fix.desc+'</div>'
+          +'<div class="adjust-row">'
+          +'<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);">'+(CAMPO_LBL[fm.fix.campo]||fm.fix.campo)+'</span>'
+          +'<span class="from">'+(actual!=null?actual+unid:'—')+'</span>'
+          +'<span style="font-family:DM Mono,monospace;color:var(--gold2);">→</span>'
+          +'<div style="display:flex;flex-direction:column;gap:3px;">'
+          +'<span style="font-family:DM Mono,monospace;font-size:9px;text-transform:uppercase;color:var(--muted2);">Destino (editable)</span>'
+          +'<input type="number" step="1" value="'+sug+'" id="diag-to-'+fm.id+'" style="width:80px;background:var(--bg3);border:1px solid var(--gold);color:var(--cream);font-family:DM Mono,monospace;font-size:14px;padding:5px 8px;border-radius:6px;">'
+          +'</div></div>'
+          +(fm.fix.nota?'<div class="firma-fix nota">↳ '+fm.fix.nota+'</div>':'')
+          +'<button class="btn btn-gold btn-sm" style="margin-top:10px;" onclick="diagRegistrar(''+fm.id+'')">Registrar corrección</button>';
+      }
+      html+='<div class="firma-card t-'+fm.tipo+(done?' done':'')+(open?' open':'')+'"><button class="firma-top-btn" onclick="diagToggle(''+fm.id+'')">'
+        +'<span class="firma-chk">'+(done?'✓':'')+'</span>'
+        +'<span style="flex:1;"><span class="firma-nm">'+fm.nm+'</span>'
+        +'<span class="firma-meta"> · '+( CONF_LBL[fm.conf]||fm.conf)+'</span></span>'
+        +'<span style="font-family:DM Mono,monospace;color:var(--muted);transform:'+(open?'rotate(90deg)':'none')+';display:inline-block;">▸</span>'
+        +'</button>'
+        +'<div class="firma-body">'
+        +'<div class="firma-readout">'
+        +'<div class="cell"><div class="k">Aroma</div><div class="v">'+fm.aroma+'</div></div>'
+        +'<div class="cell"><div class="k">Textura</div><div class="v">'+fm.textura+'</div></div>'
+        +'<div class="cell"><div class="k">Color</div><div class="v">'+fm.color+'</div></div>'
+        +'<div class="cell"><div class="k">Confianza</div><div class="v '+(CONF_CLR[fm.conf]||'')+'">'+(CONF_LBL[fm.conf]||fm.conf)+'</div></div>'
+        +'</div>'
+        +'<div class="firma-cause">'+fm.cause+'</div>'
+        +'<div class="firma-fix t-'+fm.tipo+'"><div class="lever">Corrección sugerida</div>'+fixHTML+'</div>'
+        +'</div></div>';
+    });
+  }
+
+  // Registro panel
+  html+='</div><div><div class="diag-reg-panel">';
+  html+='<div class="section-title" style="margin-bottom:.5rem;">Registro del lote</div>';
+  html+='<div class="diag-reg-list">';
+  if(!diagReg.length){
+    html+='<div class="diag-empty">Sin diagnósticos registrados aún.</div>';
+  } else {
+    var sorted=diagReg.slice().sort(function(a,b){return b.ts.localeCompare(a.ts);});
+    sorted.forEach(function(r){
+      var d=new Date(r.ts);
+      var f=d.toLocaleDateString('es-AR')+' '+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+      html+='<div class="diag-reg-item">'
+        +'<button class="rx" onclick="diagBorrar(''+r.id+'')">×</button>'
+        +'<div class="rt">'+f+' · '+r.fase+'</div>'
+        +'<div class="rn">'+r.firma+'</div>'
+        +(r.campo?'<div class="rf">'+(CAMPO_LBL[r.campo]||r.campo)+': '+r.de+' → '+r.a+'</div>':'<div class="rf">'+(r.accion||'observación')+'</div>')
+        +'</div>';
+    });
+  }
+  html+='</div></div></div></div>';
+
+  root.innerHTML=html;
+}
+
+function diagToggle(id){
+  if(_diagAbiertas.has(id)) _diagAbiertas.delete(id); else _diagAbiertas.add(id);
+  diagRefresh();
+}
+
+function diagRegistrar(firmaId){
+  const fm=DIAG_FIRMAS.find(function(f){return f.id===firmaId;});
+  if(!fm) return;
+  const al=getActiveLote();
+  if(!al){toast('No hay lote activo');return;}
+  const fases=getFases(al);
+  const fase=fases[_diagFaseIdx];
+  const toInput=document.getElementById('diag-to-'+firmaId);
+  if(!S.diagnosticos) S.diagnosticos=[];
+  S.diagnosticos.push({
+    id:uid(), lote_id:al.id,
+    ts:new Date().toISOString(),
+    fase:fase?.nombre||'—',
+    firma_id:fm.id, firma:fm.nm, confianza:fm.conf,
+    campo:fm.fix?.campo||null,
+    de:fm.fix?.campo?fase[fm.fix.campo]:null,
+    a:toInput?Number(toInput.value):null,
+    accion:!fm.fix?'perfil correcto':(!fm.fix.campo?'revisión no numérica':null)
+  });
+  saveS(); diagRefresh(); toast('Diagnóstico registrado');
+}
+
+function diagBorrar(id){
+  if(!confirm('¿Eliminar este registro?')) return;
+  S.diagnosticos=(S.diagnosticos||[]).filter(function(d){return d.id!==id;});
+  saveS(); diagRefresh();
 }
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260814135120';
+  const BUILD='20260818133331';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
