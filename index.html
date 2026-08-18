@@ -59,6 +59,46 @@
 .dias-warn{color:var(--warn);}
 .dias-alert{color:var(--reds);font-weight:700;}
 
+/* DIAGNOSTICO */
+.diag-seg{display:inline-flex;background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:.8rem;}
+.diag-seg button{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);background:transparent;border:none;padding:7px 13px;cursor:pointer;border-right:1px solid var(--border);}
+.diag-seg button:last-child{border-right:none;}
+.diag-seg button.active{background:var(--gold);color:#fff;font-weight:700;}
+.diag-snapshot{display:flex;flex-wrap:wrap;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:.8rem;}
+.diag-sp{background:var(--bg3);padding:8px 13px;flex:1 1 80px;}
+.diag-sp .k{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);}
+.diag-sp .v{font-family:'DM Mono',monospace;font-size:14px;color:var(--cream);font-weight:600;margin-top:2px;}
+.diag-layout{display:grid;grid-template-columns:1fr;gap:18px;}
+@media(min-width:700px){.diag-layout{grid-template-columns:1.5fr 1fr;}}
+.firma-card{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--border);border-radius:9px;margin-bottom:9px;overflow:hidden;}
+.firma-card.t-extender{border-left-color:#e8b84b;}.firma-card.t-reducir{border-left-color:#cc4040;}.firma-card.t-humedad{border-left-color:#2870b8;}.firma-card.t-normal{border-left-color:#389848;}
+.firma-card.done{opacity:.6;}
+.firma-top-btn{width:100%;text-align:left;background:none;border:none;color:inherit;cursor:pointer;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;}
+.firma-chk{flex:0 0 auto;width:17px;height:17px;border:1.5px solid var(--muted);border-radius:4px;margin-top:2px;display:grid;place-items:center;font-size:11px;}
+.firma-card.done .firma-chk{background:var(--greens);border-color:var(--greens);color:#fff;}
+.firma-nm{font-weight:700;font-size:14px;color:var(--cream);}
+.firma-meta{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;}
+.firma-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border);}
+.firma-card.open .firma-body{display:block;}
+.firma-readout{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:7px;overflow:hidden;margin:10px 0;}
+.firma-readout .cell{background:var(--bg3);padding:7px 9px;}
+.firma-readout .cell .k{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-family:'DM Mono',monospace;}
+.firma-readout .cell .v{font-size:12px;color:var(--cream);margin-top:2px;}
+.firma-cause{font-size:12px;color:var(--muted);margin-bottom:10px;}
+.firma-fix{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px;}
+.firma-fix .lever{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--gold2);font-weight:700;margin-bottom:7px;}
+.firma-fix .desc{font-size:13px;color:var(--cream);margin-bottom:10px;}
+.firma-fix .nota{font-size:11px;color:var(--blues);font-family:'DM Mono',monospace;margin-top:8px;}
+.diag-reg-panel{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px;margin-top:0;}
+.diag-reg-list{margin-top:10px;display:flex;flex-direction:column;gap:8px;max-height:55vh;overflow:auto;}
+.diag-reg-item{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:9px 10px;position:relative;}
+.diag-reg-item .rt{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);}
+.diag-reg-item .rn{font-size:13px;font-weight:600;margin:2px 0;color:var(--cream);}
+.diag-reg-item .rf{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold2);}
+.diag-reg-item .rx{position:absolute;top:7px;right:8px;color:var(--muted);background:none;border:none;cursor:pointer;font-size:14px;}
+.diag-empty{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted2);padding:16px 2px;text-align:center;}
+.adjust-row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-bottom:8px;}
+
 </style>
 <meta name="build" content="20260429141004">
 <meta name="build-version" content="202603161544">
@@ -257,6 +297,7 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
   <div class="tab" data-tab="ventas" onclick="goTab('ventas')"><span class="ti">💰</span>Ventas</div>
   <div class="tab" data-tab="balance" onclick="goTab('balance')"><span class="ti">📊</span>Balance</div>
   <div class="tab" data-tab="consignacion" onclick="goTab('consignacion')"><span class="ti">🤝</span>Consign.</div>
+  <div class="tab" data-tab="diagnostico" onclick="goTab('diagnostico')"><span class="ti">🔬</span>Diagnós.</div>
 </nav>
 
 <div class="pages">
@@ -516,6 +557,10 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
   </div>
 </div>
 
+<div class="page" id="page-diagnostico">
+  <div class="section-title">DIAGNÓSTICO SENSORIAL</div>
+  <div id="diag-root"></div>
+</div>
 </div><!-- /pages -->
 
 <!-- ══ MODALS ══ -->
@@ -954,6 +999,7 @@ function refreshAll(){
   if(activeTab==='stock')stockRefresh();
   if(activeTab==='ventas')ventasRefresh();
   if(activeTab==='balance')balanceRefresh();
+  if(activeTab==='diagnostico')diagRefresh();
   if(activeTab==='consignacion')consRefresh();
 }
 function todayYM(){return new Date().toISOString().slice(0,7);}
@@ -970,6 +1016,7 @@ function goTab(tab){
   if(tab==='stock')stockRefresh();
   if(tab==='ventas')ventasRefresh();
   if(tab==='balance')balanceRefresh();
+  if(tab==='diagnostico')diagRefresh();
   if(tab==='consignacion')consRefresh();
 }
 function cycleMonth(){
@@ -3000,9 +3047,210 @@ function printConsRemito(){
   openPrintWindow(html, 'kaizen-consignacion-'+cliente.replace(/\s+/g,'-')+'.pdf');
 }
 
+
+// ── DIAGNÓSTICO SENSORIAL ─────────────────────────────────────
+
+const DIAG_FIRMAS = [
+  {id:'dulce-ausente',nm:'Dulce / melaza ausente — plano',conf:'probable',tipo:'extender',fase:['media'],aroma:'Neutro, poco caramelo',textura:'Correcta o firme',color:'Marron, no negro',cause:'Fructanos sin hidrolizar. Falta reaccion, no calor.',fix:{desc:'Extender la fase media. No subas temperatura para apurar: quema antes de endulzar.',campo:'diasHasta',delta:3}},
+  {id:'acido-balsamico',nm:'Acido balsamico redondo (tamarindo)',conf:'seguro',tipo:'normal',fase:['final'],aroma:'Dulce-acido, frutal',textura:'Blanda, jugosa',color:'Negro profundo',cause:'Caida natural de pH. Es el objetivo, no un defecto.',fix:null},
+  {id:'acido-punzante',nm:'Acido punzante / avinagrado (pica en nariz)',conf:'probable',tipo:'humedad',fase:['temprana','media'],aroma:'Agrio penetrante, tipo vinagre',textura:'Humeda, pegajosa',color:'Variable, con manchas',cause:'Humedad libre / condensacion. Problema de humedad, no de tiempo.',fix:{desc:'Baja humedad y mejora circulacion.',campo:'hMax',delta:-7,nota:'Refuerza ventilacion y revisa condensacion en la tapa.'}},
+  {id:'amargo-blando',nm:'Amargo — textura blanda, negro intenso',conf:'probable',tipo:'reducir',fase:['media','final'],aroma:'Tostado fuerte, cafe quemado',textura:'Blanda, humeda',color:'Negro tinta, bordes carbon',cause:'Maillard sobrepasado. Demasiado calor o tiempo.',fix:{desc:'Baja temperatura de la fase. Si el amargo viene con textura FIRME es crudo, no esto.',campo:'tMax',delta:-2}},
+  {id:'amargo-firme',nm:'Amargo — textura firme, olor alliaceo',conf:'probable',tipo:'extender',fase:['temprana','media'],aroma:'A ajo crudo, punzante',textura:'Firme, resistente',color:'Marron medio',cause:'Azufrados sin transformar: el amargo es picor crudo mal leido.',fix:{desc:'Mas tiempo. Aca subir temperatura NO quema, falta conversion.',campo:'diasHasta',delta:3}},
+  {id:'metalico',nm:'Metalico / picante crudo / alliaceo',conf:'probable',tipo:'extender',fase:['temprana'],aroma:'Ajo fresco, sulfuroso',textura:'Firme, cruda',color:'Marron claro',cause:'Compuestos azufrados sin convertir. Lote subdesarrollado.',fix:{desc:'Extende la fase temprana; el lote va atrasado en su curva.',campo:'diasHasta',delta:2}},
+  {id:'amoniacal',nm:'Amoniacal / nitrogenado punzante',conf:'probable',tipo:'reducir',fase:['final'],aroma:'Amoniaco, punzante',textura:'Blanda-seca, pastosa',color:'Negro',cause:'Degradacion proteica excesiva por calor/tiempo de mas.',fix:{desc:'Baja temperatura de la fase final; el perfil se esta pasando de punto.',campo:'tMax',delta:-2}},
+  {id:'ahumado',nm:'Ahumado / quemado localizado',conf:'probable',tipo:'reducir',fase:['temprana','media','final'],aroma:'Humo, chamuscado',textura:'Bordes secos/duros',color:'Desigual entre bandejas',cause:'Puntos calientes o distribucion despareja.',fix:{desc:'Revisa uniformidad del horno. Rota bandejas y contrasta sensor vs zona real.',nota:'Cubre la superficie si se seca en bordes.'}},
+  {id:'alcoholico',nm:'Alcoholico / solvente / levadura',conf:'suposicion',tipo:'humedad',fase:['temprana'],aroma:'Alcohol, solvente, pan',textura:'Humeda, pegajosa',color:'Variable',cause:'Levaduras por exceso de humedad o rampa inicial lenta.',fix:{desc:'Baja humedad y acelera la rampa inicial.',campo:'hMax',delta:-7,nota:'Revisa higiene de bandejas y materia prima.'}},
+  {id:'astringente',nm:'Astringente / seca la boca',conf:'suposicion',tipo:'reducir',fase:['final'],aroma:'Normal a tostado',textura:'Seca, correosa',color:'Negro mate',cause:'Sobre-secado: aw demasiado baja.',fix:{desc:'Suaviza el secado final: acorta esa fase.',campo:'diasHasta',delta:-1}},
+  {id:'gomosa',nm:'Sabor OK, textura gomosa / humeda',conf:'probable',tipo:'extender',fase:['final'],aroma:'Correcto',textura:'Gomosa, humeda',color:'Negro correcto',cause:'Falta secado final: aw todavia alta. Riesgo de conservacion.',fix:{desc:'Extende el secado final y verifica aw ANTES de envasar.',campo:'diasHasta',delta:2,nota:'No envases sin chequear aw.'}},
+  {id:'correosa',nm:'Sabor OK, textura correosa / desmenuzable',conf:'probable',tipo:'reducir',fase:['final'],aroma:'Correcto o apagado',textura:'Dura, quebradiza',color:'Negro mate opaco',cause:'Pasado de secado: aw bajo el objetivo.',fix:{desc:'Acorta el secado final en proximos lotes.',campo:'diasHasta',delta:-1,nota:'Si ya paso, destina el lote a molido o pasta.'}}
+];
+
+const CAMPO_LBL={tMin:'Temp min',tMax:'Temp max',hMin:'HR min',hMax:'HR max',diasHasta:'Duracion (dias)'};
+const CONF_LBL={seguro:'Seguro',probable:'Probable',suposicion:'Suposicion'};
+const CONF_CLR={seguro:'c-green',probable:'c-warn',suposicion:'td-muted'};
+let _diagFaseIdx=0, _diagAbiertas=new Set();
+
+function diagFaseMatch(fm,fases,idx){
+  var n=fases.length, tags=fm.fase;
+  if(tags.indexOf('temprana')>=0&&idx===0) return true;
+  if(tags.indexOf('final')>=0&&idx===n-1) return true;
+  if(tags.indexOf('media')>=0&&idx>0&&idx<n-1) return true;
+  var nb=(fases[idx]?fases[idx].nombre:'').toLowerCase();
+  for(var t=0;t<tags.length;t++){if(nb.indexOf(tags[t])>=0)return true;}
+  return false;
+}
+
+function diagGetPromedios(faseIdx){
+  var al=getActiveLote(); var fases=getFases(al);
+  var f=fases[faseIdx]; if(!f) return null;
+  var recs=S.prodRecords||{};
+  var dias=Object.keys(recs).map(Number).filter(function(d){return d>=f.diasDesde&&d<=f.diasHasta;});
+  if(!dias.length) return null;
+  var tArr=dias.map(function(d){return recs[d]?recs[d].tAvg:null;}).filter(function(v){return v!=null;});
+  var hArr=dias.map(function(d){return recs[d]?recs[d].hAvg:null;}).filter(function(v){return v!=null;});
+  return{
+    tProm:tArr.length?Math.round(tArr.reduce(function(a,b){return a+b;},0)/tArr.length*10)/10:null,
+    hProm:hArr.length?Math.round(hArr.reduce(function(a,b){return a+b;},0)/hArr.length*10)/10:null,
+    diasReg:dias.length
+  };
+}
+
+function diagRefresh(){
+  var root=document.getElementById('diag-root');
+  if(!root) return;
+  var al=getActiveLote();
+  var fases=getFases(al);
+  if(!fases||!fases.length){
+    root.innerHTML='<div style="color:var(--muted);font-family:DM Mono,monospace;padding:1rem;">No hay lote activo. Configura un lote en Produccion.</div>';
+    return;
+  }
+  if(_diagFaseIdx>=fases.length) _diagFaseIdx=0;
+  var fase=fases[_diagFaseIdx];
+  var prom=diagGetPromedios(_diagFaseIdx);
+  var diagReg=(S.diagnosticos||[]).filter(function(d){return d.lote_id===(al?al.id:null);});
+  var html='';
+
+  // Selector fases
+  html+='<div class="diag-seg">';
+  for(var fi=0;fi<fases.length;fi++){
+    html+='<button class="'+(fi===_diagFaseIdx?'active':'')+'" data-fi="'+fi+'">'+fases[fi].nombre+'</button>';
+  }
+  html+='</div>';
+
+  // Snapshot
+  html+='<div class="diag-snapshot">';
+  html+='<div class="diag-sp"><div class="k">Dias</div><div class="v">'+fase.diasDesde+'-'+fase.diasHasta+'</div></div>';
+  html+='<div class="diag-sp"><div class="k">Temp objetivo</div><div class="v">'+fase.tMin+'-'+fase.tMax+'C</div></div>';
+  html+='<div class="diag-sp"><div class="k">HR objetivo</div><div class="v">'+fase.hMin+'-'+fase.hMax+'%</div></div>';
+  if(prom){
+    if(prom.tProm!=null){var tc=prom.tProm<fase.tMin||prom.tProm>fase.tMax?'var(--reds)':'var(--greens)';html+='<div class="diag-sp"><div class="k">Temp real prom</div><div class="v" style="color:'+tc+'">'+prom.tProm+'C</div></div>';}
+    if(prom.hProm!=null){var hc=prom.hProm<fase.hMin||prom.hProm>fase.hMax?'var(--reds)':'var(--greens)';html+='<div class="diag-sp"><div class="k">HR real prom</div><div class="v" style="color:'+hc+'">'+prom.hProm+'%</div></div>';}
+    html+='<div class="diag-sp"><div class="k">Dias registrados</div><div class="v">'+prom.diasReg+'</div></div>';
+  } else {
+    html+='<div class="diag-sp"><div class="k">Datos reales</div><div class="v" style="color:var(--muted)">Sin registros</div></div>';
+  }
+  html+='</div>';
+
+  // Layout
+  html+='<div class="diag-layout"><div>';
+  html+='<div class="section-title" style="margin-bottom:.7rem;">Firmas — marca lo que detectas catando</div>';
+
+  var visibles=DIAG_FIRMAS.filter(function(fm){return diagFaseMatch(fm,fases,_diagFaseIdx);});
+  if(!visibles.length){
+    html+='<div class="diag-empty">Sin firmas para esta etapa.</div>';
+  } else {
+    for(var vi=0;vi<visibles.length;vi++){
+      var fm=visibles[vi];
+      var fid=fm.id;
+      var done=diagReg.some(function(r){return r.firma_id===fid;});
+      var open=_diagAbiertas.has(fid);
+      html+='<div class="firma-card t-'+fm.tipo+(done?' done':'')+(open?' open':'')+'"><button class="firma-top-btn" data-toggle="'+fid+'">';
+      html+='<span class="firma-chk">'+(done?'&#10003;':'')+'</span>';
+      html+='<span style="flex:1"><span class="firma-nm">'+fm.nm+'</span><span class="firma-meta"> &middot; '+(CONF_LBL[fm.conf]||fm.conf)+'</span></span>';
+      html+='<span style="font-family:DM Mono,monospace;color:var(--muted)">'+(open?'&#9660;':'&#9654;')+'</span>';
+      html+='</button><div class="firma-body">';
+      html+='<div class="firma-readout">';
+      html+='<div class="cell"><div class="k">Aroma</div><div class="v">'+fm.aroma+'</div></div>';
+      html+='<div class="cell"><div class="k">Textura</div><div class="v">'+fm.textura+'</div></div>';
+      html+='<div class="cell"><div class="k">Color</div><div class="v">'+fm.color+'</div></div>';
+      html+='<div class="cell"><div class="k">Confianza</div><div class="v '+(CONF_CLR[fm.conf]||'')+'">'+(CONF_LBL[fm.conf]||fm.conf)+'</div></div>';
+      html+='</div><div class="firma-cause">'+fm.cause+'</div>';
+      html+='<div class="firma-fix t-'+fm.tipo+'"><div class="lever">Correccion sugerida</div>';
+      if(!fm.fix){
+        html+='<div style="color:var(--greens);font-size:12px;">&#10003; Perfil correcto, no corregir variables.</div>';
+        html+='<button class="btn btn-outline btn-sm" style="margin-top:10px" data-reg="'+fid+'">Registrar observacion</button>';
+      } else {
+        html+='<div class="desc">'+fm.fix.desc+'</div>';
+        if(fm.fix.campo){
+          var actual=fase[fm.fix.campo];
+          var sug=actual!=null?actual+fm.fix.delta:'';
+          var unid=fm.fix.campo.charAt(0)==='t'?'C':'%';
+          html+='<div class="adjust-row">';
+          html+='<span style="font-size:11px;color:var(--muted)">'+(CAMPO_LBL[fm.fix.campo]||fm.fix.campo)+'</span>';
+          html+='<span style="font-family:DM Mono,monospace;color:var(--muted)">'+(actual!=null?actual+unid:'-')+'</span>';
+          html+='<span style="color:var(--gold2)">&#8594;</span>';
+          html+='<input type="number" step="1" value="'+sug+'" id="diag-to-'+fid+'" style="width:70px;background:var(--bg3);border:1px solid var(--gold);color:var(--cream);font-size:14px;padding:5px 8px;border-radius:6px">';
+          html+='</div>';
+        }
+        if(fm.fix.nota) html+='<div class="firma-fix nota">'+fm.fix.nota+'</div>';
+        html+='<button class="btn btn-gold btn-sm" style="margin-top:10px" data-reg="'+fid+'">'+(fm.fix.campo?'Registrar correccion':'Registrar diagnostico')+'</button>';
+      }
+      html+='</div></div></div>';
+    }
+  }
+
+  // Registro
+  html+='</div><div><div class="diag-reg-panel">';
+  html+='<div class="section-title" style="margin-bottom:.5rem">Registro del lote</div>';
+  html+='<div class="diag-reg-list">';
+  if(!diagReg.length){
+    html+='<div class="diag-empty">Sin diagnosticos registrados.</div>';
+  } else {
+    var sorted=diagReg.slice().sort(function(a,b){return b.ts.localeCompare(a.ts);});
+    for(var ri=0;ri<sorted.length;ri++){
+      var r=sorted[ri];
+      var d=new Date(r.ts);
+      var rf=d.toLocaleDateString('es-AR')+' '+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+      html+='<div class="diag-reg-item"><button class="rx" data-del="'+r.id+'">&#215;</button>';
+      html+='<div class="rt">'+rf+' &middot; '+r.fase+'</div>';
+      html+='<div class="rn">'+r.firma+'</div>';
+      if(r.campo) html+='<div class="rf">'+(CAMPO_LBL[r.campo]||r.campo)+': '+r.de+' &rarr; '+r.a+'</div>';
+      else html+='<div class="rf">'+(r.accion||'observacion')+'</div>';
+      html+='</div>';
+    }
+  }
+  html+='</div></div></div></div>';
+
+  root.innerHTML=html;
+
+  // Event delegation — no inline onclick
+  root.querySelectorAll('[data-fi]').forEach(function(btn){
+    btn.addEventListener('click',function(){_diagFaseIdx=parseInt(btn.dataset.fi);_diagAbiertas=new Set();diagRefresh();});
+  });
+  root.querySelectorAll('[data-toggle]').forEach(function(btn){
+    btn.addEventListener('click',function(){diagToggle(btn.dataset.toggle);});
+  });
+  root.querySelectorAll('[data-reg]').forEach(function(btn){
+    btn.addEventListener('click',function(){diagRegistrar(btn.dataset.reg);});
+  });
+  root.querySelectorAll('[data-del]').forEach(function(btn){
+    btn.addEventListener('click',function(){diagBorrar(btn.dataset.del);});
+  });
+}
+
+function diagToggle(id){
+  if(_diagAbiertas.has(id)) _diagAbiertas.delete(id); else _diagAbiertas.add(id);
+  diagRefresh();
+}
+
+function diagRegistrar(firmaId){
+  var fm=null;
+  for(var i=0;i<DIAG_FIRMAS.length;i++){if(DIAG_FIRMAS[i].id===firmaId){fm=DIAG_FIRMAS[i];break;}}
+  if(!fm) return;
+  var al=getActiveLote(); if(!al){toast('No hay lote activo');return;}
+  var fases=getFases(al); var fase=fases[_diagFaseIdx];
+  var toInput=document.getElementById('diag-to-'+firmaId);
+  if(!S.diagnosticos) S.diagnosticos=[];
+  S.diagnosticos.push({
+    id:uid(), lote_id:al.id, ts:new Date().toISOString(),
+    fase:fase?fase.nombre:'', firma_id:fm.id, firma:fm.nm, confianza:fm.conf,
+    campo:fm.fix?fm.fix.campo||null:null,
+    de:fm.fix&&fm.fix.campo?fase[fm.fix.campo]:null,
+    a:toInput?Number(toInput.value):null,
+    accion:!fm.fix?'perfil correcto':(!fm.fix||!fm.fix.campo?'revision':null)
+  });
+  saveS(); diagRefresh(); toast('Diagnostico registrado');
+}
+
+function diagBorrar(id){
+  if(!confirm('Eliminar este registro?')) return;
+  S.diagnosticos=(S.diagnosticos||[]).filter(function(d){return d.id!==id;});
+  saveS(); diagRefresh();
+}
+
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260814135120';
+  const BUILD='20260818194410';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
