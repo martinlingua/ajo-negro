@@ -1601,7 +1601,8 @@ function saveCostoFijo(){
       }
       fijo.concepto=c;
       fijo.monto=m;
-      fijo.desde=mesActual; // new value applies from this month
+      // 'desde' stays as original creation month — don't overwrite it
+      // The historial entry already records when the change happened (hasta=mesActual)
       toast(`Costo fijo actualizado: ${fmtMoney(fijo.historial?.[fijo.historial.length-1]?.monto||m)} → ${fmtMoney(m)}`);
     }
   } else {
@@ -1662,21 +1663,26 @@ function calcPcosto(producto){
 function getFijosParaMes(mes){
   if(!mes) return S.costoFijos.reduce((a,f)=>a+f.monto,0);
   return S.costoFijos.reduce((a,f)=>{
-    // Find what value this fijo had during 'mes'
     const hist=f.historial||[];
-    // If fijo started after 'mes', it didn't exist yet
-    if(f.desde&&f.desde>mes) return a; // not yet active
-    // Find the most recent historial entry that applies to 'mes'
-    // historial entries have {monto, hasta} where hasta is the month the change happened
-    // If mes < hasta, that entry's monto was still active
-    const applicable=hist.filter(h=>h.hasta>mes); // entries that changed AFTER mes
-    if(applicable.length){
-      // Use the oldest applicable entry's monto (what it was before changes after 'mes')
-      const oldest=applicable.sort((a,b)=>a.hasta.localeCompare(b.hasta))[0];
-      return a+oldest.monto;
+    // Determine real creation month:
+    // If historial exists, the fijo existed BEFORE the earliest 'hasta' entry
+    // so it was active at least since before that month.
+    // If 'desde' > earliest 'hasta', 'desde' was incorrectly overwritten — ignore it.
+    const earliestHasta=hist.length?hist.map(h=>h.hasta).sort()[0]:null;
+    const desde=f.desde||'2000-01';
+    // If desde was overwritten to a date AFTER or EQUAL to earliest change,
+    // the fijo actually existed before — treat it as always existing
+    const desdeReal=(earliestHasta&&desde>=earliestHasta)?'2000-01':desde;
+    if(desdeReal>mes) return a; // fijo didn't exist yet
+    // Find the value active during 'mes':
+    // historial: {monto: oldValue, hasta: monthOfChange}
+    // entries where hasta > mes = changes that happened AFTER mes = old value was active during mes
+    const afterMes=hist.filter(h=>h.hasta>mes)
+                       .sort((a,b)=>a.hasta.localeCompare(b.hasta));
+    if(afterMes.length){
+      return a+afterMes[0].monto; // use oldest still-active-at-mes value
     }
-    // No changes after 'mes' — use current value
-    return a+f.monto;
+    return a+f.monto; // no changes after mes, current value was always active
   },0);
 }
 
@@ -3250,7 +3256,7 @@ function diagBorrar(id){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260818194410';
+  const BUILD='20260824111157';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
