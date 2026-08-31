@@ -454,7 +454,7 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
   <div class="stats-grid" id="ventas-stats"></div>
   <div class="month-picker">
     <span style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);">MES:</span>
-    <select id="ventas-mes-filter" onchange="ventasRefresh()"></select>
+    <select id="ventas-mes-filter" onchange="this.dataset.userSet='1';ventasRefresh()"></select>
   </div>
   <div class="tbl-wrap">
     <table><thead><tr><th>Fecha</th><th>Productos</th><th>Total</th><th>Cliente</th><th>Estado</th><th></th></tr></thead>
@@ -467,7 +467,7 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
   <div class="section-title">BALANCE MENSUAL</div>
   <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:.8rem;">
     <span style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);">MES:</span>
-    <select id="balance-mes-filter" onchange="balanceRefresh()" style="background:var(--card);border:1px solid var(--border);border-radius:7px;padding:.38rem .7rem;color:var(--cream);font-family:'DM Mono',monospace;font-size:.8rem;outline:none;"></select>
+    <select id="balance-mes-filter" onchange="this.dataset.userSet='1';balanceRefresh()" style="background:var(--card);border:1px solid var(--border);border-radius:7px;padding:.38rem .7rem;color:var(--cream);font-family:'DM Mono',monospace;font-size:.8rem;outline:none;"></select>
     <button class="btn btn-gold btn-sm" style="margin-left:auto;" onclick="balanceExport()">⬇ Descargar</button>
   </div>
 
@@ -479,8 +479,13 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
     <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.9rem;margin-bottom:.8rem;">VENTAS — COSTOS = GANANCIA NETA</div>
     <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
       <div style="text-align:center;">
-        <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Ventas</div>
+        <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Venta Bruta</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--greens);" id="bal-ventas">$0</div>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--muted);">−</div>
+      <div style="text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--warn);text-transform:uppercase;letter-spacing:1px;">Descuentos</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--warn);" id="bal-descuentos">$0</div>
       </div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--muted);">−</div>
       <div style="text-align:center;">
@@ -505,16 +510,6 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
   </div>
 
   <!-- Inventario -->
-  <div class="card" style="margin-bottom:.7rem;background:rgba(32,96,160,.06);border-color:#2060a033;">
-    <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.9rem;margin-bottom:.7rem;">VALOR DEL INVENTARIO ACTUAL</div>
-    <div class="stats-grid" id="bal-stock-stats"></div>
-    <div class="tbl-wrap" style="margin-top:.5rem;">
-      <table><thead><tr><th>Producto</th><th>Stock</th><th>P.Costo</th><th>P.Venta</th><th>Val.Costo</th><th>Val.Venta</th></tr></thead>
-      <tbody id="bal-stock-tbody"></tbody></table>
-    </div>
-  </div>
-
-  <!-- Ventas por producto -->
   <div class="card">
     <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.9rem;margin-bottom:.7rem;">VENTAS POR PRODUCTO</div>
     <div class="tbl-wrap">
@@ -561,6 +556,16 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
   <div class="section-title">DIAGNÓSTICO SENSORIAL</div>
   <div id="diag-root"></div>
 </div>
+  <div class="card" style="margin-bottom:.7rem;background:rgba(32,96,160,.06);border-color:#2060a033;">
+    <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.9rem;margin-bottom:.7rem;">VALOR DEL INVENTARIO ACTUAL</div>
+    <div class="stats-grid" id="bal-stock-stats"></div>
+    <div class="tbl-wrap" style="margin-top:.5rem;">
+      <table><thead><tr><th>Producto</th><th>Stock</th><th>P.Costo</th><th>P.Venta</th><th>Val.Costo</th><th>Val.Venta</th></tr></thead>
+      <tbody id="bal-stock-tbody"></tbody></table>
+    </div>
+  </div>
+
+  <!-- Ventas por producto -->
 </div><!-- /pages -->
 
 <!-- ══ MODALS ══ -->
@@ -2183,7 +2188,9 @@ function saveVentaEdit(){
 }
 
 function ventasRefresh(){
-  const mesVal=document.getElementById('ventas-mes-filter').value||S.activeMes;
+  const sel=document.getElementById('ventas-mes-filter');
+  if(!sel.dataset.userSet) sel.value='';
+  const mesVal=sel.value||todayYM();
   populateMesFilter('ventas-mes-filter',mesVal);
   const vm=S.ventas.filter(v=>v.fecha?.startsWith(mesVal)&&v.estado!=='Cancelada');
   const pend=S.ventas.filter(v=>v.fecha?.startsWith(mesVal)&&v.estado==='Pendiente').reduce((a,v)=>a+v.total,0);
@@ -2240,12 +2247,17 @@ function deleteVenta(ventaId){
 // ── BALANCE ──────────────────────────────────────────────────
 
 function balanceRefresh(){
-  const mesVal=document.getElementById('balance-mes-filter').value||S.activeMes;
+  const sel=document.getElementById('balance-mes-filter');
+  // Always default to current month unless user explicitly changed it
+  if(!sel.dataset.userSet) sel.value='';
+  const mesVal=sel.value||todayYM();
   populateMesFilter('balance-mes-filter',mesVal);
 
   // ── Ventas cobradas del mes ──
   const vm=S.ventas.filter(v=>v.fecha?.startsWith(mesVal)&&v.estado==='Cobrada');
-  const ingresos=vm.reduce((a,v)=>a+v.total,0);
+  const ventaBruta=vm.reduce((a,v)=>a+(v.precio*v.cantidad),0); // precio original * cantidad
+  const descuentoTotal=Math.max(0,ventaBruta-vm.reduce((a,v)=>a+v.total,0)); // total descuentos
+  const ingresos=vm.reduce((a,v)=>a+v.total,0); // lo que realmente entró
 
   // ── Costos ───────────────────────────────────────────────────
   // Costo fijo  = total costos fijos del mes (completo)
@@ -2286,7 +2298,10 @@ function balanceRefresh(){
     <div class="stat"><div class="s-lbl">Margen</div><div class="s-val ${margen>=0?'c-green':'c-red'}">${margen.toFixed(1)}%</div><div class="s-sub">neto</div></div>`;
 
   // ── Ecuación principal ──
-  document.getElementById('bal-ventas').textContent=fmtMoney(ingresos);
+  document.getElementById('bal-ventas').textContent=fmtMoney(ventaBruta);
+  const descEl=document.getElementById('bal-descuentos');
+  if(descEl){descEl.textContent=fmtMoney(descuentoTotal);descEl.parentElement.style.display=descuentoTotal>0?'':'none';}
+  // Also hide the minus sign before descuentos when no discounts
   document.getElementById('bal-costos').textContent=fmtMoney(costoTotalVendido);
   const netaEl=document.getElementById('balance-neta');
   netaEl.textContent=fmtMoney(ganancia);
@@ -2365,7 +2380,9 @@ function balanceRefresh(){
 function balanceExport(){
   const mesVal=document.getElementById('balance-mes-filter').value||S.activeMes;
   const vm=S.ventas.filter(v=>v.fecha?.startsWith(mesVal)&&v.estado==='Cobrada');
-  const ingresos=vm.reduce((a,v)=>a+v.total,0);
+  const ventaBruta=vm.reduce((a,v)=>a+(v.precio*v.cantidad),0); // precio original * cantidad
+  const descuentoTotal=Math.max(0,ventaBruta-vm.reduce((a,v)=>a+v.total,0)); // total descuentos
+  const ingresos=vm.reduce((a,v)=>a+v.total,0); // lo que realmente entró
   let costoVar=0;
   vm.forEach(v=>{
     const prod=S.productos.find(p=>p.id===v.producto_id);
@@ -3256,7 +3273,7 @@ function diagBorrar(id){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260824111157';
+  const BUILD='20260831172830';
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
