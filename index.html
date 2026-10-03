@@ -1821,7 +1821,12 @@ function printRemito(ventaId){
   // ── Prices ──────────────────────────────────────────────
   // precioLista = precio original de lista (sin descuento)
   // precio = puede ser el acordado con descuento; para subtotal usamos precioLista
-  const subtotal=items.reduce((a,v)=>a+(v.precioLista||v.precio)*v.cantidad,0);
+  // Para ventas antiguas sin precioLista: reconstruir desde precio+descuento
+  const subtotal=items.reduce((a,v)=>{
+    var pL=v.precioLista||v.precioOriginal;
+    if(!pL){var d=v.descuento||0;pL=d>0?v.precio/(1-d/100):v.precio;}
+    return a+pL*v.cantidad;
+  },0);
   const pagado  =items.reduce((a,v)=>a+v.total,0);
   const diff    =Math.round((subtotal-pagado)*100)/100;
   const descPct =subtotal>0?Math.round((diff/subtotal)*1000)/10:0; // 1 decimal
@@ -1872,7 +1877,7 @@ function printRemito(ventaId){
 
   // LINE 1: items
   items.forEach(function(it){
-    var pLista=it.precioLista||it.precio;
+    var pLista=it.precioLista||it.precioOriginal||(it.descuento>0?it.precio/(1-it.descuento/100):it.precio);
     html+='<tr>';
     html+='<td>'+(it.producto_nombre||'—')+'</td>';
     html+='<td style="text-align:right;">'+it.cantidad+'</td>';
@@ -2107,7 +2112,7 @@ function saveVenta(){
     S.ventas.push({
       id:uid(),venta_id:ventaId,fecha,cliente,
       producto_id:it.producto_id,producto_nombre:it.producto_nombre,
-      cantidad:it.cantidad,precioOriginal:it.precio,precio:it.precio,
+      cantidad:it.cantidad,precioOriginal:it.precio,precioLista:it.precio,precio:it.precio,
       total:totalConDesc,descuento:descPct,estado,notas
     });
   });
@@ -3278,7 +3283,7 @@ function diagBorrar(id){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD=1791063739;
+  const BUILD=1791064453;
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
