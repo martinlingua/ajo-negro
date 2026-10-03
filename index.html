@@ -512,7 +512,7 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
   <div class="card" style="margin-bottom:.7rem;">
     <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.9rem;margin-bottom:.7rem;">VENTAS POR PRODUCTO</div>
     <div class="tbl-wrap">
-      <table><thead><tr><th>Producto</th><th>Und.</th><th>Ingresos</th><th>Costo</th><th>Margen</th></tr></thead>
+      <table><thead><tr><th>Producto</th><th>Und.</th><th>Ingresos</th><th>% Vtas</th><th>Costo</th><th>Margen</th></tr></thead>
       <tbody id="balance-prod-tbody"></tbody></table>
     </div>
   </div>
@@ -2365,16 +2365,19 @@ function balanceRefresh(){
     byProd[k].costo+=(prod?calcCostoVar(prod.composicion||[]):0)*v.cantidad;
   });
   const sorted=Object.entries(byProd).sort((a,b)=>b[1].ingresos-a[1].ingresos);
+  const totalIngProd=sorted.reduce((a,[,d])=>a+d.ingresos,0);
   document.getElementById('balance-prod-tbody').innerHTML=sorted.length?sorted.map(([n,d])=>{
     const mg=d.ingresos>0?((d.ingresos-d.costo)/d.ingresos*100):0;
-    return `<tr>
-      <td>${n}</td>
-      <td class="td-blue">${d.qty}</td>
-      <td class="td-green">${fmtMoney(d.ingresos)}</td>
-      <td class="td-muted">${fmtMoney(d.costo)}</td>
-      <td class="${mg>=0?'td-green':'td-red'}">${mg.toFixed(1)}%</td>
-    </tr>`;
-  }).join(''):`<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--muted);">Sin ventas cobradas</td></tr>`;
+    const pct=totalIngProd>0?(d.ingresos/totalIngProd*100):0;
+    return '<tr>'
+      +'<td>'+n+'</td>'
+      +'<td class="td-blue">'+d.qty+'</td>'
+      +'<td class="td-green">'+fmtMoney(d.ingresos)+'</td>'
+      +'<td class="td-blue" style="font-weight:600;">'+pct.toFixed(1)+'%</td>'
+      +'<td class="td-muted">'+fmtMoney(d.costo)+'</td>'
+      +'<td class="'+(mg>=0?'td-green':'td-red')+'">'+mg.toFixed(1)+'%</td>'
+      +'</tr>';
+  }).join(''):'<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--muted);">Sin ventas cobradas</td></tr>';
 }
 
 function balanceExport(){
@@ -3273,7 +3276,7 @@ function diagBorrar(id){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD='20260831173653';
+  const BUILD=1790992639;
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
