@@ -1819,8 +1819,9 @@ function printRemito(ventaId){
   if(!items.length){toast('Venta no encontrada');return;}
 
   // ── Prices ──────────────────────────────────────────────
-  // precio = original price (always), total = amount paid after discount
-  const subtotal=items.reduce((a,v)=>a+v.precio*v.cantidad,0);
+  // precioLista = precio original de lista (sin descuento)
+  // precio = puede ser el acordado con descuento; para subtotal usamos precioLista
+  const subtotal=items.reduce((a,v)=>a+(v.precioLista||v.precio)*v.cantidad,0);
   const pagado  =items.reduce((a,v)=>a+v.total,0);
   const diff    =Math.round((subtotal-pagado)*100)/100;
   const descPct =subtotal>0?Math.round((diff/subtotal)*1000)/10:0; // 1 decimal
