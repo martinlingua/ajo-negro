@@ -1814,110 +1814,6 @@ function stockAjuste(){const pid=document.getElementById('adj-producto').value,c
 
 // ── REMITO ───────────────────────────────────────────────────
 
-function printRemito(ventaId){
-  const items=S.ventas.filter(v=>(v.venta_id||v.id)===ventaId);
-  if(!items.length){toast('Venta no encontrada');return;}
-
-  // ── Prices ──────────────────────────────────────────────
-  // precioLista = precio original de lista (sin descuento)
-  // precio = puede ser el acordado con descuento; para subtotal usamos precioLista
-  // Para ventas antiguas sin precioLista: reconstruir desde precio+descuento
-  const subtotal=items.reduce((a,v)=>{
-    var pL=v.precioLista||v.precioOriginal;
-    if(!pL){var d=v.descuento||0;pL=d>0?v.precio/(1-d/100):v.precio;}
-    return a+pL*v.cantidad;
-  },0);
-  const pagado  =items.reduce((a,v)=>a+v.total,0);
-  const diff    =Math.round((subtotal-pagado)*100)/100;
-  const descPct =subtotal>0?Math.round((diff/subtotal)*1000)/10:0; // 1 decimal
-  const descMonto=diff>0?diff:0;
-  const totalFinal=pagado;
-
-  // ── Date ────────────────────────────────────────────────
-  const fp=(items[0].fecha||todayStr()).split('-');
-  const fechaFmt=fp[2]+'/'+fp[1]+'/'+fp[0].slice(2);
-  const now=new Date();
-  const pad=x=>String(x).padStart(2,'0');
-  const genFmt=pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+String(now.getFullYear()).slice(2)+' '+pad(now.getHours())+':'+pad(now.getMinutes());
-
-  const g=items[0];
-  const remitoNum='R-'+ventaId.slice(-6).toUpperCase();
-  const logoSrc=(document.querySelector('#app-shell .hdr-left img')||{}).src||'';
-
-  // ── HTML ─────────────────────────────────────────────────
-  let html='';
-  html+='<style>@page{margin:0;size:A4;}@media print{body>*{display:none!important;}#remito-print-area{display:block!important;}}</style>';
-  html+='<div class="remito-doc">';
-
-  // Header
-  html+='<div class="remito-header">';
-  html+='<img class="remito-logo" src="'+logoSrc+'" alt="KAIZEN">';
-  html+='<div class="remito-brand"><h1>KAIZEN</h1><p>Ajo Negro &middot; Producción Artesanal</p></div>';
-  html+='<div class="remito-tipo"><h2>REMITO DE<br>MOVIMIENTO INTERNO</h2><div class="r-num">'+remitoNum+'</div></div>';
-  html+='</div>';
-
-  // Meta
-  html+='<div class="remito-meta">';
-  html+='<div><div class="rm-lbl">Fecha</div><div class="rm-val">'+fechaFmt+'</div></div>';
-  html+='<div><div class="rm-lbl">Cliente / Destino</div><div class="rm-val">'+(g.cliente||'—')+'</div></div>';
-  html+='<div><div class="rm-lbl">Estado</div><div class="rm-val">'+g.estado+'</div></div>';
-  html+='<div><div class="rm-lbl">Referencia</div><div class="rm-val">'+remitoNum+'</div></div>';
-  if(g.notas) html+='<div style="grid-column:1/-1"><div class="rm-lbl">Notas</div><div class="rm-val" style="font-weight:400;">'+g.notas+'</div></div>';
-  html+='</div>';
-
-  // Table
-  html+='<table class="remito-table">';
-  html+='<thead><tr>';
-  html+='<th style="padding:.5rem .7rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;" style="width:46%;padding:.5rem .7rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;">Producto</th>';
-  html+='<th style="padding:.5rem .7rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">Cant.</th>';
-  html+='<th style="padding:.5rem .7rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">P. Unit.</th>';
-  html+='<th style="padding:.5rem .7rem;font-size:10px;text-transform:uppercase;font-weight:700;color:#ffffff;background:#2a3a48;text-align:right;">Total</th>';
-  html+='</tr></thead>';
-  html+='<tbody>';
-
-  // LINE 1: items
-  items.forEach(function(it){
-    var pLista=it.precioLista||it.precioOriginal||(it.descuento>0?it.precio/(1-it.descuento/100):it.precio);
-    html+='<tr>';
-    html+='<td>'+(it.producto_nombre||'—')+'</td>';
-    html+='<td style="text-align:right;">'+it.cantidad+'</td>';
-    html+='<td style="text-align:right;">'+fmtMoney(pLista)+'</td>';
-    html+='<td style="text-align:right;">'+fmtMoney(pLista*it.cantidad)+'</td>';
-    html+='</tr>';
-  });
-
-  // LINE 2: subtotal (siempre visible cuando hay descuento, sino va directo al total)
-  if(descPct>0){
-    html+='<tr style="border-top:1px solid #dde0e5;">';
-    html+='<td colspan="3" style="padding:.45rem .8rem;font-size:12px;color:#5a6a78;">Subtotal</td>';
-    html+='<td style="text-align:right;padding:.45rem .8rem;font-size:13px;font-family:monospace;color:#1a1a1a;">'+fmtMoney(subtotal)+'</td>';
-    html+='</tr>';
-
-    // LINE 3: descuento
-    html+='<tr style="border-bottom:2px solid #2a3a48;">';
-    html+='<td colspan="3" style="padding:.45rem .8rem;font-size:12px;color:#b03030;font-weight:700;">Descuento '+descPct+'%</td>';
-    html+='<td style="text-align:right;padding:.45rem .8rem;font-size:13px;color:#b03030;font-weight:700;">- '+fmtMoney(descMonto)+'</td>';
-    html+='</tr>';
-  }
-
-  // LINE 4: total a pagar
-  html+='<tr style="background:#2a3a48;">';
-  html+='<td colspan="3" style="padding:.7rem .8rem;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#ffffff;font-weight:700;">'+(descPct>0?'TOTAL A PAGAR':'TOTAL')+'</td>';
-  html+='<td style="padding:.7rem .8rem;font-size:1.15rem;font-family:monospace;font-weight:700;text-align:right;color:#ffffff;">'+fmtMoney(totalFinal)+'</td>';
-  html+='</tr>';
-
-  html+='</tbody></table>';
-
-  // Footer
-  html+='<div class="remito-footer">';
-  html+='<div class="rf-nota">Documento de uso interno &middot; KAIZEN Ajo Negro<br>Generado: '+genFmt+'</div>';
-  html+='<div class="rf-firma"><div class="rf-line"></div><p>Firma y aclaración</p></div>';
-  html+='</div>';
-
-  html+='</div>'; // remito-doc
-
-  openPrintWindow(html, 'kaizen-remito-'+remitoNum+'.pdf');
-}
 // ── VENTAS ───────────────────────────────────────────────────
 
 function populateMesFilter(selId,val){
@@ -3287,7 +3183,7 @@ function diagBorrar(id){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD=1791064728;
+  const BUILD=1791064904;
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
