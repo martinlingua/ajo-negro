@@ -2362,14 +2362,11 @@ function printRemito(ventaId){
   const items=S.ventas.filter(v=>(v.venta_id||v.id)===ventaId);
   if(!items.length){toast('Venta no encontrada');return;}
   const g=items[0];
-  // Reconstruir precio de lista: precioLista > precioOriginal > precio/(1-desc/100)
+  // precio = precio de lista (sin descuento). total = puede estar mal en ventas antiguas.
+  // Siempre calcular desde precio*cantidad y aplicar descuento.
   const descPct=items[0]?.descuento||0;
-  const total=items.reduce((a,v)=>a+v.total,0);
-  const subtotalVenta=items.reduce((a,v)=>{
-    var pL=v.precioLista||v.precioOriginal;
-    if(!pL){var d=v.descuento||0;pL=d>0?Math.round(v.precio/(1-d/100)):v.precio;}
-    return a+pL*v.cantidad;
-  },0);
+  const subtotalVenta=items.reduce((a,v)=>a+(v.precioLista||v.precioOriginal||v.precio)*v.cantidad,0);
+  const total=descPct>0?Math.round(subtotalVenta*(1-descPct/100)):items.reduce((a,v)=>a+v.total,0);
 
   // Build remito number from venta id (last 6 chars uppercase)
   const remitoNum='R-'+ventaId.slice(-6).toUpperCase();
@@ -3183,7 +3180,7 @@ function diagBorrar(id){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD=1791064904;
+  const BUILD=1791065167;
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
