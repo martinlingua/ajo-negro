@@ -2466,10 +2466,14 @@ function printRemito(ventaId){
   const items=S.ventas.filter(v=>(v.venta_id||v.id)===ventaId);
   if(!items.length){toast('Venta no encontrada');return;}
   const g=items[0];
-  // Use precioOriginal if available, otherwise precio (pre-discount fix records)
-  const subtotalVenta=items.reduce((a,v)=>a+((v.precioOriginal||v.precio)*v.cantidad),0);
+  // Reconstruir precio de lista: precioLista > precioOriginal > precio/(1-desc/100)
   const descPct=items[0]?.descuento||0;
   const total=items.reduce((a,v)=>a+v.total,0);
+  const subtotalVenta=items.reduce((a,v)=>{
+    var pL=v.precioLista||v.precioOriginal;
+    if(!pL){var d=v.descuento||0;pL=d>0?Math.round(v.precio/(1-d/100)):v.precio;}
+    return a+pL*v.cantidad;
+  },0);
 
   // Build remito number from venta id (last 6 chars uppercase)
   const remitoNum='R-'+ventaId.slice(-6).toUpperCase();
@@ -2531,22 +2535,22 @@ function printRemito(ventaId){
         </tr>
       </thead>
       <tbody>
-        ${items.map((it,i)=>`
+        ${items.map((it,i)=>{var d=it.descuento||0;var pL=it.precioLista||it.precioOriginal||(d>0?Math.round(it.precio/(1-d/100)):it.precio);return `
         <tr style="background:${i%2===0?'#f8f9fa':'white'};border-bottom:1px solid #e0e4e8;">
           <td style="padding:8px 10px;font-weight:500;">${it.producto_nombre||'—'}</td>
           <td style="padding:8px 10px;text-align:center;font-family:monospace;">${it.cantidad}</td>
-          <td style="padding:8px 10px;text-align:right;font-family:monospace;">${fmtMoney(it.precioOriginal||it.precio)}</td>
-          <td style="padding:8px 10px;text-align:right;font-family:monospace;font-weight:600;">${fmtMoney((it.precioOriginal||it.precio)*it.cantidad)}</td>
-        </tr>`).join('')}
+          <td style="padding:8px 10px;text-align:right;font-family:monospace;">${fmtMoney(pL)}</td>
+          <td style="padding:8px 10px;text-align:right;font-family:monospace;font-weight:600;">${fmtMoney(pL*it.cantidad)}</td>
+        </tr>`;}).join('')}
       </tbody>
       <tfoot>
         ${descPct>0?`
         <tr style="border-top:2px solid #dde0e5;">
           <td colspan="3" style="padding:7px 10px;text-align:right;font-size:12px;color:#b03030;font-weight:700;">Descuento ${descPct}%</td>
-          <td style="padding:7px 10px;text-align:right;font-family:monospace;font-size:13px;font-weight:700;color:#b03030;">- ${fmtMoney(subtotalVenta*descPct/100)}</td>
+          <td style="padding:7px 10px;text-align:right;font-family:monospace;font-size:13px;font-weight:700;color:#b03030;">- ${fmtMoney(subtotalVenta-total)}</td>
         </tr>`:''}
         <tr style="background:#2a3a48;color:white;">
-          <td colspan="3" style="padding:9px 10px;text-align:right;font-size:11px;letter-spacing:1px;text-transform:uppercase;">TOTAL</td>
+          <td colspan="3" style="padding:9px 10px;text-align:right;font-size:11px;letter-spacing:1px;text-transform:uppercase;">${descPct>0?'TOTAL A PAGAR':'TOTAL'}</td>
           <td style="padding:9px 10px;text-align:right;font-family:monospace;font-size:15px;font-weight:bold;">${fmtMoney(total)}</td>
         </tr>
       </tfoot>
@@ -3283,7 +3287,7 @@ function diagBorrar(id){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD=1791064453;
+  const BUILD=1791064728;
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
