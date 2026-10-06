@@ -418,6 +418,18 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
     </div>
   </div>
 
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem;">
+      <span style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.95rem;">COMISIONES DE CANAL</span>
+      <button class="btn btn-outline btn-sm" onclick="openModal('modal-comision')">+ Agregar</button>
+    </div>
+    <div class="tbl-wrap">
+      <table><thead><tr><th>Cliente / Canal</th><th>% Comision</th><th></th></tr></thead>
+      <tbody id="comisiones-tbody"></tbody></table>
+    </div>
+    <div style="font-size:.72rem;color:var(--muted);margin-top:.5rem;">El importe de comision se suma automaticamente a los costos del mes en el Balance.</div>
+  </div>
+
   <div class="card" style="background:rgba(90,122,58,.07);border-color:var(--gold-dim);">
     <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--muted);font-size:.95rem;margin-bottom:.7rem;">COSTO POR UNIDAD PRODUCIDA</div>
     <div class="field" style="margin-bottom:.7rem;"><label>Kg producidos este mes</label><input type="number" id="cpu-input" step="0.01" placeholder="Ej: 5.0" oninput="cpuSaveAndRefresh()"></div>
@@ -701,6 +713,17 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-comision">
+  <div class="modal"><h2 id="com-modal-title">COMISION DE CANAL</h2>
+    <div class="modal-fields">
+      <div class="field"><label>Cliente / Canal</label><input type="text" id="com-cliente" placeholder="Ej: Mercado Libre, Rappi..."></div>
+      <div class="field"><label>% Comision sobre ventas cobradas</label><input type="number" id="com-pct" step="0.1" min="0" max="100" placeholder="Ej: 8"></div>
+    </div>
+    <input type="hidden" id="com-edit-id">
+    <div class="btn-row"><button class="btn btn-gold btn-full" onclick="saveComision()">Guardar</button><button class="btn btn-outline" onclick="closeModal('modal-comision')">Cancelar</button></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-producto">
   <div class="modal"><h2 id="modal-prod-title">NUEVO PRODUCTO</h2>
     <div class="modal-fields">
@@ -868,7 +891,8 @@ tbody td{padding:.5rem .65rem;font-family:'DM Mono',monospace;font-size:.76rem;c
 // ── STATE ────────────────────────────────────────────────────
 let S={activeLoteId:null,lotes:[],lote:{lote:'—',variedad:'—',fecha:'—',peso:'—',resp:'—'},prodRecords:{},prodDay:1,prodChart:'both',costoItems:[],costoFijos:[],kgProducidos:0,productos:[],ventas:[],activeMes:'',
   fasesConfig:null, // null = use defaults; set when user customizes
-  consignaciones:[] // [{id, cliente, producto_id, producto_nombre, cantidad, precio, fecha, notas, pendiente, liquidaciones:[{fecha,vendidos,devueltos,notas}]}]
+  consignaciones:[], // [{id, cliente, producto_id, producto_nombre, cantidad, precio, fecha, notas, pendiente, liquidaciones:[{fecha,vendidos,devueltos,notas}]}]
+  comisiones:[] // [{id, cliente, pct}]  comision por canal/cliente
 };
 
 // ── LOTE HELPERS ──────────────────────────────────────────────
@@ -1525,6 +1549,20 @@ function costosRefresh(){
   document.getElementById('cpu-var').textContent=kg>0?fmtMoney(varXkg):'$0';
   document.getElementById('cpu-fijo').textContent=kg>0?fmtMoney(fijoXkg):'$0';
   document.getElementById('cpu-total').textContent=kg>0?fmtMoney(varXkg+fijoXkg):'$0';
+  // Comisiones de canal
+  if(!S.comisiones) S.comisiones=[];
+  const comTbody=document.getElementById('comisiones-tbody');
+  if(comTbody){
+    comTbody.innerHTML=S.comisiones.length?S.comisiones.map(c=>{
+      return '<tr>'
+        +'<td>'+c.cliente+'</td>'
+        +'<td class="td-gold" style="font-weight:600;">'+c.pct+'%</td>'
+        +'<td style="display:flex;gap:.3rem;">'
+        +'<button class="btn btn-outline btn-sm" onclick="editComision(\''+c.id+'\')">&#x270E;</button>'
+        +'<button class="btn btn-danger btn-sm" onclick="deleteComision(\''+c.id+'\')">&#x2715;</button>'
+        +'</td></tr>';
+    }).join(''):'<tr><td colspan="3" style="text-align:center;padding:1.5rem;color:var(--muted);">Sin comisiones configuradas</td></tr>';
+  }
 }
 function saveCostoItem(){
   const n=document.getElementById('ci-nombre').value.trim();
@@ -1643,6 +1681,45 @@ function deleteCostoFijo(id){
   if(!confirm('¿Eliminar este costo fijo?'))return;
   S.costoFijos=S.costoFijos.filter(f=>f.id!==id);
   saveS();costosRefresh();toast('Costo fijo eliminado');
+}
+
+// ── COMISIONES DE CANAL ──────────────────────────────────────
+
+function saveComision(){
+  const cl=document.getElementById('com-cliente').value.trim();
+  const pct=parseFloat(document.getElementById('com-pct').value);
+  if(!cl||isNaN(pct)||pct<0||pct>100){toast('Completá cliente y porcentaje');return;}
+  const editId=document.getElementById('com-edit-id').value;
+  if(!S.comisiones) S.comisiones=[];
+  if(editId){
+    const c=S.comisiones.find(x=>x.id===editId);
+    if(c){c.cliente=cl;c.pct=pct;}
+    toast('Comision actualizada');
+  } else {
+    S.comisiones.push({id:uid(),cliente:cl,pct:pct});
+    toast('Comision agregada');
+  }
+  saveS();closeModal('modal-comision');costosRefresh();balanceRefresh();
+  document.getElementById('com-cliente').value='';
+  document.getElementById('com-pct').value='';
+  document.getElementById('com-edit-id').value='';
+  document.getElementById('com-modal-title').textContent='COMISION DE CANAL';
+}
+
+function editComision(id){
+  if(!S.comisiones) return;
+  const c=S.comisiones.find(x=>x.id===id);if(!c)return;
+  document.getElementById('com-modal-title').textContent='EDITAR COMISION';
+  document.getElementById('com-cliente').value=c.cliente;
+  document.getElementById('com-pct').value=c.pct;
+  document.getElementById('com-edit-id').value=id;
+  openModal('modal-comision');
+}
+
+function deleteComision(id){
+  if(!confirm('Eliminar esta comision?'))return;
+  S.comisiones=(S.comisiones||[]).filter(c=>c.id!==id);
+  saveS();costosRefresh();balanceRefresh();toast('Comision eliminada');
 }
 
 // ── STOCK ────────────────────────────────────────────────────
@@ -2185,7 +2262,21 @@ function balanceRefresh(){
   });
 
   const costoFijoDeLoVendido=totalFijosMes;
-  const costoTotalVendido=costoVarVendido+costoFijoDeLoVendido;
+  // Comisiones: por cada venta, si el cliente tiene comision configurada, aplicar % sobre total
+  if(!S.comisiones) S.comisiones=[];
+  let costoComisiones=0;
+  const detalleComisiones={};
+  vm.forEach(v=>{
+    const com=S.comisiones.find(c=>c.cliente.toLowerCase()===(v.cliente||'').toLowerCase());
+    if(com){
+      const imp=Math.round(v.total*com.pct/100);
+      costoComisiones+=imp;
+      if(!detalleComisiones[com.cliente]) detalleComisiones[com.cliente]={pct:com.pct,total:0,imp:0};
+      detalleComisiones[com.cliente].total+=v.total;
+      detalleComisiones[com.cliente].imp+=imp;
+    }
+  });
+  const costoTotalVendido=costoVarVendido+costoFijoDeLoVendido+costoComisiones;
   const kgVendidosTotal=vm.reduce((a,v)=>{
     const prod=S.productos.find(p=>p.id===v.producto_id);
     return a+(prod?.gramos||0)*v.cantidad;
@@ -2198,6 +2289,7 @@ function balanceRefresh(){
     <div class="stat"><div class="s-lbl">Ingresos</div><div class="s-val c-green">${fmtMoney(ingresos)}</div><div class="s-sub">ventas cobradas</div></div>
     <div class="stat"><div class="s-lbl">Costo variable</div><div class="s-val c-warn">${fmtMoney(costoVarVendido)}</div><div class="s-sub">de lo vendido</div></div>
     <div class="stat"><div class="s-lbl">Costo fijo</div><div class="s-val c-red">${fmtMoney(costoFijoDeLoVendido)}</div><div class="s-sub">total del mes</div></div>
+    ${costoComisiones>0?`<div class="stat"><div class="s-lbl">Comisiones</div><div class="s-val c-red">${fmtMoney(costoComisiones)}</div><div class="s-sub">canales</div></div>`:''}
     <div class="stat"><div class="s-lbl">Margen</div><div class="s-val ${margen>=0?'c-green':'c-red'}">${margen.toFixed(1)}%</div><div class="s-sub">neto</div></div>`;
 
   // ── Ecuación principal ──
@@ -2221,7 +2313,8 @@ function balanceRefresh(){
     ['Ventas',       ingresos,          'linear-gradient(90deg,#2a7835,#389848)',  'c-green'],
     ['Costo Var.',   costoVarVendido,   'linear-gradient(90deg,#a05010,#c06820)',  'c-warn'],
     ['Costo Fijo',   costoFijoDeLoVendido,  'linear-gradient(90deg,#903030,#b04040)',  'c-red'],
-    [ganancia>=0?'Ganancia':'Pérdida', Math.abs(ganancia),
+    ...(costoComisiones>0?[['Comisiones', costoComisiones, 'linear-gradient(90deg,#702060,#901080)', 'c-red']]:[]),
+    [ganancia>=0?'Ganancia':'Perdida', Math.abs(ganancia),
       ganancia>=0?'linear-gradient(90deg,#2a5a20,#3a7a30)':'linear-gradient(90deg,#601818,#882828)',
       ganancia>=0?'c-green':'c-red'],
   ].map(([lbl,val,grad,cls])=>`
@@ -2230,10 +2323,13 @@ function balanceRefresh(){
       <div class="bar-track"><div class="bar-fill" style="width:${(val/maxV)*100}%;background:${grad};"></div></div>
       <div class="bar-val ${cls}">${fmtMoney(val)}</div>
     </div>`).join('');
+  const notaComisiones=costoComisiones>0
+    ? ' · Comisiones: '+Object.entries(detalleComisiones).map(([cl,d])=>cl+' '+d.pct+'% sobre '+fmtMoney(d.total)+' = '+fmtMoney(d.imp)).join(', ')+' = '+fmtMoney(costoComisiones)
+    : '';
   document.getElementById('bal-nota-costos').textContent=
-    `Costo fijo: ${fmtMoney(totalFijosMes)} (total del mes) · Costo variable: ` +
-    Object.entries(detalleCostoVar).map(([n,d])=>`${n}: ${fmtMoney(d.cv)} × ${d.qty} = ${fmtMoney(d.subtotal)}`).join(' + ') +
-    ` = ${fmtMoney(costoVarVendido)}`;
+    'Costo fijo: '+fmtMoney(totalFijosMes)+' (total del mes) · Costo variable: ' +
+    Object.entries(detalleCostoVar).map(([n,d])=>n+': '+fmtMoney(d.cv)+' x '+d.qty+' = '+fmtMoney(d.subtotal)).join(' + ') +
+    ' = '+fmtMoney(costoVarVendido)+notaComisiones;
 
   // ── Inventario ──
   const prods=S.productos;
@@ -3180,7 +3276,7 @@ function diagBorrar(id){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD=1791065167;
+  const BUILD=1791292772;
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
