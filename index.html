@@ -938,6 +938,7 @@ async function loadS(){
     if(!error&&data?.data){
       S=data.data;
       if(!S.activeMes)S.activeMes=todayYM();
+      if(!S.comisiones)S.comisiones=[];
       localStorage.setItem('kaizen_v3',JSON.stringify(S));
       refreshAll();
       showSyncStatus('Sincronizado con la nube ☁️');
@@ -980,6 +981,7 @@ function setupRealtime(){
         if(!remote)return;
         S=remote;
         if(!S.activeMes)S.activeMes=todayYM();
+        if(!S.comisiones)S.comisiones=[];
         localStorage.setItem('kaizen_v3',JSON.stringify(S));
         refreshAll();
         showSyncStatus('Actualizado desde otro dispositivo 📱');
@@ -3276,7 +3278,7 @@ function diagBorrar(id){
 
 // ── SERVICE WORKER ───────────────────────────────────────────
 if('serviceWorker'in navigator){
-  const BUILD=1791292772;
+  const BUILD=1791367993;
   window.addEventListener('load',()=>{
     // Pass build timestamp to SW so it can name the cache uniquely per deploy
     navigator.serviceWorker.register('sw.js').then(reg=>{
